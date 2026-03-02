@@ -92,7 +92,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             />
             <h1 className="text-lg font-bold text-slate-900 tracking-tight">Registro Escolar</h1>
           </div>
-          <button onClick={onClose} className="lg:hidden p-2 text-slate-400 hover:bg-slate-50 rounded-lg transition-colors">
+          <button type="button" onClick={onClose} className="lg:hidden p-2 text-slate-400 hover:bg-slate-50 rounded-lg transition-colors">
             <X className="w-5 h-5" />
           </button>
         </div>
@@ -100,6 +100,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
         <div className="px-6 py-4">
           <div className="bg-slate-50 p-1 rounded-2xl flex gap-1 border border-slate-200/50">
             <button 
+              type="button"
               onClick={() => setLevel('BASICA')}
               className={cn(
                 "flex-1 py-2 text-[11px] font-bold rounded-xl transition-all duration-200 tracking-wider",
@@ -109,6 +110,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
               BÁSICA
             </button>
             <button 
+              type="button"
               onClick={() => setLevel('MEDIA')}
               className={cn(
                 "flex-1 py-2 text-[11px] font-bold rounded-xl transition-all duration-200 tracking-wider",
@@ -127,6 +129,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
             return (
               <button
+                type="button"
                 key={item.id}
                 onClick={() => {
                   setActiveTab(item.id);
@@ -167,6 +170,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             <div className="mt-3">
               {isAuthenticated ? (
                 <button
+                  type="button"
                   onClick={onLogoutClick}
                   className="w-full px-3 py-2 text-xs font-bold text-slate-600 border border-slate-200 rounded-xl hover:bg-slate-100 transition-colors"
                 >
@@ -174,6 +178,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 </button>
               ) : (
                 <button
+                  type="button"
                   onClick={onLoginClick}
                   className="w-full px-3 py-2 text-xs font-bold text-white bg-indigo-600 rounded-xl hover:bg-indigo-700 transition-colors"
                 >

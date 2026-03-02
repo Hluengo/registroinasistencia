@@ -9,8 +9,7 @@ import {
   Test, 
   Absence, 
   Student, 
-  Course,
-  InspectorateRecord
+  Course
 } from '../types';
 import { Database, Tables, TablesInsert, TablesUpdate, Enums } from '../types/db';
 import { normalizeHoliday, filterHolidaysByPeriod, normalizeAbsenceWithDetails, findAffectedTests, groupTestsByCourse, Holiday as NormalizedHoliday } from '../lib/transformations';
@@ -46,15 +45,15 @@ export type TeacherPublicAbsenceDetail = {
 function useQ<TQueryFnData = unknown, TError = unknown, TData = TQueryFnData, TQueryKey extends QueryKey = QueryKey>(
   queryKey: TQueryKey,
   queryFn: () => Promise<TQueryFnData>,
-  options?: UseQueryOptions<TQueryFnData, TError, TData, TQueryKey>
+  options?: Omit<UseQueryOptions<TQueryFnData, TError, TData, TQueryKey>, 'queryKey' | 'queryFn'>
 ): UseQueryResult<TData, TError> {
-  // React Query handles queryKey comparison internally with shallow comparison.
-  // Pass options directly without manual memoization of queryKey stringify.
-  return useQuery({
-    ...(options as unknown as Record<string, unknown>),
+  return useQuery<TQueryFnData, TError, TData, TQueryKey>({
     queryKey,
-    queryFn
-  } as unknown as UseQueryOptions<TQueryFnData, TError, TData, TQueryKey>);
+    queryFn,
+    staleTime: 30_000,
+    refetchOnWindowFocus: false,
+    ...(options ?? {})
+  });
 }
 
 const queryKeys = {
@@ -203,13 +202,35 @@ export const useAbsences = (level?: 'BASICA' | 'MEDIA', startDate?: string, endD
         : rows;
       if (result.length === 0) return [];
 
-      const { data: allTests, error: tErr } = await supabase
+      const relevantCourseIds = Array.from(
+        new Set(
+          result
+            .map((r) => r.students?.course_id)
+            .filter((id): id is string => Boolean(id))
+        )
+      );
+      if (relevantCourseIds.length === 0) {
+        return result.map((absence) => normalizeAbsenceWithDetails(absence, []));
+      }
+
+      let testsQuery = supabase
         .from('tests')
-        .select('id, course_id, date, subject, type');
+        .select('id, course_id, date, subject, type')
+        .in('course_id', relevantCourseIds);
 
-      if (tErr) throw tErr;
+      if (startDate && endDate) {
+        testsQuery = testsQuery.gte('date', startDate).lte('date', endDate);
+      } else if (startDate) {
+        testsQuery = testsQuery.gte('date', startDate);
+      } else if (endDate) {
+        testsQuery = testsQuery.lte('date', endDate);
+      }
 
-      const tests = (allTests || []) as Test[];
+      const { data: scopedTests, error: scopedTestsErr } = await testsQuery;
+
+      if (scopedTestsErr) throw scopedTestsErr;
+
+      const tests = (scopedTests || []) as Test[];
       const testsByCourse = groupTestsByCourse(tests);
 
       return result.map((absence) => {
@@ -221,7 +242,7 @@ export const useAbsences = (level?: 'BASICA' | 'MEDIA', startDate?: string, endD
   );
 };
 
-export const useStudents = (courseId?: string, level?: 'BASICA' | 'MEDIA') => {
+export const useStudents = (courseId?: string, level?: 'BASICA' | 'MEDIA', enabled: boolean = true) => {
   const result = useQ<StudentRow[]>(
     queryKeys.students(courseId, level),
     async () => {
@@ -234,7 +255,8 @@ export const useStudents = (courseId?: string, level?: 'BASICA' | 'MEDIA') => {
       const { data, error } = await query;
       if (error) throw error;
       return (data || []) as unknown as StudentRow[];
-    }
+    },
+    { enabled }
   );
 
   // Efficiently memoize the returned data array by comparing a compact
@@ -257,22 +279,26 @@ export const useStudents = (courseId?: string, level?: 'BASICA' | 'MEDIA') => {
   return { ...result, data: memoData } as UseQueryResult<StudentRow[]>;
 };
 
-type InspectorateWithStudent = InspectorateRecord & {
-  students: Database['public']['Tables']['students']['Row'] & { courses: Database['public']['Tables']['courses']['Row'] }
+export type InspectorateWithStudent = {
+  id: string;
+  student_id: string | null;
+  created_at: string | null;
+  date_time: string;
+  observation: string;
+  student: Student & { course: Course };
 };
 
-export const useInspectorate = (level?: 'BASICA' | 'MEDIA', startDate?: string, endDate?: string) => {
+export const useInspectorate = (level?: 'BASICA' | 'MEDIA', startDate?: string, endDate?: string): UseQueryResult<InspectorateWithStudent[], unknown> => {
   return useQ<InspectorateWithStudent[]>(
     queryKeys.inspectorate(level, startDate, endDate),
     async () => {
-      let query = supabase.from('inspectorate_records').select('id, student_id, date_time, observation, students!inner(id, full_name, course_id, courses!inner(id, name, level))').order('date_time', { ascending: false });
+      let query = supabase.from('inspectorate_records').select('id, student_id, created_at, date_time, observation, students!inner(id, full_name, course_id, rut, courses!inner(id, name, level, position, created_at))').order('date_time', { ascending: false });
       if (startDate) query = query.gte('date_time', startDate);
       if (endDate) query = query.lte('date_time', endDate);
       const { data, error } = await query;
       if (error) throw error;
       const rows = (data || []) as unknown as Array<Record<string, unknown>>;
-      // normalize shape to always have `student` property
-      const normalized = normalizeInspectorateRows(rows) as InspectorateWithStudent[];
+      const normalized = normalizeInspectorateRows(rows);
       if (!level) return normalized;
       return normalized.filter((r) => r.student.course?.level === level);
     }

@@ -4,6 +4,24 @@ import { supabase } from '../services/supabaseClient';
 import { isUsingPlaceholder } from '../lib/supabaseClient';
 
 type AppRole = 'teacher' | 'staff' | 'superuser' | null;
+const GET_SESSION_TIMEOUT_MS = 20000;
+const ROLE_TIMEOUT_MS = 12000;
+
+const TIMEOUT = Symbol('timeout');
+
+async function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T | typeof TIMEOUT> {
+  return Promise.race([
+    promise,
+    new Promise<typeof TIMEOUT>((resolve) => setTimeout(() => resolve(TIMEOUT), ms))
+  ]);
+}
+
+async function getSessionWithRetry() {
+  const first = await withTimeout(supabase.auth.getSession(), GET_SESSION_TIMEOUT_MS);
+  if (first !== TIMEOUT) return first;
+  console.warn('useAuth.bootstrap: getSession timeout (1), retrying once...');
+  return withTimeout(supabase.auth.getSession(), GET_SESSION_TIMEOUT_MS);
+}
 
 export function useAuth() {
   const [session, setSession] = React.useState<Session | null>(null);
@@ -22,39 +40,57 @@ export function useAuth() {
       return null;
     }
 
-    // Fuente principal en frontend: profiles del usuario autenticado.
-    const { data, error } = await supabase
-      .from('profiles')
-      .select('role')
-      .eq('user_id', userId)
-      .maybeSingle();
+    try {
+      // Fuente principal en frontend: profiles del usuario autenticado.
+      const profileRes = await withTimeout(
+        Promise.resolve(
+          supabase
+            .from('profiles')
+            .select('role')
+            .eq('user_id', userId)
+            .maybeSingle()
+        ),
+        ROLE_TIMEOUT_MS
+      );
 
-    const fromProfile = normalizeRole(data?.role);
-    if (!error && fromProfile) {
-      setRole(fromProfile);
-      return fromProfile;
+      if (profileRes !== TIMEOUT) {
+        const { data, error } = profileRes;
+        const fromProfile = normalizeRole(data?.role);
+        if (!error && fromProfile) {
+          setRole(fromProfile);
+          return fromProfile;
+        }
+
+        if (error) {
+          console.error('useAuth.refreshRole profiles error', error);
+        }
+      } else {
+        console.warn('useAuth.refreshRole profiles timeout');
+      }
+
+      // Fallback: RPC current_role si profiles no devolvió rol.
+      const rpcRes = await withTimeout(Promise.resolve(supabase.rpc('current_role')), ROLE_TIMEOUT_MS);
+      if (rpcRes !== TIMEOUT) {
+        const { data: rpcRole, error: rpcErr } = rpcRes;
+        const fromRpc = normalizeRole(rpcRole);
+        if (!rpcErr && fromRpc) {
+          setRole(fromRpc);
+          return fromRpc;
+        }
+
+        if (rpcErr) {
+          console.error('useAuth.refreshRole rpc current_role error', rpcErr);
+        }
+      } else {
+        console.warn('useAuth.refreshRole current_role timeout');
+      }
+    } catch (err) {
+      console.error('useAuth.refreshRole unexpected error', err);
     }
 
-    if (error) {
-      console.error('useAuth.refreshRole profiles error', error);
-    }
-
-    // Fallback: RPC current_role si profiles no devolvio rol.
-    const { data: rpcRole, error: rpcErr } = await supabase.rpc('current_role');
-    const fromRpc = normalizeRole(rpcRole);
-    if (!rpcErr && fromRpc) {
-      setRole(fromRpc);
-      return fromRpc;
-    }
-
-    if (error || rpcErr) {
-      const message = rpcErr?.message || error?.message || 'No se pudo resolver el rol del usuario.';
-      throw new Error(message);
-    }
-
-    const resolved = 'teacher';
-    setRole(resolved);
-    return resolved;
+    // Nunca romper sesión por fallo de rol; fallback seguro.
+    setRole('teacher');
+    return 'teacher';
   }, [normalizeRole]);
 
   React.useEffect(() => {
@@ -62,13 +98,6 @@ export function useAuth() {
 
     const bootstrap = async () => {
       setLoading(true);
-      const timeoutId = setTimeout(() => {
-        if (mounted) {
-          console.warn('useAuth.bootstrap timeout after 5s');
-          setLoading(false);
-          setAuthError('Tiempo de espera agotado al verificar sesión.');
-        }
-      }, 5000);
 
       try {
         if (isUsingPlaceholder) {
@@ -78,23 +107,36 @@ export function useAuth() {
           return;
         }
         console.log('useAuth.bootstrap: calling supabase.auth.getSession');
-        const { data, error } = await supabase.auth.getSession();
-        console.log('useAuth.bootstrap: getSession returned', { data, error });
-        clearTimeout(timeoutId);
-        if (error) throw error;
-        if (!mounted) return;
-        setSession(data.session);
-        await refreshRole(data.session?.user?.id ?? null);
-      } catch (error) {
-        clearTimeout(timeoutId);
-        console.error('useAuth.bootstrap error', error);
-        if (mounted) {
+        const sessionRes = await getSessionWithRetry();
+        if (sessionRes === TIMEOUT) {
+          console.warn('useAuth.bootstrap: getSession timeout');
+          setAuthError('Tiempo de espera agotado al verificar sesión.');
           setSession(null);
           setRole(null);
+          return;
+        }
+        const { data, error } = sessionRes;
+        if (error) throw error;
+        if (!mounted) return;
+        const nextSession = data.session ?? null;
+        setSession(nextSession);
+        setAuthError(null);
+        await refreshRole(nextSession?.user?.id ?? null);
+      } catch (error) {
+        console.error('useAuth.bootstrap error', error);
+        if (mounted) {
+          // Mantener cualquier sesión existente; no degradar a invitado por error transitorio.
+          try {
+            const { data } = await supabase.auth.getSession();
+            const nextSession = data.session ?? null;
+            setSession(nextSession);
+            await refreshRole(nextSession?.user?.id ?? null);
+          } catch (innerError) {
+            console.error('useAuth.bootstrap recovery getSession error', innerError);
+          }
           setAuthError(error instanceof Error ? error.message : 'No se pudo verificar la sesión.');
         }
       } finally {
-        clearTimeout(timeoutId);
         if (mounted) setLoading(false);
       }
     };
@@ -109,8 +151,9 @@ export function useAuth() {
         await refreshRole(nextSession?.user?.id ?? null);
       } catch (e) {
         console.error('useAuth.onAuthStateChange refreshRole error', e);
-        setRole(null);
-        setAuthError(e instanceof Error ? e.message : 'No se pudo resolver el rol del usuario.');
+        // Mantener sesión; fallback a rol docente.
+        setRole('teacher');
+        setAuthError(e instanceof Error ? e.message : 'No se pudo resolver el rol del usuario; usando rol docente.');
       }
     });
 
@@ -127,9 +170,10 @@ export function useAuth() {
       setAuthError(error.message);
       throw error;
     }
-    const userId = data.user?.id ?? data.session?.user?.id ?? null;
+    const nextSession = data.session ?? null;
+    setSession(nextSession);
+    const userId = data.user?.id ?? nextSession?.user?.id ?? null;
     const resolvedRole = await refreshRole(userId);
-    setSession(data.session ?? null);
     return resolvedRole;
   }, [refreshRole]);
 

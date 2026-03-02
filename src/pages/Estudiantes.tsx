@@ -178,6 +178,7 @@ export const Estudiantes: React.FC<EstudiantesProps> = ({ level }) => {
 
           <div className="flex border-b border-slate-100">
             <button 
+              type="button"
               onClick={() => patchUiState({ activeTab: 'absences' })}
               className={cn(
                 "px-8 py-4 font-bold text-sm transition-all border-b-2",
@@ -187,6 +188,7 @@ export const Estudiantes: React.FC<EstudiantesProps> = ({ level }) => {
               Inasistencias
             </button>
             <button 
+              type="button"
               onClick={() => patchUiState({ activeTab: 'records' })}
               className={cn(
                 "px-8 py-4 font-bold text-sm transition-all border-b-2",

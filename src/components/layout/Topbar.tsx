@@ -75,17 +75,18 @@ export const Topbar: React.FC<TopbarProps> = ({
   const unreadCount = notifications.filter(n => !n.read).length;
 
   const markAsRead = (id: string) => {
-    setNotifications(notifications.map(n => n.id === id ? { ...n, read: true } : n));
+    setNotifications((prev) => prev.map((n) => (n.id === id ? { ...n, read: true } : n)));
   };
 
   const markAllAsRead = () => {
-    setNotifications(notifications.map(n => ({ ...n, read: true })));
+    setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
   };
 
   return (
     <header className="h-20 bg-white/80 backdrop-blur-md border-b border-slate-200/60 flex items-center justify-between px-6 md:px-10 sticky top-0 z-20">
       <div className="flex items-center gap-5">
         <button 
+          type="button"
           onClick={onMenuClick}
           className="lg:hidden p-2.5 text-slate-500 hover:bg-slate-50 rounded-xl transition-all duration-200 active:scale-95"
         >
@@ -107,6 +108,7 @@ export const Topbar: React.FC<TopbarProps> = ({
         <div className="flex items-center gap-2">
           <div className="relative" ref={notificationRef}>
             <button 
+              type="button"
               onClick={() => setShowNotifications(!showNotifications)}
               className={cn(
                 "p-2.5 rounded-2xl transition-all duration-200 relative active:scale-95",
@@ -125,6 +127,7 @@ export const Topbar: React.FC<TopbarProps> = ({
                     <h3 className="font-bold text-slate-900 text-sm">Notificaciones</h3>
                     {unreadCount > 0 && (
                       <button 
+                        type="button"
                         onClick={markAllAsRead}
                         className="text-[11px] font-bold text-indigo-600 hover:text-indigo-700 uppercase tracking-wider"
                       >
@@ -179,7 +182,7 @@ export const Topbar: React.FC<TopbarProps> = ({
                     )}
                   </div>
                   <div className="p-4 border-t border-slate-100 text-center bg-slate-50/30">
-                    <button className="text-[11px] font-bold text-slate-500 hover:text-indigo-600 uppercase tracking-widest transition-colors">
+                    <button type="button" className="text-[11px] font-bold text-slate-500 hover:text-indigo-600 uppercase tracking-widest transition-colors">
                       Ver historial completo
                     </button>
                   </div>
@@ -199,6 +202,7 @@ export const Topbar: React.FC<TopbarProps> = ({
             </div>
             {isAuthenticated ? (
               <button
+                type="button"
                 onClick={onLogoutClick}
                 className="hidden md:block px-3 py-2 text-xs font-bold text-slate-600 border border-slate-200 rounded-xl hover:bg-slate-100 transition-colors"
               >
@@ -206,6 +210,7 @@ export const Topbar: React.FC<TopbarProps> = ({
               </button>
             ) : (
               <button
+                type="button"
                 onClick={onLoginClick}
                 className="hidden md:block px-3 py-2 text-xs font-bold text-white bg-indigo-600 rounded-xl hover:bg-indigo-700 transition-colors"
               >

@@ -3,8 +3,8 @@ import { Plus, Search, Calendar } from 'lucide-react';
 import { useCreateAbsence, useUpdateAbsence } from '../hooks/queries';
 import { useToast } from '../contexts/ToastContext';
 import { createMutationGuard } from '../utils';
-import { AbsenceWithDetails, Course, Student, Test } from '../types';
-import { useAbsences, useCourses, useStudents, useTests } from '../hooks/queries';
+import { AbsenceWithDetails, Course, Student } from '../types';
+import { useAbsences, useCourses, useStudents } from '../hooks/queries';
 import { formatDate, cn } from '../utils';
 import { Button, Badge, EmptyState, PageHeader, Input, Select, TableSkeleton } from '../components/ui';
 import { InasistenciasCreateModal } from './InasistenciasCreateModal';
@@ -64,11 +64,18 @@ export const Inasistencias: React.FC<InasistenciasProps> = ({ level }) => {
 
   const { data: absences = [], isLoading: loadingAbsences } = useAbsences(level, startISO, endISO);
   const { data: coursesData = [], isLoading: loadingCourses } = useCourses(level);
-  const { data: studentsData = [], isLoading: loadingStudents } = useStudents('', level);
-  const { data: testsForCourse = [] as Test[] } = useTests('', undefined, undefined, level);
+  const { data: studentsData = [], isLoading: loadingStudents } = useStudents(undefined, level, isModalOpen);
 
   // local copies / derived state
-  useEffect(() => setCourses(coursesData || []), [coursesData]);
+  useEffect(() => {
+    const next = coursesData || [];
+    setCourses((prev) => {
+      if (prev.length === next.length && prev.every((p, i) => p.id === next[i]?.id)) {
+        return prev;
+      }
+      return next;
+    });
+  }, [coursesData]);
   useEffect(() => {
     const next = studentsData || [];
     setStudents((prev) => {

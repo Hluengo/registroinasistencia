@@ -19,6 +19,7 @@ export const Button: React.FC<ButtonProps> = ({
   iconPosition = 'left',
   loading = false,
   disabled,
+  type = 'button',
   ...props
 }) => {
   const variants = {
@@ -45,6 +46,7 @@ export const Button: React.FC<ButtonProps> = ({
         sizes[size],
         className
       )}
+      type={type}
       disabled={disabled || loading}
       {...props}
     >

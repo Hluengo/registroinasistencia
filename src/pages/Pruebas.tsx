@@ -74,7 +74,7 @@ export const Pruebas: React.FC<PruebasProps> = ({ level }) => {
   });
 
   const onSubmit = async (data: TestFormValues) => {
-    if (!createMutationGuard(createTestM.isLoading, () => showToast({ type: TOAST_TYPES.WARNING, message: 'Ya se está procesando una creación de prueba' }))) {
+    if (!createMutationGuard(createTestM.isPending, () => showToast({ type: TOAST_TYPES.WARNING, message: 'Ya se está procesando una creación de prueba' }))) {
       return;
     }
     try {
@@ -124,6 +124,7 @@ export const Pruebas: React.FC<PruebasProps> = ({ level }) => {
           <div className="flex items-center gap-3">
             <div className="flex bg-slate-100 p-1 rounded-xl border border-slate-200/50">
               <button
+                type="button"
                 onClick={() => patchUiState({ viewMode: 'calendar' })}
                 className={`px-4 py-2 text-xs font-bold rounded-lg ${viewMode === 'calendar' ? 'bg-white text-indigo-600' : 'text-slate-500'}`}
                 aria-pressed={viewMode === 'calendar'}
@@ -132,6 +133,7 @@ export const Pruebas: React.FC<PruebasProps> = ({ level }) => {
                 Calendario
               </button>
               <button
+                type="button"
                 onClick={() => patchUiState({ viewMode: 'table' })}
                 className={`px-4 py-2 text-xs font-bold rounded-lg ${viewMode === 'table' ? 'bg-white text-indigo-600' : 'text-slate-500'}`}
                 aria-pressed={viewMode === 'table'}

@@ -46,6 +46,7 @@ export const InasistenciasCreateModal: React.FC<InasistenciasCreateModalProps> =
     register, 
     handleSubmit, 
     watch, 
+    setValue,
     reset,
     formState: { errors }
   } = useForm<AbsenceCreateForm>({
@@ -64,6 +65,10 @@ export const InasistenciasCreateModal: React.FC<InasistenciasCreateModalProps> =
   const endDate = watch('end_date');
   const [affectedTests, setAffectedTests] = useState<Test[]>([]);
   const bufferResult = validateAbsenceCreation(startDate);
+  const filteredStudents = React.useMemo(
+    () => students.filter((s) => !watchCourse || s.course_id === watchCourse),
+    [students, watchCourse]
+  );
 
   const { data: testsForCourse = [] as Test[] } = useTests(watchCourse || undefined, undefined, undefined, level);
 
@@ -83,6 +88,10 @@ export const InasistenciasCreateModal: React.FC<InasistenciasCreateModalProps> =
       return next;
     });
   }, [startDate, endDate, testsForCourse]);
+
+  useEffect(() => {
+    setValue('student_id', '');
+  }, [watchCourse, setValue]);
 
   return (
     <Modal
@@ -107,7 +116,7 @@ export const InasistenciasCreateModal: React.FC<InasistenciasCreateModalProps> =
             <Select 
               data-testid="create-absence-student"
               label="Estudiante"
-              options={[{ value: '', label: 'Seleccionar estudiante' }, ...students.map(s => ({ value: s.id, label: s.full_name }))]}
+              options={[{ value: '', label: 'Seleccionar estudiante' }, ...filteredStudents.map(s => ({ value: s.id, label: s.full_name }))]}
               {...register('student_id', { required: 'El estudiante es requerido' })}
               disabled={!watchCourse}
             />

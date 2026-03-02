@@ -84,6 +84,7 @@ export const DashboardAbsencesTable: React.FC<DashboardAbsencesTableProps> = ({
                   <td className="px-6 py-5">
                     {abs.affected_tests && abs.affected_tests.length > 0 ? (
                       <button 
+                        type="button"
                         onClick={() => toggleRow(abs.id)}
                         className="flex items-center gap-2 text-rose-600 font-bold text-xs hover:text-rose-700 transition-colors uppercase tracking-wider"
                       >

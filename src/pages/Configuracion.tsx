@@ -3,7 +3,6 @@ import { Database, RefreshCw, CheckCircle2, AlertTriangle, Upload, FileSpreadshe
 import { useCourses, useBulkInsertCourses, useBulkInsertStudents, useSeedData } from '../hooks/queries';
 import { useToast } from '../contexts/ToastContext';
 import Papa from 'papaparse';
-import { Course } from '../types';
 import { cn } from '../utils';
 import { PageHeader } from '../components/ui';
 import { TOAST_TYPES } from '../constants';
@@ -11,17 +10,12 @@ import { TOAST_TYPES } from '../constants';
 export const Configuracion: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [status, setStatus] = useState<'idle' | 'success' | 'error'>('idle');
-  const [courses, setCourses] = useState<Course[]>([]);
   const [uploadLevel, setUploadLevel] = useState<'BASICA' | 'MEDIA'>('BASICA');
   const { showToast } = useToast();
   const coursesQ = useCourses();
   const bulkCoursesM = useBulkInsertCourses();
   const bulkStudentsM = useBulkInsertStudents();
   const seedM = useSeedData();
-
-  React.useEffect(() => {
-    if (coursesQ.data) setCourses(coursesQ.data);
-  }, [coursesQ.data]);
 
   const handleSeed = async () => {
     if (!confirm('¿Desea cargar datos de prueba? Esto agregará cursos, estudiantes y pruebas de ejemplo.')) return;
@@ -135,6 +129,7 @@ export const Configuracion: React.FC = () => {
             </div>
             <div className="flex bg-slate-100/80 p-1.5 rounded-2xl border border-slate-200/50 backdrop-blur-sm">
               <button 
+                type="button"
                 onClick={() => setUploadLevel('BASICA')}
                 className={cn(
                   "px-6 py-2.5 text-[11px] font-bold rounded-xl transition-all tracking-widest uppercase",
@@ -144,6 +139,7 @@ export const Configuracion: React.FC = () => {
                 BÁSICA
               </button>
               <button 
+                type="button"
                 onClick={() => setUploadLevel('MEDIA')}
                 className={cn(
                   "px-6 py-2.5 text-[11px] font-bold rounded-xl transition-all tracking-widest uppercase",
@@ -171,7 +167,7 @@ export const Configuracion: React.FC = () => {
                   className="absolute inset-0 opacity-0 cursor-pointer w-full h-full z-10"
                   disabled={loading}
                 />
-                <button className="w-full flex items-center justify-center gap-3 bg-slate-900 text-white px-8 py-4 rounded-2xl font-bold hover:bg-slate-800 transition-all shadow-lg shadow-slate-900/10">
+                <button type="button" className="w-full flex items-center justify-center gap-3 bg-slate-900 text-white px-8 py-4 rounded-2xl font-bold hover:bg-slate-800 transition-all shadow-lg shadow-slate-900/10">
                   <FileSpreadsheet className="w-5 h-5" strokeWidth={1.5} />
                   Subir CSV Cursos
                 </button>
@@ -193,7 +189,7 @@ export const Configuracion: React.FC = () => {
                   className="absolute inset-0 opacity-0 cursor-pointer w-full h-full z-10"
                   disabled={loading}
                 />
-                <button className="w-full flex items-center justify-center gap-3 bg-indigo-600 text-white px-8 py-4 rounded-2xl font-bold hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-600/20">
+                <button type="button" className="w-full flex items-center justify-center gap-3 bg-indigo-600 text-white px-8 py-4 rounded-2xl font-bold hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-600/20">
                   <Upload className="w-5 h-5" strokeWidth={1.5} />
                   Subir CSV Estudiantes
                 </button>
@@ -213,6 +209,7 @@ export const Configuracion: React.FC = () => {
                 </p>
               </div>
               <button 
+                type="button"
                 onClick={handleSeed}
                 disabled={loading || seedM.isPending}
                 className="flex items-center justify-center gap-3 bg-amber-500 text-white px-8 py-4 rounded-2xl font-bold hover:bg-amber-600 transition-all disabled:opacity-50 whitespace-nowrap shadow-lg shadow-amber-500/20"

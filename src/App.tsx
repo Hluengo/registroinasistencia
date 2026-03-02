@@ -39,9 +39,19 @@ function AppContent() {
 
   React.useEffect(() => {
     if (loading) return;
-    if (!isStaff && activeTab !== 'docente_public') patchUiState({ activeTab: 'docente_public' });
-    if (isStaff && activeTab === 'docente_public') patchUiState({ activeTab: 'dashboard' });
-    if (!isSuperuser && activeTab === 'configuracion') patchUiState({ activeTab: 'dashboard' });
+
+    let nextActiveTab = activeTab;
+    if (!isStaff) {
+      nextActiveTab = 'docente_public';
+    } else if (activeTab === 'docente_public') {
+      nextActiveTab = 'dashboard';
+    } else if (!isSuperuser && activeTab === 'configuracion') {
+      nextActiveTab = 'dashboard';
+    }
+
+    if (nextActiveTab !== activeTab) {
+      patchUiState({ activeTab: nextActiveTab });
+    }
   }, [loading, isStaff, isSuperuser, activeTab]);
 
   const content = React.useMemo(() => {

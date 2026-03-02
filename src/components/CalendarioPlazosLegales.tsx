@@ -5,6 +5,8 @@ import { es } from 'date-fns/locale';
 import { toDateOnlyString, getDaysUntilTest } from '../utils/date';
 import { Test, Course } from '../types';
 import { Holiday } from '../hooks/queries';
+import { useToast } from '../contexts/ToastContext';
+import { TOAST_TYPES } from '../constants';
 
 type Tone = 'fatal' | 'descargos' | 'reconsideracion' | 'interno' | 'gcc';
 
@@ -40,6 +42,7 @@ const EMPTY_HOLIDAYS: Holiday[] = [];
 
 const CalendarioPlazosLegales: React.FC<Props> = ({ tests = EMPTY_EVENTS, holidays = EMPTY_HOLIDAYS, currentDate, selectedDate, setSelectedDate, onPrev, onNext }) => {
   const [hovered, setHovered] = useState<null | { ev: CalendarEvent; rect: DOMRect }>(null);
+  const { showToast } = useToast();
 
   const calendarDays = useMemo(() => {
     const start = startOfWeek(startOfMonth(currentDate), { weekStartsOn: 1 });
@@ -102,6 +105,7 @@ const CalendarioPlazosLegales: React.FC<Props> = ({ tests = EMPTY_EVENTS, holida
                         const cls = toneClasses[tone];
                         return (
                           <button
+                            type="button"
                             key={ev.id}
                             className={`group text-xs font-black uppercase truncate px-3 py-1 rounded-md border cursor-pointer ${cls.base} transition-all hover:scale-105 active:scale-95 text-left`}
                             onMouseEnter={(e) => { const rect = e.currentTarget.getBoundingClientRect(); setHovered({ ev, rect }); }}
@@ -153,6 +157,8 @@ const CalendarioPlazosLegales: React.FC<Props> = ({ tests = EMPTY_EVENTS, holida
           }
           const courseName = ev.course?.name || ev.courses?.name || ev.course_name || ev.courseName || '';
           const daysUntil = getDaysUntilTest(ev.date);
+          const eventDay = toDateOnlyString(ev.date);
+          const reminderLabel = courseName ? `${ev.subject ?? ev.title} (${courseName})` : (ev.subject ?? ev.title ?? 'evento');
 
           return (
             <div
@@ -183,7 +189,22 @@ const CalendarioPlazosLegales: React.FC<Props> = ({ tests = EMPTY_EVENTS, holida
 
                   <div className="mt-2 text-sm font-bold text-slate-900">{ev.subject ?? ev.title}</div>
 
-                  {courseName ? <div className="mt-2 text-xs text-slate-600 flex items-center gap-2"><Bell className="w-3.5 h-3.5 text-amber-500 flex-shrink-0" /><span className="truncate">{courseName}</span></div> : null}
+                  {courseName ? (
+                    <button
+                      type="button"
+                      className="mt-2 text-xs text-slate-600 flex items-center gap-2 hover:text-amber-700 transition-colors"
+                      aria-label={`Agregar recordatorio para ${reminderLabel}`}
+                      title="Agregar recordatorio"
+                      onClick={() => {
+                        setSelectedDate(eventDay);
+                        showToast({ type: TOAST_TYPES.INFO, message: `Recordatorio agregado: ${reminderLabel}` });
+                        setHovered(null);
+                      }}
+                    >
+                      <Bell className="w-3.5 h-3.5 text-amber-500 flex-shrink-0" />
+                      <span className="truncate">{courseName}</span>
+                    </button>
+                  ) : null}
 
                   {ev.description ? <div className="mt-2 text-xs text-slate-600 line-clamp-3">{ev.description}</div> : null}
                 </div>

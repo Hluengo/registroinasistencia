@@ -6,7 +6,6 @@ import { Course, Student } from '../types';
 import { useInspectorate, useCourses, useStudents } from '../hooks/queries';
 import { createMutationGuard } from '../utils';
 import { formatDateTime } from '../utils';
-import { isValidDate } from '../utils/date';
 import { Modal, Button, Badge, EmptyState, PageHeader, Input, Select, TableSkeleton, FormError } from '../components/ui';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -18,7 +17,14 @@ interface InspectoriaProps {
   level: 'BASICA' | 'MEDIA';
 }
 
-type InspectorRowView = import('../types/db').Database['public']['Tables']['inspectorate_records']['Row'] & { student: Student & { course: Course } };
+type InspectorRowView = {
+  id: string;
+  student_id: string | null;
+  created_at: string | null;
+  date_time: string;
+  observation: string;
+  student: Student & { course: Course };
+};
 
 interface InspectoriaDetailModalProps {
   isOpen: boolean;
@@ -121,10 +127,12 @@ export const Inspectoria: React.FC<InspectoriaProps> = ({ level }) => {
     mode: 'onBlur'
   });
   const watchCourse = watch('course_id');
+  const startISO = new Date(filters.year, filters.month, 1, 0, 0, 0, 0).toISOString();
+  const endISO = new Date(filters.year, filters.month + 1, 0, 23, 59, 59, 999).toISOString();
 
   // Load all records for the selected level from Supabase and filter month/year client-side.
   // This avoids missing rows caused by strict timestamptz range filtering at query time.
-  const { data: records = [], isLoading: recordsLoading } = useInspectorate(level);
+  const { data: records = [], isLoading: recordsLoading } = useInspectorate(level, startISO, endISO);
   const { data: courses = [], isLoading: coursesLoading } = useCourses(level);
   const { data: students = [], isLoading: studentsLoading } = useStudents(watch('course_id') || undefined, level);
 
@@ -132,17 +140,12 @@ export const Inspectoria: React.FC<InspectoriaProps> = ({ level }) => {
 
   const courseOptions = getCourseOptions(courses);
 
-  const filteredRecords = (records as InspectorRow[]).filter((rec: InspectorRow) => {
+  const filteredRecords = records.filter((rec: InspectorRow) => {
     const studentCourseId = rec.student?.course_id ?? ((rec.student as unknown as { course?: { id?: string } })?.course?.id) ?? '';
     const matchesCourse = filters.courseId === '' || studentCourseId === filters.courseId;
-    let matchesPeriod = true;
-    if (isValidDate(rec.date_time)) {
-      const recDate = new Date(rec.date_time);
-      matchesPeriod = recDate.getMonth() === filters.month && recDate.getFullYear() === filters.year;
-    }
     const matchesSearch = (rec.student?.full_name ?? '').toLowerCase().includes(filters.searchQuery.toLowerCase()) ||
                          (rec.observation ?? '').toLowerCase().includes(filters.searchQuery.toLowerCase());
-    return matchesCourse && matchesPeriod && matchesSearch;
+    return matchesCourse && matchesSearch;
   });
 
   const createRecord = useCreateInspectorateRecord();

@@ -1,5 +1,6 @@
 import React, { useEffect } from 'react';
-import { useToast, Toast, ToastType } from '../contexts/ToastContext';
+import { useToast, Toast } from '../contexts/ToastContext';
+import { ToastType } from '../constants';
 
 const toastColors: Record<ToastType, string> = {
   success: 'bg-green-50 border-green-200 text-green-800',
@@ -39,6 +40,7 @@ const ToastItem: React.FC<ToastItemProps> = ({ toast, onRemove }) => {
       <span className="text-lg font-semibold">{toastIcons[toast.type]}</span>
       <p className="text-sm font-medium flex-1">{toast.message}</p>
       <button
+        type="button"
         onClick={() => onRemove(toast.id)}
         className="text-lg opacity-50 hover:opacity-100 transition-opacity"
         aria-label="Cerrar notificación"
