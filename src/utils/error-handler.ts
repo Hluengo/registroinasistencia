@@ -24,6 +24,8 @@ export const handleError = (error: unknown): never => {
         throw new AppError('Registro duplicado detectado.', 400, err.code);
       case '23503':
         throw new AppError('Error de referencia: el registro relacionado no existe.', 400, err.code);
+      case '42501':
+        throw new AppError('Permiso denegado en base de datos. Verifica sesión activa y GRANT/RLS en Supabase para este recurso.', 403, err.code);
       case 'PGRST116':
         throw new AppError('No se encontró el registro solicitado.', 404, err.code);
       default:
