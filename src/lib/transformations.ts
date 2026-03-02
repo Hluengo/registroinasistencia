@@ -117,13 +117,12 @@ export function groupTestsByCourse(
  * whether the foreign key is singular or plural).
  */
 export function normalizeInspectorateRows(
-  rows: Array<
-    Record<string, unknown> &
-      ({ students: unknown } | { student: unknown })
-  >
+  rows: Array<Record<string, unknown>>
 ): Array<{
   id: string;
-  student: { id: string; full_name: string; course_id?: string | null; rut?: string | null; course: Course };
+  student_id: string | null;
+  created_at: string | null;
+  student: { id: string; full_name: string; course_id: string | null; created_at: string | null; rut: string | null; course: Course };
   date_time: string;
   observation: string;
 }> {
@@ -131,8 +130,24 @@ export function normalizeInspectorateRows(
     // Type-safe access to student property
     if ('student' in r) {
       const recordWithStudent = r as Record<string, unknown> & { student: unknown };
-      if (recordWithStudent.student) {
-        return r as any; // Normalized form already
+      if (recordWithStudent.student && typeof recordWithStudent.student === 'object') {
+        const stud = recordWithStudent.student as Record<string, unknown>;
+        const existingCourse = (stud.course as Course | undefined) ?? { id: '', name: 'Sin curso', level: null, position: null, created_at: null };
+        return {
+          id: String(r.id ?? ''),
+          student_id: (r.student_id as string | null | undefined) ?? null,
+          created_at: (r.created_at as string | null | undefined) ?? null,
+          date_time: String(r.date_time ?? ''),
+          observation: String(r.observation ?? ''),
+          student: {
+            id: String(stud.id ?? ''),
+            full_name: String(stud.full_name ?? ''),
+            course_id: (stud.course_id as string | null | undefined) ?? null,
+            created_at: (stud.created_at as string | null | undefined) ?? null,
+            rut: (stud.rut as string | null | undefined) ?? null,
+            course: existingCourse
+          }
+        };
       }
     }
     // Type-safe conversion from `students` form
@@ -141,21 +156,40 @@ export function normalizeInspectorateRows(
       const { students, ...rest } = recordWithStudents;
       const stud = students as Record<string, unknown> & { id: string; full_name: string; course_id?: string | null; rut?: string | null; courses?: unknown };
       
-      let course = { id: '', name: 'Sin curso', level: null } as Course;
+      let course: Course = { id: '', name: 'Sin curso', level: null, position: null, created_at: null };
       if (stud.courses) {
         course = Array.isArray(stud.courses) ? (stud.courses[0] as Course) : (stud.courses as Course);
       }
       return {
-        ...rest,
+        id: String(rest.id ?? ''),
+        student_id: (rest.student_id as string | null | undefined) ?? null,
+        created_at: (rest.created_at as string | null | undefined) ?? null,
+        date_time: String(rest.date_time ?? ''),
+        observation: String(rest.observation ?? ''),
         student: {
-          id: stud.id,
-          full_name: stud.full_name,
+          id: String(stud.id ?? ''),
+          full_name: String(stud.full_name ?? ''),
           course_id: stud.course_id ?? null,
+          created_at: (stud.created_at as string | null | undefined) ?? null,
           rut: stud.rut ?? null,
           course
         }
-      } as any; // Final shape is correct
+      };
     }
-    return r as any; // Fallback
+    return {
+      id: String(r.id ?? ''),
+      student_id: (r.student_id as string | null | undefined) ?? null,
+      created_at: (r.created_at as string | null | undefined) ?? null,
+      date_time: String(r.date_time ?? ''),
+      observation: String(r.observation ?? ''),
+      student: {
+        id: '',
+        full_name: '',
+        course_id: null,
+        created_at: null,
+        rut: null,
+        course: { id: '', name: 'Sin curso', level: null, position: null, created_at: null }
+      }
+    };
   });
 }

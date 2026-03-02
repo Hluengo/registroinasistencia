@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import {
   toDateOnlyString,
   parseDateOnly,
+  isValidDate,
   isSameDateOnly,
   formatDateOnlyLocale,
 } from './date';

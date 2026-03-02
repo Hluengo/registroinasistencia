@@ -5,6 +5,7 @@ import {
   findAffectedTests,
   groupTestsByCourse,
   normalizeAbsenceWithDetails,
+  normalizeInspectorateRows,
   Holiday,
 } from './transformations';
 import { Absence, Course, Student, Test } from '../types';
@@ -124,7 +125,8 @@ describe('lib/transformations', () => {
     };
     const normalized = normalizeInspectorateRows([stub]);
     expect(normalized).toHaveLength(1);
-    expect(normalized[0].student.full_name).toBe('Juan');
+    expect(normalized[0]).toBeDefined();
+    expect(normalized[0]!.student.full_name).toBe('Juan');
     expect((normalized[0] as any).students).toBeUndefined();
   });
 
@@ -143,6 +145,7 @@ describe('lib/transformations', () => {
       }
     };
     const normalized = normalizeInspectorateRows([stub2]);
-    expect(normalized[0].student.full_name).toBe('María');
+    expect(normalized[0]).toBeDefined();
+    expect(normalized[0]!.student.full_name).toBe('María');
   });
 });

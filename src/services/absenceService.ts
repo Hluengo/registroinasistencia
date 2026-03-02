@@ -4,6 +4,11 @@ import { handleError } from '../utils/error-handler';
 import { Database } from '../types/db';
 import { ABSENCE_STATUS, FILE_CONFIG, RETRY_CONFIG } from '../constants';
 
+type AllowedFileExtension = (typeof FILE_CONFIG.ALLOWED_EXTENSIONS)[number];
+
+const isAllowedExtension = (ext: string): ext is AllowedFileExtension =>
+  (FILE_CONFIG.ALLOWED_EXTENSIONS as readonly string[]).includes(ext);
+
 /**
  * Helper function to get public URL from Supabase storage response
  * Handles differences in response structure across API versions
@@ -30,7 +35,7 @@ async function uploadFileWithRetries(
   const fileExt = (file.name.split('.').pop() || '').toLowerCase();
   
   // Validate file extension
-  if (!fileExt || !FILE_CONFIG.ALLOWED_EXTENSIONS.includes(fileExt)) {
+  if (!fileExt || !isAllowedExtension(fileExt)) {
     console.error('absenceService: invalid file extension', { fileExt, allowedExtensions: FILE_CONFIG.ALLOWED_EXTENSIONS });
     return { publicUrl: null, uploadFailed: true };
   }
