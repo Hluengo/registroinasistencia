@@ -22,7 +22,7 @@ describe('lib/validators', () => {
     });
 
     it('warns when less than 24h ahead', () => {
-      const soon = new Date(Date.now() + 12 * 60 * 60 * 1000).toISOString().split('T')[0]!;
+      const soon = new Date(Date.now() + 12 * 60 * 60 * 1000).toISOString();
       const res = validateAbsenceCreation(soon);
       expect(res.valid).toBe(true);
       expect(res.warning).toMatch(/24/i);

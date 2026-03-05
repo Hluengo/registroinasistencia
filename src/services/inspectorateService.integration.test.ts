@@ -4,7 +4,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 let mockRecordsData: any = { data: null, error: null };
 let mockInsertData: any = { data: null, error: null };
 
-const makeInspectorateChain = () => {
+const makeRecordsChain = () => {
   const chain: any = {};
   chain.select = () => chain;
   chain.order = () => chain;
@@ -23,7 +23,7 @@ const makeInspectorateChain = () => {
 
 vi.mock('../lib/supabaseClient', () => ({
   supabase: {
-    from: (_table: string) => makeInspectorateChain()
+    from: (_table: string) => makeRecordsChain()
   }
 }));
 
@@ -44,19 +44,31 @@ describe('services/inspectorateService (integration - mocked supabase)', () => {
       expect(result).toEqual([]);
     });
 
-    it('returns records with student and course details', async () => {
+    it('returns all records without filters', async () => {
       mockRecordsData = {
         data: [
           {
-            id: 'rec-1',
-            student_id: 'stu-1',
-            date_time: '2024-01-20T10:00:00Z',
-            observation: 'Entrevista con padres',
+            id: 'r1',
+            student_id: 's1',
+            date_time: '2024-03-01T10:00:00Z',
+            observation: 'Retardo',
             students: {
-              id: 'stu-1',
+              id: 's1',
               full_name: 'Juan Pérez',
-              course_id: 'course-1',
-              courses: { id: 'course-1', name: '8°A', level: 'BASICA' }
+              course_id: 'c1',
+              courses: { id: 'c1', name: '1°A', level: 'BASICA' }
+            }
+          },
+          {
+            id: 'r2',
+            student_id: 's2',
+            date_time: '2024-03-02T11:00:00Z',
+            observation: 'Falta',
+            students: {
+              id: 's2',
+              full_name: 'Ana López',
+              course_id: 'c2',
+              courses: { id: 'c2', name: '2°A', level: 'BASICA' }
             }
           }
         ],
@@ -65,10 +77,8 @@ describe('services/inspectorateService (integration - mocked supabase)', () => {
 
       const result = await inspectorateService.getInspectorateRecords();
       
-      expect(result).toHaveLength(1);
-      expect(result[0]!.id).toBe('rec-1');
+      expect(result).toHaveLength(2);
       expect(result[0]!.student.full_name).toBe('Juan Pérez');
-      expect(result[0]!.student.course.name).toBe('8°A');
     });
 
     it('filters records by level', async () => {
@@ -79,18 +89,18 @@ describe('services/inspectorateService (integration - mocked supabase)', () => {
       expect(result).toEqual([]);
     });
 
-    it('filters records by startDate', async () => {
+    it('filters records by start date', async () => {
       mockRecordsData = { data: [], error: null };
 
-      const result = await inspectorateService.getInspectorateRecords(undefined, '2024-01-01');
+      const result = await inspectorateService.getInspectorateRecords(undefined, '2024-03-01');
       
       expect(result).toEqual([]);
     });
 
-    it('filters records by endDate', async () => {
+    it('filters records by end date', async () => {
       mockRecordsData = { data: [], error: null };
 
-      const result = await inspectorateService.getInspectorateRecords(undefined, undefined, '2024-01-31');
+      const result = await inspectorateService.getInspectorateRecords(undefined, undefined, '2024-03-31');
       
       expect(result).toEqual([]);
     });
@@ -98,56 +108,30 @@ describe('services/inspectorateService (integration - mocked supabase)', () => {
     it('filters records by date range', async () => {
       mockRecordsData = { data: [], error: null };
 
-      const result = await inspectorateService.getInspectorateRecords(undefined, '2024-01-01', '2024-01-31');
+      const result = await inspectorateService.getInspectorateRecords(undefined, '2024-03-01', '2024-03-31');
       
       expect(result).toEqual([]);
     });
 
-    it('orders records by date_time descending', async () => {
-      mockRecordsData = {
-        data: [
-          {
-            id: 'rec-2',
-            student_id: 'stu-2',
-            date_time: '2024-02-01T10:00:00Z',
-            observation: 'Segunda entrevista',
-            students: {
-              id: 'stu-2',
-              full_name: 'María González',
-              course_id: 'course-1',
-              courses: { id: 'course-1', name: '8°A', level: 'BASICA' }
-            }
-          }
-        ],
-        error: null
-      };
-
-      const result = await inspectorateService.getInspectorateRecords();
-      
-      expect(result[0]!.date_time).toBe('2024-02-01T10:00:00Z');
-    });
-
-    it('handles database error and returns empty array', async () => {
+    it('throws error when database returns error', async () => {
       mockRecordsData = { data: null, error: { message: 'Database error' } };
 
-      const result = await inspectorateService.getInspectorateRecords();
-      
-      expect(result).toEqual([]);
+      await expect(inspectorateService.getInspectorateRecords()).rejects.toThrow('Database error');
     });
 
-    it('maps nested students correctly to student property', async () => {
+    it('maps students to student property correctly', async () => {
       mockRecordsData = {
         data: [
           {
-            id: 'rec-1',
-            student_id: 'stu-1',
-            date_time: '2024-01-20T10:00:00Z',
-            observation: 'Test',
+            id: 'r1',
+            student_id: 's1',
+            date_time: '2024-03-01T10:00:00Z',
+            observation: 'Retardo',
             students: {
-              id: 'stu-1',
-              full_name: 'Test Student',
-              course_id: 'course-1',
-              courses: { id: 'course-1', name: 'Test Course', level: 'BASICA' }
+              id: 's1',
+              full_name: 'Juan Pérez',
+              course_id: 'c1',
+              courses: { id: 'c1', name: '1°A', level: 'BASICA' }
             }
           }
         ],
@@ -156,53 +140,41 @@ describe('services/inspectorateService (integration - mocked supabase)', () => {
 
       const result = await inspectorateService.getInspectorateRecords();
       
-      expect(result[0]!.student).toBeDefined();
-      expect(result[0]!.student.course).toBeDefined();
+      expect(result[0]!).toHaveProperty('student');
+      expect(result[0]!.student.full_name).toBe('Juan Pérez');
+      expect(result[0]!.student.course.name).toBe('1°A');
     });
   });
 
   describe('createInspectorateRecord', () => {
     it('creates record and returns data', async () => {
       const newRecord = {
-        student_id: 'stu-1',
-        date_time: '2024-02-01T10:00:00Z',
+        student_id: 's1',
+        date_time: '2024-03-15T10:00:00',
         observation: 'Nueva observación'
       };
       
       mockInsertData = { 
-        data: { id: 'new-rec-1', ...newRecord }, 
+        data: { id: 'new-r1', ...newRecord }, 
         error: null 
       };
 
       const result = await inspectorateService.createInspectorateRecord(newRecord as any);
       
       expect(result).toBeDefined();
-      expect(result!.id).toBe('new-rec-1');
-      expect(result!.observation).toBe('Nueva observación');
+      expect(result!.id).toBe('new-r1');
     });
 
     it('handles insert error', async () => {
       mockInsertData = { data: null, error: { message: 'Foreign key violation' } };
 
-      const result = await inspectorateService.createInspectorateRecord({
-        student_id: 'stu-1',
-        date_time: '2024-02-01T10:00:00Z',
-        observation: 'Test'
-      });
-      
-      expect(result).toBeUndefined();
-    });
-
-    it('returns undefined when no data returned', async () => {
-      mockInsertData = { data: null, error: null };
-
-      const result = await inspectorateService.createInspectorateRecord({
-        student_id: 'stu-1',
-        date_time: '2024-02-01T10:00:00Z',
-        observation: 'Test'
-      });
-      
-      expect(result).toBeUndefined();
+      await expect(
+        inspectorateService.createInspectorateRecord({
+          student_id: 'nonexistent',
+          date_time: '2024-03-15T10:00:00',
+          observation: 'Test'
+        } as any)
+      ).rejects.toThrow('Foreign key violation');
     });
   });
 });

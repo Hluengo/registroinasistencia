@@ -106,10 +106,7 @@ describe('services/courseService (integration - mocked supabase)', () => {
     it('handles database error and returns empty array', async () => {
       mockCoursesData = { data: null, error: { message: 'Database error' } };
 
-      const result = await courseService.getCourses();
-      
-      // Service catches error and returns empty array
-      expect(result).toEqual([]);
+      await expect(courseService.getCourses()).rejects.toThrow('Database error');
     });
   });
 
@@ -137,17 +134,17 @@ describe('services/courseService (integration - mocked supabase)', () => {
     it('handles insert error', async () => {
       mockBulkInsertData = { data: null, error: { message: 'Duplicate name' } };
 
-      const result = await courseService.bulkInsertCourses([{ name: 'Test', level: 'BASICA' as const }]);
-      
-      expect(result).toBeUndefined();
+      await expect(
+        courseService.bulkInsertCourses([{ name: 'Test', level: 'BASICA' as const }])
+      ).rejects.toThrow('Duplicate name');
     });
 
-    it('returns undefined when no data returned', async () => {
+    it('returns null when no data returned', async () => {
       mockBulkInsertData = { data: null, error: null };
 
       const result = await courseService.bulkInsertCourses([{ name: 'Test', level: 'BASICA' as const }]);
       
-      expect(result).toBeUndefined();
+      expect(result).toBeNull();
     });
   });
 });

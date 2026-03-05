@@ -183,9 +183,7 @@ describe('services/absenceService (integration - mocked supabase)', () => {
       mockAbsencesData = { data: null, error: { message: 'Database error' } };
       mockTestsData = { data: null, error: null };
 
-      // Should handle error internally and return empty array
-      const result = await absenceService.getAbsences();
-      expect(result).toBeUndefined();
+      await expect(absenceService.getAbsences()).rejects.toThrow('Database error');
     });
   });
 

@@ -5,6 +5,7 @@ import {
   isValidDate,
   isSameDateOnly,
   formatDateOnlyLocale,
+  getDaysUntilTest,
 } from './date';
 
 describe('utils/date', () => {
@@ -46,5 +47,34 @@ describe('utils/date', () => {
     expect(isValidDate('not-a-date')).toBe(false);
     expect(isValidDate(null)).toBe(false);
     expect(isValidDate(undefined)).toBe(false);
+  });
+
+  describe('getDaysUntilTest', () => {
+    it('returns positive number for future dates', () => {
+      const future = new Date();
+      future.setDate(future.getDate() + 5);
+      const result = getDaysUntilTest(future.toISOString());
+      expect(result).toBeGreaterThan(0);
+    });
+
+    it('returns negative number for past dates', () => {
+      const past = new Date();
+      past.setDate(past.getDate() - 3);
+      const result = getDaysUntilTest(past.toISOString());
+      expect(result).toBeLessThan(0);
+    });
+
+    it('returns 0 for today', () => {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const result = getDaysUntilTest(today.toISOString());
+      expect(result).toBe(0);
+    });
+
+    it('returns -Infinity for invalid dates', () => {
+      expect(getDaysUntilTest('invalid-date')).toBe(-Infinity);
+      expect(getDaysUntilTest('')).toBe(-Infinity);
+      expect(getDaysUntilTest(null as any)).toBe(-Infinity);
+    });
   });
 });
