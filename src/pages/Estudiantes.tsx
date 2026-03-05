@@ -61,7 +61,10 @@ export const Estudiantes: React.FC<EstudiantesProps> = ({ level }) => {
     patchUiState({ selectedStudent: student, isModalOpen: true });
   };
 
-  const { data: studentDetailsFromQuery = { absences: [], records: [] }, isLoading: studentDetailsLoading } = useStudentDetails(selectedStudent?.id || undefined);
+  const { data: studentDetailsFromQuery = { absences: [], records: [] }, isLoading: studentDetailsLoading } = useStudentDetails(
+    selectedStudent?.id || undefined,
+    isModalOpen
+  );
 
   const courseOptions = [
     { value: '', label: 'Todos los Cursos' },

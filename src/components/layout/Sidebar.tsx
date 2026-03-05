@@ -54,7 +54,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
 }) => {
   const visibleItems = menuItems.filter((item) => {
     if (!isStaff) return item.id === 'docente_public';
-    if (item.id === 'docente_public') return false;
     if (!isSuperuser && item.id === 'configuracion') return false;
     return true;
   });

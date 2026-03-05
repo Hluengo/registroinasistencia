@@ -20,6 +20,9 @@ type StudentRow = Tables<'students'>;
 type TestInsertRow = TablesInsert<'tests'>;
 type AbsenceUpdateRow = TablesUpdate<'absences'>;
 type AbsenceStatus = Enums<'absence_status'>;
+type InstantMessageRow = Tables<'instant_messages'>;
+type InstantMessageInsertRow = TablesInsert<'instant_messages'>;
+type InstantMessageUpdateRow = TablesUpdate<'instant_messages'>;
 
 export type Holiday = NormalizedHoliday;
 export type TeacherPublicAbsence = {
@@ -42,6 +45,17 @@ export type TeacherPublicAbsenceDetail = {
   type: string;
 };
 
+export type TeacherInstantMessage = {
+  id: string;
+  title: string;
+  body: string;
+  level: string | null;
+  course_id: string | null;
+  starts_at: string;
+  ends_at: string | null;
+  created_at: string;
+};
+
 function useQ<TQueryFnData = unknown, TError = unknown, TData = TQueryFnData, TQueryKey extends QueryKey = QueryKey>(
   queryKey: TQueryKey,
   queryFn: () => Promise<TQueryFnData>,
@@ -50,8 +64,11 @@ function useQ<TQueryFnData = unknown, TError = unknown, TData = TQueryFnData, TQ
   return useQuery<TQueryFnData, TError, TData, TQueryKey>({
     queryKey,
     queryFn,
-    staleTime: 30_000,
+    staleTime: 60_000,
+    gcTime: 10 * 60_000,
+    retry: 1,
     refetchOnWindowFocus: false,
+    refetchOnMount: false,
     ...(options ?? {})
   });
 }
@@ -62,21 +79,24 @@ const queryKeys = {
   holidays: (month?: number, year?: number) => ['holidays', month ?? -1, year ?? -1] as const,
   teacherPublicAbsences: (month: number, year: number, level?: string, courseId?: string) => ['teacherPublicAbsences', month, year, level ?? 'all', courseId ?? 'all'] as const,
   teacherPublicAbsenceDetail: (absenceId?: string) => ['teacherPublicAbsenceDetail', absenceId ?? 'none'] as const,
+  teacherInstantMessages: (level?: string, courseId?: string) => ['teacherInstantMessages', level ?? 'all', courseId ?? 'all'] as const,
+  instantMessagesManage: (level?: string) => ['instantMessagesManage', level ?? 'all'] as const,
   absences: (level?: string, start?: string, end?: string) => ['absences', level ?? 'all', start ?? 'none', end ?? 'none'] as const,
   students: (courseId?: string, level?: string) => ['students', courseId ?? 'all', level ?? 'all'] as const,
   inspectorate: (level?: string, start?: string, end?: string) => ['inspectorate', level ?? 'all', start ?? 'none', end ?? 'none'] as const
 };
 
-export const useCourses = (level?: 'BASICA' | 'MEDIA') => {
+export const useCourses = (level?: 'BASICA' | 'MEDIA', enabled: boolean = true) => {
   return useQ<CourseRow[]>(
     queryKeys.courses(level),
     async () => {
-      let query = supabase.from('courses').select('*').order('position');
+      let query = supabase.from('courses').select('id, name, level, position').order('position');
       if (level) query = query.eq('level', level);
       const { data, error } = await query;
       if (error) throw error;
       return (data || []) as CourseRow[];
-    }
+    },
+    { enabled }
   );
 };
 
@@ -84,7 +104,10 @@ export const useTests = (courseId?: string, month?: number, year?: number, level
   return useQ<TestRow[]>(
     queryKeys.tests(courseId, month, year, level),
     async () => {
-      let query = supabase.from('tests').select('*, courses!inner(*)').order('date');
+      let query = supabase
+        .from('tests')
+        .select('id, course_id, date, subject, type, description, created_at, courses!inner(id, name, level)')
+        .order('date');
       if (courseId) {
         const parsed = /^\d+$/.test(String(courseId)) ? Number(courseId) : courseId;
         query = query.eq('course_id', String(parsed));
@@ -108,7 +131,7 @@ export const useHolidays = (month?: number, year?: number) => {
   return useQ<Holiday[]>(
     queryKeys.holidays(month, year),
     async () => {
-      const { data, error } = await supabase.from('feriados_chile').select('*');
+      const { data, error } = await supabase.from('feriados_chile').select('fecha, descripcion, es_irrenunciable');
       if (error) throw error;
       
       const normalized = (data || [])
@@ -161,6 +184,44 @@ export const useTeacherPublicAbsenceDetail = (absenceId?: string) => {
       staleTime: 60_000,
       refetchOnWindowFocus: false
     }
+  );
+};
+
+export const useTeacherInstantMessages = (level?: 'BASICA' | 'MEDIA', courseId?: string, enabled: boolean = true) => {
+  return useQ<TeacherInstantMessage[]>(
+    queryKeys.teacherInstantMessages(level, courseId),
+    async () => {
+      const params: { p_level?: string; p_course_id?: string } = {};
+      if (level) params.p_level = level;
+      if (courseId) params.p_course_id = courseId;
+      const { data, error } = await supabase.rpc('teacher_get_instant_messages', params);
+      if (error) throw error;
+      return (data || []) as TeacherInstantMessage[];
+    },
+    {
+      staleTime: 30_000,
+      refetchInterval: 15_000,
+      enabled
+    }
+  );
+};
+
+export const useManageInstantMessages = (level?: 'BASICA' | 'MEDIA', enabled: boolean = true) => {
+  return useQ<InstantMessageRow[]>(
+    queryKeys.instantMessagesManage(level),
+    async () => {
+      let query = supabase
+        .from('instant_messages')
+        .select('id, title, body, level, course_id, is_active, starts_at, ends_at, created_at, updated_at, created_by')
+        .order('created_at', { ascending: false });
+      if (level) {
+        query = query.or(`level.eq.${level},level.is.null`);
+      }
+      const { data, error } = await query;
+      if (error) throw error;
+      return (data || []) as InstantMessageRow[];
+    },
+    { enabled }
   );
 };
 
@@ -292,7 +353,10 @@ export const useInspectorate = (level?: 'BASICA' | 'MEDIA', startDate?: string, 
   return useQ<InspectorateWithStudent[]>(
     queryKeys.inspectorate(level, startDate, endDate),
     async () => {
-      let query = supabase.from('inspectorate_records').select('id, student_id, created_at, date_time, observation, students!inner(id, full_name, course_id, rut, courses!inner(id, name, level, position, created_at))').order('date_time', { ascending: false });
+      let query = supabase
+        .from('inspectorate_records')
+        .select('id, student_id, created_at, date_time, observation, students!inner(id, full_name, course_id, rut, courses!inner(id, name, level, position))')
+        .order('date_time', { ascending: false });
       if (startDate) query = query.gte('date_time', startDate);
       if (endDate) query = query.lte('date_time', endDate);
       const { data, error } = await query;
@@ -305,7 +369,7 @@ export const useInspectorate = (level?: 'BASICA' | 'MEDIA', startDate?: string, 
   );
 };
 
-export const useStudentDetails = (studentId?: string) => {
+export const useStudentDetails = (studentId?: string, enabled: boolean = true) => {
   return useQ<{
     absences: Database['public']['Tables']['absences']['Row'][];
     records: Database['public']['Tables']['inspectorate_records']['Row'][];
@@ -314,8 +378,16 @@ export const useStudentDetails = (studentId?: string) => {
     async () => {
       if (!studentId) return { absences: [], records: [] };
       const [absRes, recRes] = await Promise.all([
-        supabase.from('absences').select('*').eq('student_id', studentId).order('start_date', { ascending: false }),
-        supabase.from('inspectorate_records').select('*').eq('student_id', studentId).order('date_time', { ascending: false })
+        supabase
+          .from('absences')
+          .select('id, student_id, start_date, end_date, observation, document_url, status, created_at')
+          .eq('student_id', studentId)
+          .order('start_date', { ascending: false }),
+        supabase
+          .from('inspectorate_records')
+          .select('id, student_id, date_time, observation, created_at')
+          .eq('student_id', studentId)
+          .order('date_time', { ascending: false })
       ]);
 
       const absData = absRes.data ?? [];
@@ -325,7 +397,8 @@ export const useStudentDetails = (studentId?: string) => {
       if (recRes.error) throw recRes.error;
 
       return { absences: absData as Database['public']['Tables']['absences']['Row'][], records: recData as Database['public']['Tables']['inspectorate_records']['Row'][] };
-    }
+    },
+    { enabled: enabled && Boolean(studentId) }
   );
 };
 
@@ -340,6 +413,7 @@ export const useCreateInspectorateRecord = () => {
     mutationFn: (payload) => inspectorateService.createInspectorateRecord(payload),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: QUERY_KEYS_INVALIDATE.INSPECTORATE });
+      qc.invalidateQueries({ queryKey: ['studentDetails'] });
     }
   });
 };
@@ -354,6 +428,8 @@ export const useCreateAbsence = () => {
     mutationFn: (args) => absenceService.createAbsence(args.absence, args.file),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: QUERY_KEYS_INVALIDATE.ABSENCES });
+      qc.invalidateQueries({ queryKey: QUERY_KEYS_INVALIDATE.TEACHER_PUBLIC_ABSENCES });
+      qc.invalidateQueries({ queryKey: ['studentDetails'] });
     }
   });
 };
@@ -368,6 +444,8 @@ export const useUpdateAbsence = () => {
     mutationFn: (args) => absenceService.updateAbsence(args.id, args.updates, args.file),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: QUERY_KEYS_INVALIDATE.ABSENCES });
+      qc.invalidateQueries({ queryKey: QUERY_KEYS_INVALIDATE.TEACHER_PUBLIC_ABSENCES });
+      qc.invalidateQueries({ queryKey: ['studentDetails'] });
     }
   });
 };
@@ -411,6 +489,8 @@ export const useCreateTest = () => {
     mutationFn: (test) => testService.createTest(test),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: queryKeys.tests() });
+      qc.invalidateQueries({ queryKey: QUERY_KEYS_INVALIDATE.ABSENCES });
+      qc.invalidateQueries({ queryKey: QUERY_KEYS_INVALIDATE.TEACHER_PUBLIC_ABSENCES });
     }
   });
 };
@@ -427,6 +507,59 @@ export const useSeedData = () => {
       qc.invalidateQueries({ queryKey: ['courses'] });
       qc.invalidateQueries({ queryKey: ['students'] });
       qc.invalidateQueries({ queryKey: queryKeys.tests() });
+    }
+  });
+};
+
+export const useCreateInstantMessage = () => {
+  const qc = useQueryClient();
+  return useMutation<
+    InstantMessageRow,
+    Error,
+    Omit<InstantMessageInsertRow, 'id' | 'created_at' | 'updated_at'>
+  >({
+    mutationFn: async (payload) => {
+      const { data, error } = await supabase
+        .from('instant_messages')
+        .insert(payload)
+        .select('*')
+        .single();
+      if (error) {
+        const details = [error.message, error.details, error.hint].filter(Boolean).join(' | ');
+        throw new Error(details || 'No se pudo crear el mensaje instantáneo.');
+      }
+      return data as InstantMessageRow;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: QUERY_KEYS_INVALIDATE.TEACHER_INSTANT_MESSAGES });
+      qc.invalidateQueries({ queryKey: QUERY_KEYS_INVALIDATE.INSTANT_MESSAGES_MANAGE });
+    }
+  });
+};
+
+export const useUpdateInstantMessage = () => {
+  const qc = useQueryClient();
+  return useMutation<
+    InstantMessageRow,
+    Error,
+    { id: string; updates: InstantMessageUpdateRow }
+  >({
+    mutationFn: async ({ id, updates }) => {
+      const { data, error } = await supabase
+        .from('instant_messages')
+        .update(updates)
+        .eq('id', id)
+        .select('*')
+        .single();
+      if (error) {
+        const details = [error.message, error.details, error.hint].filter(Boolean).join(' | ');
+        throw new Error(details || 'No se pudo actualizar el mensaje instantáneo.');
+      }
+      return data as InstantMessageRow;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: QUERY_KEYS_INVALIDATE.TEACHER_INSTANT_MESSAGES });
+      qc.invalidateQueries({ queryKey: QUERY_KEYS_INVALIDATE.INSTANT_MESSAGES_MANAGE });
     }
   });
 };

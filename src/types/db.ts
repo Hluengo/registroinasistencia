@@ -129,6 +129,56 @@ export type Database = {
           },
         ]
       }
+      instant_messages: {
+        Row: {
+          body: string
+          course_id: string | null
+          created_at: string
+          created_by: string | null
+          ends_at: string | null
+          id: string
+          is_active: boolean
+          level: string | null
+          starts_at: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          body: string
+          course_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          ends_at?: string | null
+          id?: string
+          is_active?: boolean
+          level?: string | null
+          starts_at?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          body?: string
+          course_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          ends_at?: string | null
+          id?: string
+          is_active?: boolean
+          level?: string | null
+          starts_at?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "instant_messages_course_id_fkey"
+            columns: ["course_id"]
+            isOneToOne: false
+            referencedRelation: "courses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           created_at: string
@@ -295,6 +345,19 @@ export type Database = {
           id: string
           subject: string
           type: string
+        }[]
+      }
+      teacher_get_instant_messages: {
+        Args: { p_course_id?: string; p_level?: string }
+        Returns: {
+          body: string
+          course_id: string | null
+          created_at: string
+          ends_at: string | null
+          id: string
+          level: string | null
+          starts_at: string
+          title: string
         }[]
       }
     }

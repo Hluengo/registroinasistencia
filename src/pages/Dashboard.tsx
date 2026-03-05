@@ -6,7 +6,8 @@ import {
   AlertCircle, 
   FileText, 
   Download,
-  Filter
+  Filter,
+  RefreshCw
 } from 'lucide-react';
 import { Course, AbsenceWithDetails, Test } from '../types';
 import { useAbsences, useCourses } from '../hooks/queries';
@@ -14,6 +15,8 @@ import { formatDate } from '../utils';
 import { Button, Badge, PageHeader, Select, StatCard, Modal } from '../components/ui';
 import { DashboardAbsencesTable } from './DashboardAbsencesTable';
 import { MONTHS, getYearOptions, getCourseOptions, getStatusOptions } from '../utils/filterOptions';
+import { useQueryClient } from '@tanstack/react-query';
+import { QUERY_KEYS_INVALIDATE } from '../constants';
 // jsPDF is large — dynamically import in exportToPDF to avoid bundling in main chunk
 
 interface DashboardProps {
@@ -125,13 +128,24 @@ export const Dashboard: React.FC<DashboardProps> = ({ level }) => {
     onlyWithoutDoc: false
   });
   const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
+  const queryClient = useQueryClient();
 
   // derive date range for queries
   const startDate = new Date(filters.year, filters.month, 1).toISOString().split('T')[0];
   const endDate = new Date(filters.year, filters.month + 1, 0).toISOString().split('T')[0];
 
-  const { data: absences = [], isLoading: loadingAbsences } = useAbsences(level, startDate, endDate);
-  const { data: coursesFromQuery = [], isLoading: loadingCourses } = useCourses(level);
+  const {
+    data: absences = [],
+    isLoading: loadingAbsences,
+    isFetching: fetchingAbsences,
+    error: absencesError
+  } = useAbsences(level, startDate, endDate);
+  const {
+    data: coursesFromQuery = [],
+    isLoading: loadingCourses,
+    isFetching: fetchingCourses,
+    error: coursesError
+  } = useCourses(level);
 
   const loading = loadingAbsences || loadingCourses;
 
@@ -167,6 +181,13 @@ export const Dashboard: React.FC<DashboardProps> = ({ level }) => {
   const handleViewDetail = (abs: AbsenceWithDetails) => {
     setSelectedAbsence(abs);
     setIsDetailModalOpen(true);
+  };
+
+  const handleRefresh = async () => {
+    await Promise.all([
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS_INVALIDATE.ABSENCES }),
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS_INVALIDATE.COURSES })
+    ]);
   };
 
   const exportToPDF = async () => {
@@ -216,11 +237,25 @@ export const Dashboard: React.FC<DashboardProps> = ({ level }) => {
         description={`Resumen ejecutivo de inasistencias y evaluaciones para Educación ${level === 'BASICA' ? 'Básica' : 'Media'}.`}
         breadcrumbs={[{ label: 'Dashboard', active: true }]}
         action={
-          <Button onClick={exportToPDF} icon={Download} variant="secondary">
-            Exportar Reporte PDF
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button onClick={handleRefresh} icon={RefreshCw} variant="outline">
+              Refrescar
+            </Button>
+            <Button onClick={exportToPDF} icon={Download} variant="secondary">
+              Exportar Reporte PDF
+            </Button>
+          </div>
         }
       />
+      {absencesError || coursesError ? (
+        <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
+          Error al cargar datos del dashboard desde Supabase. {' '}
+          {String((absencesError as Error | undefined)?.message || (coursesError as Error | undefined)?.message || 'Revisa sesión/permisos.')}
+        </div>
+      ) : null}
+      {fetchingAbsences || fetchingCourses ? (
+        <p className="text-xs font-medium text-slate-400 -mt-6">Sincronizando datos con Supabase...</p>
+      ) : null}
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
         <StatCard 

@@ -43,8 +43,6 @@ function AppContent() {
     let nextActiveTab = activeTab;
     if (!isStaff) {
       nextActiveTab = 'docente_public';
-    } else if (activeTab === 'docente_public') {
-      nextActiveTab = 'dashboard';
     } else if (!isSuperuser && activeTab === 'configuracion') {
       nextActiveTab = 'dashboard';
     }
@@ -56,7 +54,7 @@ function AppContent() {
 
   const content = React.useMemo(() => {
     if (!isStaff || activeTab === 'docente_public') {
-      return <DocentePublico level={level} />;
+      return <DocentePublico level={level} isStaff={isStaff} />;
     }
 
     switch (activeTab) {

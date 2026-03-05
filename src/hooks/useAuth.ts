@@ -6,6 +6,7 @@ import { isUsingPlaceholder } from '../lib/supabaseClient';
 type AppRole = 'teacher' | 'staff' | 'superuser' | null;
 const GET_SESSION_TIMEOUT_MS = 20000;
 const ROLE_TIMEOUT_MS = 12000;
+const INVALID_REFRESH_TOKEN_RE = /(invalid refresh token|refresh token not found|invalid_grant)/i;
 
 const TIMEOUT = Symbol('timeout');
 
@@ -21,6 +22,11 @@ async function getSessionWithRetry() {
   if (first !== TIMEOUT) return first;
   console.warn('useAuth.bootstrap: getSession timeout (1), retrying once...');
   return withTimeout(supabase.auth.getSession(), GET_SESSION_TIMEOUT_MS);
+}
+
+function isInvalidRefreshTokenError(error: unknown) {
+  const message = error instanceof Error ? error.message : String(error ?? '');
+  return INVALID_REFRESH_TOKEN_RE.test(message);
 }
 
 export function useAuth() {
@@ -95,6 +101,7 @@ export function useAuth() {
 
   React.useEffect(() => {
     let mounted = true;
+    let roleRefreshTimer: ReturnType<typeof setTimeout> | null = null;
 
     const bootstrap = async () => {
       setLoading(true);
@@ -116,6 +123,14 @@ export function useAuth() {
           return;
         }
         const { data, error } = sessionRes;
+        if (error && isInvalidRefreshTokenError(error)) {
+          console.warn('useAuth.bootstrap: invalid refresh token detected; clearing local session');
+          await supabase.auth.signOut({ scope: 'local' });
+          setSession(null);
+          setRole(null);
+          setAuthError(null);
+          return;
+        }
         if (error) throw error;
         if (!mounted) return;
         const nextSession = data.session ?? null;
@@ -125,6 +140,14 @@ export function useAuth() {
       } catch (error) {
         console.error('useAuth.bootstrap error', error);
         if (mounted) {
+          if (isInvalidRefreshTokenError(error)) {
+            console.warn('useAuth.bootstrap: invalid refresh token during recovery; clearing local session');
+            await supabase.auth.signOut({ scope: 'local' });
+            setSession(null);
+            setRole(null);
+            setAuthError(null);
+            return;
+          }
           // Mantener cualquier sesión existente; no degradar a invitado por error transitorio.
           try {
             const { data } = await supabase.auth.getSession();
@@ -143,22 +166,28 @@ export function useAuth() {
 
     bootstrap();
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, nextSession) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, nextSession) => {
       if (isUsingPlaceholder) return;
       setSession(nextSession);
       setAuthError(null);
-      try {
-        await refreshRole(nextSession?.user?.id ?? null);
-      } catch (e) {
-        console.error('useAuth.onAuthStateChange refreshRole error', e);
-        // Mantener sesión; fallback a rol docente.
-        setRole('teacher');
-        setAuthError(e instanceof Error ? e.message : 'No se pudo resolver el rol del usuario; usando rol docente.');
-      }
+
+      // Important: keep this callback synchronous so GoTrue's lock is released quickly.
+      // Running async Supabase calls directly here can keep the auth lock for >5s.
+      if (roleRefreshTimer) clearTimeout(roleRefreshTimer);
+      roleRefreshTimer = setTimeout(() => {
+        if (!mounted) return;
+        void refreshRole(nextSession?.user?.id ?? null).catch((e) => {
+          console.error('useAuth.onAuthStateChange refreshRole error', e);
+          // Mantener sesión; fallback a rol docente.
+          setRole('teacher');
+          setAuthError(e instanceof Error ? e.message : 'No se pudo resolver el rol del usuario; usando rol docente.');
+        });
+      }, 0);
     });
 
     return () => {
       mounted = false;
+      if (roleRefreshTimer) clearTimeout(roleRefreshTimer);
       subscription?.unsubscribe();
     };
   }, [refreshRole]);
@@ -183,7 +212,10 @@ export function useAuth() {
     if (error) {
       // If there is no active auth session in Supabase, still clear local UI state.
       const isMissingSession = /session|Auth session missing/i.test(error.message ?? '');
-      if (!isMissingSession) {
+      const shouldFallbackLocal = isMissingSession || isInvalidRefreshTokenError(error);
+      if (shouldFallbackLocal) {
+        await supabase.auth.signOut({ scope: 'local' });
+      } else {
         setAuthError(error.message);
         throw error;
       }

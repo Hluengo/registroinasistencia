@@ -1,26 +1,49 @@
 import React from 'react';
-import { Calendar, ChevronLeft, ChevronRight, Eye } from 'lucide-react';
-import { useTeacherPublicAbsences, TeacherPublicAbsence, useTeacherPublicAbsenceDetail } from '../hooks/queries';
+import { AlertCircle, Bell, Calendar, ChevronLeft, ChevronRight, Eye, Megaphone, PauseCircle, Pencil, PlayCircle } from 'lucide-react';
+import {
+  useTeacherPublicAbsences,
+  TeacherPublicAbsence,
+  useTeacherPublicAbsenceDetail,
+  useTeacherInstantMessages,
+  useManageInstantMessages,
+  useCreateInstantMessage,
+  useUpdateInstantMessage
+} from '../hooks/queries';
 import { useCourses } from '../hooks/queries';
 import { Modal, Button, Badge, EmptyState, PageHeader, Select, TableSkeleton } from '../components/ui';
 import { formatDate } from '../utils';
 import { MONTHS, getYearOptions, getCourseOptions } from '../utils/filterOptions';
+import { useToast } from '../contexts/ToastContext';
+import { TOAST_TYPES } from '../constants';
 
 interface DocentePublicoProps {
   level: 'BASICA' | 'MEDIA';
+  isStaff: boolean;
 }
 
-export const DocentePublico: React.FC<DocentePublicoProps> = ({ level }) => {
+export const DocentePublico: React.FC<DocentePublicoProps> = ({ level, isStaff }) => {
   const [currentDate, setCurrentDate] = React.useState(new Date());
   const [selectedCourseId, setSelectedCourseId] = React.useState('');
   const [selected, setSelected] = React.useState<TeacherPublicAbsence | null>(null);
   const [isOpen, setIsOpen] = React.useState(false);
+  const [messageTitle, setMessageTitle] = React.useState('');
+  const [messageBody, setMessageBody] = React.useState('');
+  const [messageScope, setMessageScope] = React.useState<'GENERAL' | 'BASICA' | 'MEDIA'>('GENERAL');
+  const [messageEndsAt, setMessageEndsAt] = React.useState('');
+  const [editingMessageId, setEditingMessageId] = React.useState<string | null>(null);
+  const { showToast } = useToast();
 
   const month = currentDate.getMonth();
   const year = currentDate.getFullYear();
-  const { data = [], isLoading, isFetching } = useTeacherPublicAbsences(month, year, level, selectedCourseId || undefined);
+  const { data = [], isLoading, isFetching, error: absencesError } = useTeacherPublicAbsences(month, year, level, selectedCourseId || undefined);
   const { data: selectedTests = [], isLoading: selectedTestsLoading } = useTeacherPublicAbsenceDetail(selected?.absence_id);
-  const { data: courses = [], isLoading: coursesLoading } = useCourses(level);
+  const { data: courses = [], isLoading: coursesLoading, error: coursesError } = useCourses(level, isStaff);
+  const activeMessagesLevel = isStaff ? undefined : level;
+  const { data: instantMessages = [], isLoading: instantMessagesLoading, error: messagesError } = useTeacherInstantMessages(activeMessagesLevel, selectedCourseId || undefined);
+  const { data: allActiveMessages = [] } = useTeacherInstantMessages(undefined, undefined, !isStaff);
+  const { data: manageableMessages = [], isLoading: manageableMessagesLoading, error: manageMessagesError } = useManageInstantMessages(undefined, isStaff);
+  const createMessage = useCreateInstantMessage();
+  const updateMessage = useUpdateInstantMessage();
 
   React.useEffect(() => {
     setSelectedCourseId('');
@@ -29,6 +52,92 @@ export const DocentePublico: React.FC<DocentePublicoProps> = ({ level }) => {
   const loading = isLoading || coursesLoading;
   const showInitialSkeleton = loading && data.length === 0;
   const courseOptions = React.useMemo(() => getCourseOptions(courses), [courses]);
+  const canSubmitMessage = messageTitle.trim().length >= 3 && messageBody.trim().length >= 3;
+  const isEditingMessage = editingMessageId !== null;
+
+  const toDateTimeLocalValue = (isoDate: string | null | undefined) => {
+    if (!isoDate) return '';
+    const parsed = new Date(isoDate);
+    if (Number.isNaN(parsed.getTime())) return '';
+    const adjusted = new Date(parsed.getTime() - (parsed.getTimezoneOffset() * 60000));
+    return adjusted.toISOString().slice(0, 16);
+  };
+
+  const resetMessageForm = () => {
+    setEditingMessageId(null);
+    setMessageTitle('');
+    setMessageBody('');
+    setMessageScope('GENERAL');
+    setMessageEndsAt('');
+  };
+
+  const handleCreateMessage = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!canSubmitMessage) return;
+    const endsAtDate = messageEndsAt ? new Date(messageEndsAt) : null;
+    if (endsAtDate && Number.isNaN(endsAtDate.getTime())) {
+      showToast({ type: TOAST_TYPES.ERROR, message: 'La fecha de vigencia no es válida.' });
+      return;
+    }
+    if (endsAtDate && endsAtDate.getTime() < Date.now()) {
+      showToast({ type: TOAST_TYPES.WARNING, message: 'La fecha "Vigente hasta" debe ser futura.' });
+      return;
+    }
+    try {
+      if (isEditingMessage && editingMessageId) {
+        await updateMessage.mutateAsync({
+          id: editingMessageId,
+          updates: {
+            title: messageTitle.trim(),
+            body: messageBody.trim(),
+            level: messageScope === 'GENERAL' ? null : messageScope,
+            ends_at: endsAtDate ? endsAtDate.toISOString() : null
+          }
+        });
+        showToast({ type: TOAST_TYPES.SUCCESS, message: 'Mensaje instantáneo actualizado.' });
+      } else {
+        await createMessage.mutateAsync({
+          title: messageTitle.trim(),
+          body: messageBody.trim(),
+          level: messageScope === 'GENERAL' ? null : messageScope,
+          course_id: null,
+          ends_at: endsAtDate ? endsAtDate.toISOString() : null,
+          is_active: true
+        });
+        showToast({ type: TOAST_TYPES.SUCCESS, message: 'Mensaje instantáneo publicado.' });
+      }
+      resetMessageForm();
+      if (!isEditingMessage && messageScope !== 'GENERAL' && messageScope !== level) {
+        showToast({
+          type: TOAST_TYPES.INFO,
+          message: `El mensaje fue creado para ${messageScope}. Cambia el nivel en el selector lateral para verlo en vista docente.`
+        });
+      }
+    } catch (error) {
+      console.error('create instant message error', error);
+      const message = error instanceof Error ? error.message : 'No se pudo publicar el mensaje.';
+      showToast({ type: TOAST_TYPES.ERROR, message });
+    }
+  };
+
+  const toggleMessageActive = async (id: string, nextValue: boolean) => {
+    try {
+      await updateMessage.mutateAsync({ id, updates: { is_active: nextValue } });
+      showToast({ type: TOAST_TYPES.SUCCESS, message: nextValue ? 'Mensaje activado.' : 'Mensaje desactivado.' });
+    } catch (error) {
+      console.error('toggle instant message error', error);
+      const message = error instanceof Error ? error.message : 'No se pudo actualizar el mensaje.';
+      showToast({ type: TOAST_TYPES.ERROR, message });
+    }
+  };
+
+  const startEditMessage = (message: typeof manageableMessages[number]) => {
+    setEditingMessageId(message.id);
+    setMessageTitle(message.title);
+    setMessageBody(message.body);
+    setMessageScope(message.level === 'BASICA' || message.level === 'MEDIA' ? message.level : 'GENERAL');
+    setMessageEndsAt(toDateTimeLocalValue(message.ends_at));
+  };
 
   return (
     <div className="space-y-10">
@@ -50,17 +159,192 @@ export const DocentePublico: React.FC<DocentePublicoProps> = ({ level }) => {
           <>
             <Select options={MONTHS} value={month} onChange={(e) => setCurrentDate(new Date(year, Number(e.target.value), 1))} className="md:w-44" />
             <Select options={getYearOptions()} value={year} onChange={(e) => setCurrentDate(new Date(Number(e.target.value), month, 1))} className="md:w-36" />
-            <Select
-              options={courseOptions}
-              value={selectedCourseId}
-              onChange={(e) => setSelectedCourseId(e.target.value)}
-              className="md:w-64"
-            />
+            {isStaff ? (
+              <Select
+                options={courseOptions}
+                value={selectedCourseId}
+                onChange={(e) => setSelectedCourseId(e.target.value)}
+                className="md:w-64"
+              />
+            ) : null}
           </>
         }
       />
       {isFetching && data.length > 0 ? (
         <p className="text-xs font-medium text-slate-400 -mt-6">Actualizando resultados...</p>
+      ) : null}
+      {absencesError || messagesError ? (
+        <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
+          No se pudieron cargar algunos datos desde Supabase.
+        </div>
+      ) : null}
+      {coursesError && isStaff ? (
+        <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-700">
+          No se pudo cargar el listado de cursos. {' '}
+          {String((coursesError as Error | undefined)?.message || 'Revisa permisos de `courses` en Supabase.')}
+        </div>
+      ) : null}
+      <div className="card border border-indigo-100 bg-gradient-to-br from-indigo-50 to-white rounded-3xl p-5 md:p-6">
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <p className="text-xs font-bold text-indigo-500 uppercase tracking-[0.2em]">Comunicados</p>
+            <h3 className="text-lg font-bold text-slate-900 mt-1">Mensajes instantáneos</h3>
+            <p className="text-sm text-slate-500 mt-1">
+              {isStaff
+                ? 'Vista previa staff: muestra todos los comunicados activos.'
+                : 'Avisos importantes para el nivel y curso seleccionado.'}
+            </p>
+          </div>
+          <Bell className="w-5 h-5 text-indigo-500" />
+        </div>
+        <div className="mt-4 space-y-3">
+          {instantMessagesLoading ? (
+            <p className="text-sm text-slate-400">Cargando mensajes...</p>
+          ) : instantMessages.length === 0 ? (
+            <div className="rounded-2xl border border-dashed border-slate-300 bg-white p-4 text-sm text-slate-500">
+              Sin comunicados activos en este momento.
+              {!isStaff && allActiveMessages.length > 0 ? (
+                <span className="block mt-1 text-xs text-slate-400">
+                  Hay comunicados activos en otro nivel. Cambia BÁSICA/MEDIA desde el selector lateral.
+                </span>
+              ) : null}
+            </div>
+          ) : instantMessages.map((message) => (
+            <div key={message.id} className="rounded-2xl bg-white border border-slate-200 p-4 md:p-5 shadow-sm">
+              <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-indigo-500">
+                <Megaphone className="w-3.5 h-3.5" />
+                Aviso activo
+              </div>
+              <h4 className="text-slate-900 font-bold mt-1">{message.title}</h4>
+              <p className="text-sm text-slate-600 mt-2 whitespace-pre-line">{message.body}</p>
+              <p className="text-[11px] text-slate-400 mt-3">
+                Publicado: {formatDate(message.created_at)}
+                {message.ends_at ? ` • Vigente hasta ${formatDate(message.ends_at)}` : ''}
+              </p>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {isStaff ? (
+        <div className="card border border-amber-200/70 bg-amber-50/40 rounded-3xl p-5 md:p-6 space-y-5">
+          <div>
+            <p className="text-xs font-bold text-amber-600 uppercase tracking-[0.2em]">Gestión Staff</p>
+            <h3 className="text-lg font-bold text-slate-900 mt-1">Gestor de mensajes instantáneos</h3>
+            <p className="text-sm text-slate-600 mt-1">Crea avisos generales, por nivel o por curso para la vista docente.</p>
+          </div>
+          <form onSubmit={handleCreateMessage} className="grid grid-cols-1 lg:grid-cols-12 gap-3">
+            <div className="lg:col-span-6">
+              <label htmlFor="instant-message-title" className="text-xs font-semibold text-slate-500 uppercase tracking-wider ml-1">Título</label>
+              <input
+                id="instant-message-title"
+                value={messageTitle}
+                onChange={(e) => setMessageTitle(e.target.value)}
+                className="input-base mt-1"
+                placeholder="Ej: Cambio de horario por contingencia"
+                maxLength={120}
+              />
+            </div>
+            <div className="lg:col-span-3">
+              <label htmlFor="instant-message-scope" className="text-xs font-semibold text-slate-500 uppercase tracking-wider ml-1">Alcance</label>
+              <Select
+                id="instant-message-scope"
+                className="mt-1"
+                value={messageScope}
+                onChange={(e) => setMessageScope(e.target.value as 'GENERAL' | 'BASICA' | 'MEDIA')}
+                options={[
+                  { label: 'General', value: 'GENERAL' },
+                  { label: 'BÁSICA', value: 'BASICA' },
+                  { label: 'MEDIA', value: 'MEDIA' }
+                ]}
+              />
+            </div>
+            <div className="lg:col-span-3">
+              <label htmlFor="instant-message-ends-at" className="text-xs font-semibold text-slate-500 uppercase tracking-wider ml-1">Vigente hasta</label>
+              <input
+                id="instant-message-ends-at"
+                type="datetime-local"
+                value={messageEndsAt}
+                onChange={(e) => setMessageEndsAt(e.target.value)}
+                className="input-base mt-1"
+              />
+            </div>
+            <div className="lg:col-span-12">
+              <label htmlFor="instant-message-body" className="text-xs font-semibold text-slate-500 uppercase tracking-wider ml-1">Mensaje</label>
+              <textarea
+                id="instant-message-body"
+                value={messageBody}
+                onChange={(e) => setMessageBody(e.target.value)}
+                rows={3}
+                maxLength={1200}
+                className="input-base mt-1 resize-y"
+                placeholder="Describe la situación particular a informar."
+              />
+            </div>
+            <div className="lg:col-span-12 flex items-center justify-between gap-3">
+              <p className="text-xs text-slate-500 flex items-center gap-1.5">
+                <AlertCircle className="w-3.5 h-3.5" />
+                Se mostrará de inmediato en la vista docente.
+              </p>
+              <div className="flex items-center gap-2">
+                {isEditingMessage ? (
+                  <Button type="button" variant="ghost" onClick={resetMessageForm}>
+                    Cancelar edición
+                  </Button>
+                ) : null}
+                <Button type="submit" loading={createMessage.isPending || updateMessage.isPending} disabled={!canSubmitMessage}>
+                  {isEditingMessage ? 'Guardar cambios' : 'Publicar mensaje'}
+                </Button>
+              </div>
+            </div>
+          </form>
+          <div className="space-y-2">
+            <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">Mensajes existentes</p>
+            <p className="text-xs text-slate-400">Se listan todos los mensajes creados, independiente del nivel actual.</p>
+            {manageableMessagesLoading ? (
+              <p className="text-sm text-slate-400">Cargando mensajes...</p>
+            ) : manageMessagesError ? (
+              <p className="text-sm text-rose-600">Error al cargar mensajes para gestión.</p>
+            ) : manageableMessages.length === 0 ? (
+              <p className="text-sm text-slate-500">No hay mensajes creados.</p>
+            ) : manageableMessages.map((message) => (
+              <div key={message.id} className="rounded-2xl bg-white border border-slate-200 p-4 flex items-start justify-between gap-4">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <p className="font-semibold text-slate-900">{message.title}</p>
+                    <Badge variant={message.is_active ? 'success' : 'secondary'}>
+                      {message.is_active ? 'Activo' : 'Inactivo'}
+                    </Badge>
+                  </div>
+                  <p className="text-sm text-slate-600 mt-1 whitespace-pre-line">{message.body}</p>
+                  <p className="text-[11px] text-slate-400 mt-2">
+                    {message.level ? `Nivel ${message.level}` : 'General'}
+                    {message.course_id ? ' • Curso específico' : ''}
+                    {message.ends_at ? ` • Expira ${formatDate(message.ends_at)}` : ''}
+                  </p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    icon={Pencil}
+                    onClick={() => startEditMessage(message)}
+                  >
+                    Editar
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant={message.is_active ? 'ghost' : 'secondary'}
+                    icon={message.is_active ? PauseCircle : PlayCircle}
+                    onClick={() => toggleMessageActive(message.id, !message.is_active)}
+                  >
+                    {message.is_active ? 'Desactivar' : 'Activar'}
+                  </Button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
       ) : null}
 
       <div className="card overflow-hidden border border-slate-200/60 shadow-sm shadow-slate-200/20 rounded-3xl">

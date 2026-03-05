@@ -134,7 +134,11 @@ export const Inspectoria: React.FC<InspectoriaProps> = ({ level }) => {
   // This avoids missing rows caused by strict timestamptz range filtering at query time.
   const { data: records = [], isLoading: recordsLoading } = useInspectorate(level, startISO, endISO);
   const { data: courses = [], isLoading: coursesLoading } = useCourses(level);
-  const { data: students = [], isLoading: studentsLoading } = useStudents(watch('course_id') || undefined, level);
+  const { data: students = [], isLoading: studentsLoading } = useStudents(
+    watch('course_id') || undefined,
+    level,
+    isModalOpen
+  );
 
   const loading = recordsLoading || coursesLoading || studentsLoading;
 
