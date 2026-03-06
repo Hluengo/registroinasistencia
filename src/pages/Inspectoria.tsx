@@ -122,11 +122,19 @@ export const Inspectoria: React.FC<InspectoriaProps> = ({ level }) => {
   const { mutationLoading, isModalOpen, selectedRecord, isDetailModalOpen, filters } = uiState;
   const { showToast } = useToast();
 
-  const { register, handleSubmit, watch, reset, formState: { errors } } = useForm<{ course_id?: string; student_id: string; date_time: string; observation: string }>({
+  const { register, handleSubmit, watch, reset, setValue, formState: { errors } } = useForm<{ course_id?: string; student_id: string; date_time: string; observation: string }>({
     resolver: zodResolver(inspectorateRecordValidationSchema),
-    mode: 'onBlur'
+    mode: 'onBlur',
+    defaultValues: {
+      course_id: '',
+      student_id: '',
+      date_time: '',
+      observation: ''
+    }
   });
-  const watchCourse = watch('course_id');
+  const watchCourse = watch('course_id') || '';
+  const courseField = register('course_id');
+  const studentField = register('student_id', { required: 'El estudiante es requerido' });
   const startISO = new Date(filters.year, filters.month, 1, 0, 0, 0, 0).toISOString();
   const endISO = new Date(filters.year, filters.month + 1, 0, 23, 59, 59, 999).toISOString();
 
@@ -135,9 +143,9 @@ export const Inspectoria: React.FC<InspectoriaProps> = ({ level }) => {
   const { data: records = [], isLoading: recordsLoading } = useInspectorate(level, startISO, endISO);
   const { data: courses = [], isLoading: coursesLoading } = useCourses(level);
   const { data: students = [], isLoading: studentsLoading } = useStudents(
-    watch('course_id') || undefined,
+    watchCourse || undefined,
     level,
-    isModalOpen
+    isModalOpen && Boolean(watchCourse)
   );
 
   const loading = recordsLoading || coursesLoading || studentsLoading;
@@ -154,6 +162,26 @@ export const Inspectoria: React.FC<InspectoriaProps> = ({ level }) => {
 
   const createRecord = useCreateInspectorateRecord();
 
+  const openCreateModal = React.useCallback(() => {
+    reset({
+      course_id: '',
+      student_id: '',
+      date_time: '',
+      observation: ''
+    });
+    patchUiState({ isModalOpen: true });
+  }, [reset]);
+
+  const closeCreateModal = React.useCallback(() => {
+    reset({
+      course_id: '',
+      student_id: '',
+      date_time: '',
+      observation: ''
+    });
+    patchUiState({ isModalOpen: false });
+  }, [reset]);
+
   const onSubmit = async (data: { student_id: string; date_time: string; observation: string }) => {
     if (!createMutationGuard(mutationLoading, () => showToast({ type: TOAST_TYPES.WARNING, message: 'Ya se está procesando un registro' }))) {
       return;
@@ -163,8 +191,7 @@ export const Inspectoria: React.FC<InspectoriaProps> = ({ level }) => {
       console.log('Inspectoria.onSubmit - payload', data);
       const res = await createRecord.mutateAsync({ student_id: data.student_id, date_time: data.date_time, observation: data.observation });
       console.log('Inspectoria.onSubmit - mutate result', res);
-      patchUiState({ isModalOpen: false });
-      reset();
+      closeCreateModal();
       showToast({ type: TOAST_TYPES.SUCCESS, message: 'Registro de inspecteriía creado exitosamente' });
     } catch (error) {
       console.error('Error creating record:', error);
@@ -186,7 +213,7 @@ export const Inspectoria: React.FC<InspectoriaProps> = ({ level }) => {
         description={`Registro de atenciones y situaciones de convivencia para Educación ${level === 'BASICA' ? 'Básica' : 'Media'}.`}
         breadcrumbs={[{ label: 'Inspectoría', active: true }]}
         action={
-          <Button onClick={() => patchUiState({ isModalOpen: true })} icon={Plus} variant="primary">
+          <Button onClick={openCreateModal} icon={Plus} variant="primary">
             Nueva Atención
           </Button>
         }
@@ -296,7 +323,7 @@ export const Inspectoria: React.FC<InspectoriaProps> = ({ level }) => {
 
       <Modal 
         isOpen={isModalOpen} 
-        onClose={() => patchUiState({ isModalOpen: false })} 
+        onClose={closeCreateModal} 
         title="Registrar Atención de Inspectoría"
         size="lg"
       >
@@ -306,14 +333,18 @@ export const Inspectoria: React.FC<InspectoriaProps> = ({ level }) => {
               <Select 
                 label="Curso"
                 options={[{ value: '', label: 'Seleccionar curso' }, ...(courses as Course[]).map((c: Course) => ({ value: c.id, label: c.name }))]}
-                {...register('course_id', { required: 'El curso es requerido' })}
+                {...courseField}
+                onChange={(e) => {
+                  courseField.onChange(e);
+                  setValue('student_id', '', { shouldValidate: true });
+                }}
               />
             </div>
             <div>
               <Select 
                 label="Estudiante"
                 options={[{ value: '', label: 'Seleccionar estudiante' }, ...(students as Student[]).map((s: Student) => ({ value: s.id, label: s.full_name }))]}
-                {...register('student_id', { required: 'El estudiante es requerido' })}
+                {...studentField}
                 disabled={!watchCourse}
               />
               <FormError error={errors.student_id} />
@@ -341,7 +372,7 @@ export const Inspectoria: React.FC<InspectoriaProps> = ({ level }) => {
           </div>
 
           <div className="flex justify-end gap-3 pt-4">
-            <Button variant="ghost" onClick={() => patchUiState({ isModalOpen: false })}>
+            <Button variant="ghost" onClick={closeCreateModal}>
               Cancelar
             </Button>
             <Button type="submit" loading={loading || mutationLoading}>

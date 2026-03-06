@@ -338,6 +338,7 @@ export const DocentePublico: React.FC<DocentePublicoProps> = ({ level, isStaff }
   const [currentDate, setCurrentDate] = React.useState(new Date());
   const [selectedCourseId, setSelectedCourseId] = React.useState('');
   const [isStaffManagerOpen, setIsStaffManagerOpen] = React.useState(false);
+  const [isMessagesCollapsed, setIsMessagesCollapsed] = React.useState(false);
   const [selected, setSelected] = React.useState<TeacherPublicAbsence | null>(null);
   const [isOpen, setIsOpen] = React.useState(false);
 
@@ -345,7 +346,7 @@ export const DocentePublico: React.FC<DocentePublicoProps> = ({ level, isStaff }
   const year = currentDate.getFullYear();
   const { data = [], isLoading, isFetching, error: absencesError } = useTeacherPublicAbsences(month, year, level, selectedCourseId || undefined);
   const { data: selectedTests = [], isLoading: selectedTestsLoading } = useTeacherPublicAbsenceDetail(selected?.absence_id);
-  const { data: courses = [], isLoading: coursesLoading, error: coursesError } = useCourses(level, isStaff);
+  const { data: courses = [], isLoading: coursesLoading, error: coursesError } = useCourses(level, true);
   const activeMessagesLevel = level;
   const { data: instantMessages = [], isLoading: instantMessagesLoading, error: messagesError } = useTeacherInstantMessages(activeMessagesLevel, selectedCourseId || undefined);
   const { data: allActiveMessages = [] } = useTeacherInstantMessages(undefined, undefined, !isStaff);
@@ -378,14 +379,12 @@ export const DocentePublico: React.FC<DocentePublicoProps> = ({ level, isStaff }
           <>
             <Select options={MONTHS} value={month} onChange={(e) => setCurrentDate(new Date(year, Number(e.target.value), 1))} className="md:w-44" />
             <Select options={getYearOptions()} value={year} onChange={(e) => setCurrentDate(new Date(Number(e.target.value), month, 1))} className="md:w-36" />
-            {isStaff ? (
-              <Select
-                options={courseOptions}
-                value={selectedCourseId}
-                onChange={(e) => setSelectedCourseId(e.target.value)}
-                className="md:w-64"
-              />
-            ) : null}
+            <Select
+              options={courseOptions}
+              value={selectedCourseId}
+              onChange={(e) => setSelectedCourseId(e.target.value)}
+              className="md:w-64"
+            />
           </>
         }
       />
@@ -397,7 +396,7 @@ export const DocentePublico: React.FC<DocentePublicoProps> = ({ level, isStaff }
           No se pudieron cargar algunos datos desde Supabase.
         </div>
       ) : null}
-      {coursesError && isStaff ? (
+      {coursesError ? (
         <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-700">
           No se pudo cargar el listado de cursos. {' '}
           {String((coursesError as Error | undefined)?.message || 'Revisa permisos de `courses` en Supabase.')}
@@ -414,36 +413,55 @@ export const DocentePublico: React.FC<DocentePublicoProps> = ({ level, isStaff }
                 : 'Avisos importantes para el nivel y curso seleccionado.'}
             </p>
           </div>
-          <Bell className="w-5 h-5 text-indigo-500" />
+          <button
+            type="button"
+            onClick={() => setIsMessagesCollapsed((prev) => !prev)}
+            className="inline-flex items-center gap-2 rounded-xl border border-indigo-200 bg-white px-3 py-2 text-indigo-600 hover:bg-indigo-50 transition-colors"
+            aria-label={isMessagesCollapsed ? 'Expandir mensajes' : 'Colapsar mensajes'}
+          >
+            <Bell className="w-4 h-4" />
+            <span className="inline-flex items-center justify-center min-w-5 h-5 rounded-full bg-indigo-600 text-white text-[11px] font-bold px-1.5">
+              {instantMessages.length}
+            </span>
+            <ChevronRight className={`w-4 h-4 transition-transform ${isMessagesCollapsed ? '' : 'rotate-90'}`} />
+          </button>
         </div>
-        <div className="mt-4 space-y-3">
-          {instantMessagesLoading ? (
-            <p className="text-sm text-slate-400">Cargando mensajes...</p>
-          ) : instantMessages.length === 0 ? (
-            <div className="rounded-2xl border border-dashed border-slate-300 bg-white p-4 text-sm text-slate-500">
-              Sin comunicados activos en este momento.
-              {!isStaff && allActiveMessages.length > 0 ? (
-                <span className="block mt-1 text-xs text-slate-400">
-                  Hay comunicados activos en otro nivel. Cambia BÁSICA/MEDIA desde el selector lateral.
-                </span>
-              ) : null}
-            </div>
-          ) : instantMessages.map((message) => (
-            <div key={message.id} className="rounded-2xl bg-white border border-slate-200 p-4 md:p-5 shadow-sm">
-              <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-indigo-500">
-                <Megaphone className="w-3.5 h-3.5" />
-                Aviso activo
+        {!isMessagesCollapsed ? (
+          <div className="mt-4 space-y-3">
+            {instantMessagesLoading ? (
+              <p className="text-sm text-slate-400">Cargando mensajes...</p>
+            ) : instantMessages.length === 0 ? (
+              <div className="rounded-2xl border border-dashed border-slate-300 bg-white p-4 text-sm text-slate-500">
+                Sin comunicados activos en este momento.
+                {!isStaff && allActiveMessages.length > 0 ? (
+                  <span className="block mt-1 text-xs text-slate-400">
+                    Hay comunicados activos en otro nivel. Cambia BÁSICA/MEDIA desde el selector lateral.
+                  </span>
+                ) : null}
               </div>
-              <h4 className="text-slate-900 font-bold mt-1">{message.title}</h4>
-              <p className="text-sm text-slate-600 mt-2 whitespace-pre-line">{message.body}</p>
-              <p className="text-[11px] text-slate-400 mt-3">
-                {message.level ? `Nivel ${message.level} • ` : ''}
-                Publicado: {formatDate(message.created_at)}
-                {message.ends_at ? ` • Vigente hasta ${formatDate(message.ends_at)}` : ''}
-              </p>
-            </div>
-          ))}
-        </div>
+            ) : instantMessages.map((message) => (
+              <div key={message.id} className="rounded-2xl bg-white border border-slate-200 p-4 md:p-5 shadow-sm">
+                <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-indigo-500">
+                  <Megaphone className="w-3.5 h-3.5" />
+                  Aviso activo
+                </div>
+                <h4 className="text-slate-900 font-bold mt-1">{message.title}</h4>
+                <p className="text-sm text-slate-600 mt-2 whitespace-pre-line">{message.body}</p>
+                <p className="text-[11px] text-slate-400 mt-3">
+                  {message.level ? `Nivel ${message.level} • ` : ''}
+                  Publicado: {formatDate(message.created_at)}
+                  {message.ends_at ? ` • Vigente hasta ${formatDate(message.ends_at)}` : ''}
+                </p>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p className="mt-4 text-sm text-slate-600">
+            {instantMessages.length > 0
+              ? `Tienes ${instantMessages.length} comunicado${instantMessages.length === 1 ? '' : 's'} activo${instantMessages.length === 1 ? '' : 's'}. Abre la vista para revisarlos.`
+              : 'Sin comunicados activos por ahora. Puedes abrir la vista para confirmarlo.'}
+          </p>
+        )}
       </div>
 
       {isStaff ? (
@@ -472,7 +490,12 @@ export const DocentePublico: React.FC<DocentePublicoProps> = ({ level, isStaff }
         </div>
       ) : null}
 
-      <div className="card overflow-hidden border border-slate-200/60 shadow-sm shadow-slate-200/20 rounded-3xl">
+      <div>
+        <div className="mb-3 px-1">
+          <h3 className="text-lg font-bold text-slate-900">Inasistencias, Justificaciones y Evaluaciones</h3>
+          <p className="text-sm text-slate-500">Resumen de ausencias con su estado y pruebas afectadas.</p>
+        </div>
+        <div className="card overflow-hidden border border-slate-200/60 shadow-sm shadow-slate-200/20 rounded-3xl">
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
@@ -518,6 +541,7 @@ export const DocentePublico: React.FC<DocentePublicoProps> = ({ level, isStaff }
             </tbody>
           </table>
         </div>
+      </div>
       </div>
 
       <Modal isOpen={isOpen} onClose={() => setIsOpen(false)} title="Detalle de Inasistencia" size="lg">
