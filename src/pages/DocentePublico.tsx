@@ -233,12 +233,7 @@ const StaffInstantMessagesManager: React.FC<{ level: 'BASICA' | 'MEDIA'; courses
   };
 
   return (
-    <div className="card border border-amber-200/70 bg-amber-50/40 rounded-3xl p-5 md:p-6 space-y-5">
-      <div>
-        <p className="text-xs font-bold text-amber-600 uppercase tracking-[0.2em]">Gestión Staff</p>
-        <h3 className="text-lg font-bold text-slate-900 mt-1">Gestor de mensajes instantáneos</h3>
-        <p className="text-sm text-slate-600 mt-1">Crea avisos generales, por nivel o por curso para la vista docente.</p>
-      </div>
+    <div className="space-y-5">
       <form onSubmit={handleCreateMessage} className="grid grid-cols-1 lg:grid-cols-12 gap-3">
         <div className="lg:col-span-6">
           <label htmlFor="instant-message-course" className="text-xs font-semibold text-slate-500 uppercase tracking-wider ml-1">Curso</label>
@@ -342,6 +337,7 @@ const StaffInstantMessagesManager: React.FC<{ level: 'BASICA' | 'MEDIA'; courses
 export const DocentePublico: React.FC<DocentePublicoProps> = ({ level, isStaff }) => {
   const [currentDate, setCurrentDate] = React.useState(new Date());
   const [selectedCourseId, setSelectedCourseId] = React.useState('');
+  const [isStaffManagerOpen, setIsStaffManagerOpen] = React.useState(false);
   const [selected, setSelected] = React.useState<TeacherPublicAbsence | null>(null);
   const [isOpen, setIsOpen] = React.useState(false);
 
@@ -350,7 +346,7 @@ export const DocentePublico: React.FC<DocentePublicoProps> = ({ level, isStaff }
   const { data = [], isLoading, isFetching, error: absencesError } = useTeacherPublicAbsences(month, year, level, selectedCourseId || undefined);
   const { data: selectedTests = [], isLoading: selectedTestsLoading } = useTeacherPublicAbsenceDetail(selected?.absence_id);
   const { data: courses = [], isLoading: coursesLoading, error: coursesError } = useCourses(level, isStaff);
-  const activeMessagesLevel = isStaff ? undefined : level;
+  const activeMessagesLevel = level;
   const { data: instantMessages = [], isLoading: instantMessagesLoading, error: messagesError } = useTeacherInstantMessages(activeMessagesLevel, selectedCourseId || undefined);
   const { data: allActiveMessages = [] } = useTeacherInstantMessages(undefined, undefined, !isStaff);
 
@@ -441,6 +437,7 @@ export const DocentePublico: React.FC<DocentePublicoProps> = ({ level, isStaff }
               <h4 className="text-slate-900 font-bold mt-1">{message.title}</h4>
               <p className="text-sm text-slate-600 mt-2 whitespace-pre-line">{message.body}</p>
               <p className="text-[11px] text-slate-400 mt-3">
+                {message.level ? `Nivel ${message.level} • ` : ''}
                 Publicado: {formatDate(message.created_at)}
                 {message.ends_at ? ` • Vigente hasta ${formatDate(message.ends_at)}` : ''}
               </p>
@@ -449,7 +446,31 @@ export const DocentePublico: React.FC<DocentePublicoProps> = ({ level, isStaff }
         </div>
       </div>
 
-      {isStaff ? <StaffInstantMessagesManager level={level} courses={courses} /> : null}
+      {isStaff ? (
+        <div className="card border border-amber-200/70 bg-amber-50/40 rounded-3xl p-5 md:p-6 space-y-4">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <p className="text-xs font-bold text-amber-600 uppercase tracking-[0.2em]">Gestión Staff</p>
+              <h3 className="text-lg font-bold text-slate-900 mt-1">Gestor de mensajes instantáneos</h3>
+              <p className="text-sm text-slate-600 mt-1">Crea avisos generales, por nivel o por curso para la vista docente.</p>
+            </div>
+            <Button
+              type="button"
+              variant={isStaffManagerOpen ? 'secondary' : 'primary'}
+              onClick={() => setIsStaffManagerOpen((prev) => !prev)}
+            >
+              {isStaffManagerOpen ? 'Cerrar gestor' : 'Abrir gestor'}
+            </Button>
+          </div>
+          {isStaffManagerOpen ? (
+            <StaffInstantMessagesManager level={level} courses={courses} />
+          ) : (
+            <p className="text-sm text-slate-500">
+              El gestor está oculto para reducir el largo de la página.
+            </p>
+          )}
+        </div>
+      ) : null}
 
       <div className="card overflow-hidden border border-slate-200/60 shadow-sm shadow-slate-200/20 rounded-3xl">
         <div className="overflow-x-auto">
