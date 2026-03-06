@@ -7,7 +7,8 @@ import {
   useTeacherInstantMessages,
   useManageInstantMessages,
   useCreateInstantMessage,
-  useUpdateInstantMessage
+  useUpdateInstantMessage,
+  useStudents
 } from '../hooks/queries';
 import { useCourses } from '../hooks/queries';
 import { Modal, Button, Badge, EmptyState, PageHeader, Select, TableSkeleton } from '../components/ui';
@@ -29,6 +30,8 @@ export const DocentePublico: React.FC<DocentePublicoProps> = ({ level, isStaff }
   const [messageTitle, setMessageTitle] = React.useState('');
   const [messageBody, setMessageBody] = React.useState('');
   const [messageScope, setMessageScope] = React.useState<'GENERAL' | 'BASICA' | 'MEDIA'>('GENERAL');
+  const [messageCourseId, setMessageCourseId] = React.useState('');
+  const [messageStudentId, setMessageStudentId] = React.useState('');
   const [messageEndsAt, setMessageEndsAt] = React.useState('');
   const [editingMessageId, setEditingMessageId] = React.useState<string | null>(null);
   const { showToast } = useToast();
@@ -52,8 +55,37 @@ export const DocentePublico: React.FC<DocentePublicoProps> = ({ level, isStaff }
   const loading = isLoading || coursesLoading;
   const showInitialSkeleton = loading && data.length === 0;
   const courseOptions = React.useMemo(() => getCourseOptions(courses), [courses]);
+  const courseById = React.useMemo(() => new Map(courses.map((course) => [course.id, course])), [courses]);
+  const messageCourseOptions = React.useMemo(() => {
+    const filteredCourses = messageScope === 'GENERAL'
+      ? courses
+      : courses.filter((course) => course.level === messageScope);
+    return [
+      { value: '', label: 'Todos los cursos' },
+      ...filteredCourses.map((course) => ({ value: course.id, label: `${course.name} (${course.level})` }))
+    ];
+  }, [courses, messageScope]);
+  const { data: messageStudents = [], isLoading: messageStudentsLoading } = useStudents(
+    messageCourseId || undefined,
+    undefined,
+    isStaff && Boolean(messageCourseId)
+  );
+  const messageStudentOptions = React.useMemo(() => [
+    { value: '', label: 'Todos los estudiantes' },
+    ...messageStudents.map((student) => ({ value: student.id, label: student.full_name }))
+  ], [messageStudents]);
   const canSubmitMessage = messageTitle.trim().length >= 3 && messageBody.trim().length >= 3;
   const isEditingMessage = editingMessageId !== null;
+
+  React.useEffect(() => {
+    if (!messageCourseId && messageStudentId) {
+      setMessageStudentId('');
+      return;
+    }
+    if (messageStudentId && !messageStudents.some((student) => student.id === messageStudentId)) {
+      setMessageStudentId('');
+    }
+  }, [messageCourseId, messageStudentId, messageStudents]);
 
   const toDateTimeLocalValue = (isoDate: string | null | undefined) => {
     if (!isoDate) return '';
@@ -68,6 +100,8 @@ export const DocentePublico: React.FC<DocentePublicoProps> = ({ level, isStaff }
     setMessageTitle('');
     setMessageBody('');
     setMessageScope('GENERAL');
+    setMessageCourseId('');
+    setMessageStudentId('');
     setMessageEndsAt('');
   };
 
@@ -91,6 +125,8 @@ export const DocentePublico: React.FC<DocentePublicoProps> = ({ level, isStaff }
             title: messageTitle.trim(),
             body: messageBody.trim(),
             level: messageScope === 'GENERAL' ? null : messageScope,
+            course_id: messageCourseId || null,
+            student_id: messageStudentId || null,
             ends_at: endsAtDate ? endsAtDate.toISOString() : null
           }
         });
@@ -100,7 +136,8 @@ export const DocentePublico: React.FC<DocentePublicoProps> = ({ level, isStaff }
           title: messageTitle.trim(),
           body: messageBody.trim(),
           level: messageScope === 'GENERAL' ? null : messageScope,
-          course_id: null,
+          course_id: messageCourseId || null,
+          student_id: messageStudentId || null,
           ends_at: endsAtDate ? endsAtDate.toISOString() : null,
           is_active: true
         });
@@ -136,6 +173,8 @@ export const DocentePublico: React.FC<DocentePublicoProps> = ({ level, isStaff }
     setMessageTitle(message.title);
     setMessageBody(message.body);
     setMessageScope(message.level === 'BASICA' || message.level === 'MEDIA' ? message.level : 'GENERAL');
+    setMessageCourseId(message.course_id ?? '');
+    setMessageStudentId(message.student_id ?? '');
     setMessageEndsAt(toDateTimeLocalValue(message.ends_at));
   };
 
@@ -269,6 +308,52 @@ export const DocentePublico: React.FC<DocentePublicoProps> = ({ level, isStaff }
                 className="input-base mt-1"
               />
             </div>
+            <div className="lg:col-span-6">
+              <label htmlFor="instant-message-course" className="text-xs font-semibold text-slate-500 uppercase tracking-wider ml-1">Curso</label>
+              <Select
+                id="instant-message-course"
+                className="mt-1"
+                value={messageCourseId}
+                onChange={(e) => setMessageCourseId(e.target.value)}
+                options={messageCourseOptions}
+              />
+            </div>
+            <div className="lg:col-span-6">
+              <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider ml-1 mt-2">Estudiantes del curso</p>
+              <div className="mt-1 rounded-xl border border-slate-200 bg-white px-3 py-2 max-h-40 overflow-auto">
+                {!messageCourseId ? (
+                  <p className="text-xs text-slate-400">Selecciona un curso para ver su lista de estudiantes.</p>
+                ) : messageStudentsLoading ? (
+                  <p className="text-xs text-slate-400">Cargando estudiantes...</p>
+                ) : messageStudents.length === 0 ? (
+                  <p className="text-xs text-slate-400">No hay estudiantes en este curso.</p>
+                ) : (
+                  <ul className="space-y-1">
+                    {messageStudents.map((student) => (
+                      <li key={student.id} className="text-xs text-slate-700">
+                        {student.full_name}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            </div>
+            <div className="lg:col-span-6">
+              <label htmlFor="instant-message-student" className="text-xs font-semibold text-slate-500 uppercase tracking-wider ml-1">
+                Estudiante objetivo
+              </label>
+              <Select
+                id="instant-message-student"
+                className="mt-1"
+                value={messageStudentId}
+                onChange={(e) => setMessageStudentId(e.target.value)}
+                options={messageStudentOptions}
+                disabled={!messageCourseId || messageStudentsLoading}
+              />
+              <p className="mt-1 text-[11px] text-slate-400">
+                Opcional. Si lo defines, el mensaje queda asociado a ese estudiante para reportes/resumenes.
+              </p>
+            </div>
             <div className="lg:col-span-12">
               <label htmlFor="instant-message-body" className="text-xs font-semibold text-slate-500 uppercase tracking-wider ml-1">Mensaje</label>
               <textarea
@@ -319,7 +404,8 @@ export const DocentePublico: React.FC<DocentePublicoProps> = ({ level, isStaff }
                   <p className="text-sm text-slate-600 mt-1 whitespace-pre-line">{message.body}</p>
                   <p className="text-[11px] text-slate-400 mt-2">
                     {message.level ? `Nivel ${message.level}` : 'General'}
-                    {message.course_id ? ' • Curso específico' : ''}
+                    {message.course_id ? ` • ${courseById.get(message.course_id)?.name ?? `Curso ${message.course_id}`}` : ''}
+                    {message.student_id ? ` • Estudiante ${message.student_id}` : ''}
                     {message.ends_at ? ` • Expira ${formatDate(message.ends_at)}` : ''}
                   </p>
                 </div>

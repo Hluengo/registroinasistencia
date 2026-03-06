@@ -140,6 +140,7 @@ export type Database = {
           is_active: boolean
           level: string | null
           starts_at: string
+          student_id: string | null
           title: string
           updated_at: string
         }
@@ -153,6 +154,7 @@ export type Database = {
           is_active?: boolean
           level?: string | null
           starts_at?: string
+          student_id?: string | null
           title: string
           updated_at?: string
         }
@@ -166,6 +168,7 @@ export type Database = {
           is_active?: boolean
           level?: string | null
           starts_at?: string
+          student_id?: string | null
           title?: string
           updated_at?: string
         }
@@ -175,6 +178,13 @@ export type Database = {
             columns: ["course_id"]
             isOneToOne: false
             referencedRelation: "courses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "instant_messages_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "students"
             referencedColumns: ["id"]
           },
         ]
@@ -348,7 +358,7 @@ export type Database = {
         }[]
       }
       teacher_get_instant_messages: {
-        Args: { p_course_id?: string; p_level?: string }
+        Args: { p_course_id?: string; p_level?: string; p_student_id?: string }
         Returns: {
           body: string
           course_id: string | null
@@ -357,6 +367,8 @@ export type Database = {
           id: string
           level: string | null
           starts_at: string
+          student_id: string | null
+          student_name: string | null
           title: string
         }[]
       }

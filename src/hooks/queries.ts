@@ -51,6 +51,8 @@ export type TeacherInstantMessage = {
   body: string;
   level: string | null;
   course_id: string | null;
+  student_id: string | null;
+  student_name: string | null;
   starts_at: string;
   ends_at: string | null;
   created_at: string;
@@ -213,7 +215,7 @@ export const useManageInstantMessages = (level?: 'BASICA' | 'MEDIA', enabled: bo
     async () => {
       let query = supabase
         .from('instant_messages')
-        .select('id, title, body, level, course_id, is_active, starts_at, ends_at, created_at, updated_at, created_by')
+        .select('id, title, body, level, course_id, student_id, is_active, starts_at, ends_at, created_at, updated_at, created_by')
         .order('created_at', { ascending: false });
       if (level) {
         query = query.or(`level.eq.${level},level.is.null`);
