@@ -16,17 +16,83 @@ import { formatDate } from '../utils';
 import { MONTHS, getYearOptions, getCourseOptions } from '../utils/filterOptions';
 import { useToast } from '../contexts/ToastContext';
 import { TOAST_TYPES } from '../constants';
+import { Tables } from '../types/db';
 
 interface DocentePublicoProps {
   level: 'BASICA' | 'MEDIA';
   isStaff: boolean;
 }
 
-export const DocentePublico: React.FC<DocentePublicoProps> = ({ level, isStaff }) => {
-  const [currentDate, setCurrentDate] = React.useState(new Date());
-  const [selectedCourseId, setSelectedCourseId] = React.useState('');
-  const [selected, setSelected] = React.useState<TeacherPublicAbsence | null>(null);
-  const [isOpen, setIsOpen] = React.useState(false);
+type CourseRow = Tables<'courses'>;
+type InstantMessageRow = Tables<'instant_messages'>;
+
+interface StaffMessagesListProps {
+  messages: InstantMessageRow[];
+  isLoading: boolean;
+  hasError: boolean;
+  courseById: Map<string, CourseRow>;
+  onEdit: (message: InstantMessageRow) => void;
+  onToggleActive: (id: string, nextValue: boolean) => void;
+}
+
+const StaffMessagesList: React.FC<StaffMessagesListProps> = ({
+  messages,
+  isLoading,
+  hasError,
+  courseById,
+  onEdit,
+  onToggleActive
+}) => (
+  <div className="space-y-2">
+    <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">Mensajes existentes</p>
+    <p className="text-xs text-slate-400">Se listan todos los mensajes creados, independiente del nivel actual.</p>
+    {isLoading ? (
+      <p className="text-sm text-slate-400">Cargando mensajes...</p>
+    ) : hasError ? (
+      <p className="text-sm text-rose-600">Error al cargar mensajes para gestión.</p>
+    ) : messages.length === 0 ? (
+      <p className="text-sm text-slate-500">No hay mensajes creados.</p>
+    ) : messages.map((message) => (
+      <div key={message.id} className="rounded-2xl bg-white border border-slate-200 p-4 flex items-start justify-between gap-4">
+        <div>
+          <div className="flex items-center gap-2">
+            <p className="font-semibold text-slate-900">{message.title}</p>
+            <Badge variant={message.is_active ? 'success' : 'secondary'}>
+              {message.is_active ? 'Activo' : 'Inactivo'}
+            </Badge>
+          </div>
+          <p className="text-sm text-slate-600 mt-1 whitespace-pre-line">{message.body}</p>
+          <p className="text-[11px] text-slate-400 mt-2">
+            {message.level ? `Nivel ${message.level}` : 'General'}
+            {message.course_id ? ` • ${courseById.get(message.course_id)?.name ?? `Curso ${message.course_id}`}` : ''}
+            {message.student_id ? ` • Estudiante ${message.student_id}` : ''}
+            {message.ends_at ? ` • Expira ${formatDate(message.ends_at)}` : ''}
+          </p>
+        </div>
+        <div className="flex items-center gap-2">
+          <Button
+            size="sm"
+            variant="ghost"
+            icon={Pencil}
+            onClick={() => onEdit(message)}
+          >
+            Editar
+          </Button>
+          <Button
+            size="sm"
+            variant={message.is_active ? 'ghost' : 'secondary'}
+            icon={message.is_active ? PauseCircle : PlayCircle}
+            onClick={() => onToggleActive(message.id, !message.is_active)}
+          >
+            {message.is_active ? 'Desactivar' : 'Activar'}
+          </Button>
+        </div>
+      </div>
+    ))}
+  </div>
+);
+
+const StaffInstantMessagesManager: React.FC<{ level: 'BASICA' | 'MEDIA'; courses: CourseRow[] }> = ({ level, courses }) => {
   const [messageTitle, setMessageTitle] = React.useState('');
   const [messageBody, setMessageBody] = React.useState('');
   const [messageScope, setMessageScope] = React.useState<'GENERAL' | 'BASICA' | 'MEDIA'>('GENERAL');
@@ -36,25 +102,15 @@ export const DocentePublico: React.FC<DocentePublicoProps> = ({ level, isStaff }
   const [editingMessageId, setEditingMessageId] = React.useState<string | null>(null);
   const { showToast } = useToast();
 
-  const month = currentDate.getMonth();
-  const year = currentDate.getFullYear();
-  const { data = [], isLoading, isFetching, error: absencesError } = useTeacherPublicAbsences(month, year, level, selectedCourseId || undefined);
-  const { data: selectedTests = [], isLoading: selectedTestsLoading } = useTeacherPublicAbsenceDetail(selected?.absence_id);
-  const { data: courses = [], isLoading: coursesLoading, error: coursesError } = useCourses(level, isStaff);
-  const activeMessagesLevel = isStaff ? undefined : level;
-  const { data: instantMessages = [], isLoading: instantMessagesLoading, error: messagesError } = useTeacherInstantMessages(activeMessagesLevel, selectedCourseId || undefined);
-  const { data: allActiveMessages = [] } = useTeacherInstantMessages(undefined, undefined, !isStaff);
-  const { data: manageableMessages = [], isLoading: manageableMessagesLoading, error: manageMessagesError } = useManageInstantMessages(undefined, isStaff);
+  const { data: manageableMessages = [], isLoading: manageableMessagesLoading, error: manageMessagesError } = useManageInstantMessages(undefined, true);
   const createMessage = useCreateInstantMessage();
   const updateMessage = useUpdateInstantMessage();
+  const { data: messageStudents = [], isLoading: messageStudentsLoading } = useStudents(
+    messageCourseId || undefined,
+    undefined,
+    Boolean(messageCourseId)
+  );
 
-  React.useEffect(() => {
-    setSelectedCourseId('');
-  }, [level]);
-
-  const loading = isLoading || coursesLoading;
-  const showInitialSkeleton = loading && data.length === 0;
-  const courseOptions = React.useMemo(() => getCourseOptions(courses), [courses]);
   const courseById = React.useMemo(() => new Map(courses.map((course) => [course.id, course])), [courses]);
   const messageCourseOptions = React.useMemo(() => {
     const filteredCourses = messageScope === 'GENERAL'
@@ -65,11 +121,6 @@ export const DocentePublico: React.FC<DocentePublicoProps> = ({ level, isStaff }
       ...filteredCourses.map((course) => ({ value: course.id, label: `${course.name} (${course.level})` }))
     ];
   }, [courses, messageScope]);
-  const { data: messageStudents = [], isLoading: messageStudentsLoading } = useStudents(
-    messageCourseId || undefined,
-    undefined,
-    isStaff && Boolean(messageCourseId)
-  );
   const messageStudentOptions = React.useMemo(() => [
     { value: '', label: 'Todos los estudiantes' },
     ...messageStudents.map((student) => ({ value: student.id, label: student.full_name }))
@@ -108,6 +159,7 @@ export const DocentePublico: React.FC<DocentePublicoProps> = ({ level, isStaff }
   const handleCreateMessage = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!canSubmitMessage) return;
+
     const endsAtDate = messageEndsAt ? new Date(messageEndsAt) : null;
     if (endsAtDate && Number.isNaN(endsAtDate.getTime())) {
       showToast({ type: TOAST_TYPES.ERROR, message: 'La fecha de vigencia no es válida.' });
@@ -117,6 +169,7 @@ export const DocentePublico: React.FC<DocentePublicoProps> = ({ level, isStaff }
       showToast({ type: TOAST_TYPES.WARNING, message: 'La fecha "Vigente hasta" debe ser futura.' });
       return;
     }
+
     try {
       if (isEditingMessage && editingMessageId) {
         await updateMessage.mutateAsync({
@@ -143,6 +196,7 @@ export const DocentePublico: React.FC<DocentePublicoProps> = ({ level, isStaff }
         });
         showToast({ type: TOAST_TYPES.SUCCESS, message: 'Mensaje instantáneo publicado.' });
       }
+
       resetMessageForm();
       if (!isEditingMessage && messageScope !== 'GENERAL' && messageScope !== level) {
         showToast({
@@ -168,7 +222,7 @@ export const DocentePublico: React.FC<DocentePublicoProps> = ({ level, isStaff }
     }
   };
 
-  const startEditMessage = (message: typeof manageableMessages[number]) => {
+  const startEditMessage = (message: InstantMessageRow) => {
     setEditingMessageId(message.id);
     setMessageTitle(message.title);
     setMessageBody(message.body);
@@ -177,6 +231,136 @@ export const DocentePublico: React.FC<DocentePublicoProps> = ({ level, isStaff }
     setMessageStudentId(message.student_id ?? '');
     setMessageEndsAt(toDateTimeLocalValue(message.ends_at));
   };
+
+  return (
+    <div className="card border border-amber-200/70 bg-amber-50/40 rounded-3xl p-5 md:p-6 space-y-5">
+      <div>
+        <p className="text-xs font-bold text-amber-600 uppercase tracking-[0.2em]">Gestión Staff</p>
+        <h3 className="text-lg font-bold text-slate-900 mt-1">Gestor de mensajes instantáneos</h3>
+        <p className="text-sm text-slate-600 mt-1">Crea avisos generales, por nivel o por curso para la vista docente.</p>
+      </div>
+      <form onSubmit={handleCreateMessage} className="grid grid-cols-1 lg:grid-cols-12 gap-3">
+        <div className="lg:col-span-6">
+          <label htmlFor="instant-message-course" className="text-xs font-semibold text-slate-500 uppercase tracking-wider ml-1">Curso</label>
+          <Select
+            id="instant-message-course"
+            className="mt-1"
+            value={messageCourseId}
+            onChange={(e) => setMessageCourseId(e.target.value)}
+            options={messageCourseOptions}
+          />
+        </div>
+        <div className="lg:col-span-6">
+          <label htmlFor="instant-message-student" className="text-xs font-semibold text-slate-500 uppercase tracking-wider ml-1">
+            Estudiante
+          </label>
+          <Select
+            id="instant-message-student"
+            className="mt-1"
+            value={messageStudentId}
+            onChange={(e) => setMessageStudentId(e.target.value)}
+            options={messageStudentOptions}
+            disabled={!messageCourseId || messageStudentsLoading}
+          />
+        </div>
+        <div className="lg:col-span-6">
+          <label htmlFor="instant-message-title" className="text-xs font-semibold text-slate-500 uppercase tracking-wider ml-1">Título</label>
+          <input
+            id="instant-message-title"
+            value={messageTitle}
+            onChange={(e) => setMessageTitle(e.target.value)}
+            className="input-base mt-1"
+            placeholder="Ej: Cambio de horario por contingencia"
+            maxLength={120}
+          />
+        </div>
+        <div className="lg:col-span-3">
+          <label htmlFor="instant-message-scope" className="text-xs font-semibold text-slate-500 uppercase tracking-wider ml-1">Alcance</label>
+          <Select
+            id="instant-message-scope"
+            className="mt-1"
+            value={messageScope}
+            onChange={(e) => setMessageScope(e.target.value as 'GENERAL' | 'BASICA' | 'MEDIA')}
+            options={[
+              { label: 'General', value: 'GENERAL' },
+              { label: 'BÁSICA', value: 'BASICA' },
+              { label: 'MEDIA', value: 'MEDIA' }
+            ]}
+          />
+        </div>
+        <div className="lg:col-span-3">
+          <label htmlFor="instant-message-ends-at" className="text-xs font-semibold text-slate-500 uppercase tracking-wider ml-1">Vigente hasta</label>
+          <input
+            id="instant-message-ends-at"
+            type="datetime-local"
+            value={messageEndsAt}
+            onChange={(e) => setMessageEndsAt(e.target.value)}
+            className="input-base mt-1"
+          />
+        </div>
+        <div className="lg:col-span-12">
+          <label htmlFor="instant-message-body" className="text-xs font-semibold text-slate-500 uppercase tracking-wider ml-1">Mensaje</label>
+          <textarea
+            id="instant-message-body"
+            value={messageBody}
+            onChange={(e) => setMessageBody(e.target.value)}
+            rows={3}
+            maxLength={1200}
+            className="input-base mt-1 resize-y"
+            placeholder="Describe la situación particular a informar."
+          />
+        </div>
+        <div className="lg:col-span-12 flex items-center justify-between gap-3">
+          <p className="text-xs text-slate-500 flex items-center gap-1.5">
+            <AlertCircle className="w-3.5 h-3.5" />
+            Se mostrará de inmediato en la vista docente.
+          </p>
+          <div className="flex items-center gap-2">
+            {isEditingMessage ? (
+              <Button type="button" variant="ghost" onClick={resetMessageForm}>
+                Cancelar edición
+              </Button>
+            ) : null}
+            <Button type="submit" loading={createMessage.isPending || updateMessage.isPending} disabled={!canSubmitMessage}>
+              {isEditingMessage ? 'Guardar cambios' : 'Publicar mensaje'}
+            </Button>
+          </div>
+        </div>
+      </form>
+      <StaffMessagesList
+        messages={manageableMessages}
+        isLoading={manageableMessagesLoading}
+        hasError={Boolean(manageMessagesError)}
+        courseById={courseById}
+        onEdit={startEditMessage}
+        onToggleActive={toggleMessageActive}
+      />
+    </div>
+  );
+};
+
+export const DocentePublico: React.FC<DocentePublicoProps> = ({ level, isStaff }) => {
+  const [currentDate, setCurrentDate] = React.useState(new Date());
+  const [selectedCourseId, setSelectedCourseId] = React.useState('');
+  const [selected, setSelected] = React.useState<TeacherPublicAbsence | null>(null);
+  const [isOpen, setIsOpen] = React.useState(false);
+
+  const month = currentDate.getMonth();
+  const year = currentDate.getFullYear();
+  const { data = [], isLoading, isFetching, error: absencesError } = useTeacherPublicAbsences(month, year, level, selectedCourseId || undefined);
+  const { data: selectedTests = [], isLoading: selectedTestsLoading } = useTeacherPublicAbsenceDetail(selected?.absence_id);
+  const { data: courses = [], isLoading: coursesLoading, error: coursesError } = useCourses(level, isStaff);
+  const activeMessagesLevel = isStaff ? undefined : level;
+  const { data: instantMessages = [], isLoading: instantMessagesLoading, error: messagesError } = useTeacherInstantMessages(activeMessagesLevel, selectedCourseId || undefined);
+  const { data: allActiveMessages = [] } = useTeacherInstantMessages(undefined, undefined, !isStaff);
+
+  React.useEffect(() => {
+    setSelectedCourseId('');
+  }, [level]);
+
+  const loading = isLoading || coursesLoading;
+  const showInitialSkeleton = loading && data.length === 0;
+  const courseOptions = React.useMemo(() => getCourseOptions(courses), [courses]);
 
   return (
     <div className="space-y-10">
@@ -265,173 +449,7 @@ export const DocentePublico: React.FC<DocentePublicoProps> = ({ level, isStaff }
         </div>
       </div>
 
-      {isStaff ? (
-        <div className="card border border-amber-200/70 bg-amber-50/40 rounded-3xl p-5 md:p-6 space-y-5">
-          <div>
-            <p className="text-xs font-bold text-amber-600 uppercase tracking-[0.2em]">Gestión Staff</p>
-            <h3 className="text-lg font-bold text-slate-900 mt-1">Gestor de mensajes instantáneos</h3>
-            <p className="text-sm text-slate-600 mt-1">Crea avisos generales, por nivel o por curso para la vista docente.</p>
-          </div>
-          <form onSubmit={handleCreateMessage} className="grid grid-cols-1 lg:grid-cols-12 gap-3">
-            <div className="lg:col-span-6">
-              <label htmlFor="instant-message-title" className="text-xs font-semibold text-slate-500 uppercase tracking-wider ml-1">Título</label>
-              <input
-                id="instant-message-title"
-                value={messageTitle}
-                onChange={(e) => setMessageTitle(e.target.value)}
-                className="input-base mt-1"
-                placeholder="Ej: Cambio de horario por contingencia"
-                maxLength={120}
-              />
-            </div>
-            <div className="lg:col-span-3">
-              <label htmlFor="instant-message-scope" className="text-xs font-semibold text-slate-500 uppercase tracking-wider ml-1">Alcance</label>
-              <Select
-                id="instant-message-scope"
-                className="mt-1"
-                value={messageScope}
-                onChange={(e) => setMessageScope(e.target.value as 'GENERAL' | 'BASICA' | 'MEDIA')}
-                options={[
-                  { label: 'General', value: 'GENERAL' },
-                  { label: 'BÁSICA', value: 'BASICA' },
-                  { label: 'MEDIA', value: 'MEDIA' }
-                ]}
-              />
-            </div>
-            <div className="lg:col-span-3">
-              <label htmlFor="instant-message-ends-at" className="text-xs font-semibold text-slate-500 uppercase tracking-wider ml-1">Vigente hasta</label>
-              <input
-                id="instant-message-ends-at"
-                type="datetime-local"
-                value={messageEndsAt}
-                onChange={(e) => setMessageEndsAt(e.target.value)}
-                className="input-base mt-1"
-              />
-            </div>
-            <div className="lg:col-span-6">
-              <label htmlFor="instant-message-course" className="text-xs font-semibold text-slate-500 uppercase tracking-wider ml-1">Curso</label>
-              <Select
-                id="instant-message-course"
-                className="mt-1"
-                value={messageCourseId}
-                onChange={(e) => setMessageCourseId(e.target.value)}
-                options={messageCourseOptions}
-              />
-            </div>
-            <div className="lg:col-span-6">
-              <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider ml-1 mt-2">Estudiantes del curso</p>
-              <div className="mt-1 rounded-xl border border-slate-200 bg-white px-3 py-2 max-h-40 overflow-auto">
-                {!messageCourseId ? (
-                  <p className="text-xs text-slate-400">Selecciona un curso para ver su lista de estudiantes.</p>
-                ) : messageStudentsLoading ? (
-                  <p className="text-xs text-slate-400">Cargando estudiantes...</p>
-                ) : messageStudents.length === 0 ? (
-                  <p className="text-xs text-slate-400">No hay estudiantes en este curso.</p>
-                ) : (
-                  <ul className="space-y-1">
-                    {messageStudents.map((student) => (
-                      <li key={student.id} className="text-xs text-slate-700">
-                        {student.full_name}
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </div>
-            </div>
-            <div className="lg:col-span-6">
-              <label htmlFor="instant-message-student" className="text-xs font-semibold text-slate-500 uppercase tracking-wider ml-1">
-                Estudiante objetivo
-              </label>
-              <Select
-                id="instant-message-student"
-                className="mt-1"
-                value={messageStudentId}
-                onChange={(e) => setMessageStudentId(e.target.value)}
-                options={messageStudentOptions}
-                disabled={!messageCourseId || messageStudentsLoading}
-              />
-              <p className="mt-1 text-[11px] text-slate-400">
-                Opcional. Si lo defines, el mensaje queda asociado a ese estudiante para reportes/resumenes.
-              </p>
-            </div>
-            <div className="lg:col-span-12">
-              <label htmlFor="instant-message-body" className="text-xs font-semibold text-slate-500 uppercase tracking-wider ml-1">Mensaje</label>
-              <textarea
-                id="instant-message-body"
-                value={messageBody}
-                onChange={(e) => setMessageBody(e.target.value)}
-                rows={3}
-                maxLength={1200}
-                className="input-base mt-1 resize-y"
-                placeholder="Describe la situación particular a informar."
-              />
-            </div>
-            <div className="lg:col-span-12 flex items-center justify-between gap-3">
-              <p className="text-xs text-slate-500 flex items-center gap-1.5">
-                <AlertCircle className="w-3.5 h-3.5" />
-                Se mostrará de inmediato en la vista docente.
-              </p>
-              <div className="flex items-center gap-2">
-                {isEditingMessage ? (
-                  <Button type="button" variant="ghost" onClick={resetMessageForm}>
-                    Cancelar edición
-                  </Button>
-                ) : null}
-                <Button type="submit" loading={createMessage.isPending || updateMessage.isPending} disabled={!canSubmitMessage}>
-                  {isEditingMessage ? 'Guardar cambios' : 'Publicar mensaje'}
-                </Button>
-              </div>
-            </div>
-          </form>
-          <div className="space-y-2">
-            <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">Mensajes existentes</p>
-            <p className="text-xs text-slate-400">Se listan todos los mensajes creados, independiente del nivel actual.</p>
-            {manageableMessagesLoading ? (
-              <p className="text-sm text-slate-400">Cargando mensajes...</p>
-            ) : manageMessagesError ? (
-              <p className="text-sm text-rose-600">Error al cargar mensajes para gestión.</p>
-            ) : manageableMessages.length === 0 ? (
-              <p className="text-sm text-slate-500">No hay mensajes creados.</p>
-            ) : manageableMessages.map((message) => (
-              <div key={message.id} className="rounded-2xl bg-white border border-slate-200 p-4 flex items-start justify-between gap-4">
-                <div>
-                  <div className="flex items-center gap-2">
-                    <p className="font-semibold text-slate-900">{message.title}</p>
-                    <Badge variant={message.is_active ? 'success' : 'secondary'}>
-                      {message.is_active ? 'Activo' : 'Inactivo'}
-                    </Badge>
-                  </div>
-                  <p className="text-sm text-slate-600 mt-1 whitespace-pre-line">{message.body}</p>
-                  <p className="text-[11px] text-slate-400 mt-2">
-                    {message.level ? `Nivel ${message.level}` : 'General'}
-                    {message.course_id ? ` • ${courseById.get(message.course_id)?.name ?? `Curso ${message.course_id}`}` : ''}
-                    {message.student_id ? ` • Estudiante ${message.student_id}` : ''}
-                    {message.ends_at ? ` • Expira ${formatDate(message.ends_at)}` : ''}
-                  </p>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    icon={Pencil}
-                    onClick={() => startEditMessage(message)}
-                  >
-                    Editar
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant={message.is_active ? 'ghost' : 'secondary'}
-                    icon={message.is_active ? PauseCircle : PlayCircle}
-                    onClick={() => toggleMessageActive(message.id, !message.is_active)}
-                  >
-                    {message.is_active ? 'Desactivar' : 'Activar'}
-                  </Button>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      ) : null}
+      {isStaff ? <StaffInstantMessagesManager level={level} courses={courses} /> : null}
 
       <div className="card overflow-hidden border border-slate-200/60 shadow-sm shadow-slate-200/20 rounded-3xl">
         <div className="overflow-x-auto">
