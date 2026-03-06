@@ -163,7 +163,8 @@ export const useTeacherPublicAbsences = (month: number, year: number, level?: 'B
       // Keep previous results on month/year/course changes to avoid UI blanking.
       placeholderData: (previousData) => previousData,
       staleTime: 60_000,
-      refetchOnWindowFocus: false
+      refetchOnWindowFocus: false,
+      refetchOnMount: true
     }
   );
 };
@@ -428,7 +429,7 @@ export const useCreateAbsence = () => {
     mutationFn: (args) => absenceService.createAbsence(args.absence, args.file),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: QUERY_KEYS_INVALIDATE.ABSENCES });
-      qc.invalidateQueries({ queryKey: QUERY_KEYS_INVALIDATE.TEACHER_PUBLIC_ABSENCES });
+      qc.invalidateQueries({ queryKey: QUERY_KEYS_INVALIDATE.TEACHER_PUBLIC_ABSENCES, refetchType: 'all' });
       qc.invalidateQueries({ queryKey: ['studentDetails'] });
     }
   });
@@ -444,7 +445,7 @@ export const useUpdateAbsence = () => {
     mutationFn: (args) => absenceService.updateAbsence(args.id, args.updates, args.file),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: QUERY_KEYS_INVALIDATE.ABSENCES });
-      qc.invalidateQueries({ queryKey: QUERY_KEYS_INVALIDATE.TEACHER_PUBLIC_ABSENCES });
+      qc.invalidateQueries({ queryKey: QUERY_KEYS_INVALIDATE.TEACHER_PUBLIC_ABSENCES, refetchType: 'all' });
       qc.invalidateQueries({ queryKey: ['studentDetails'] });
     }
   });
@@ -490,7 +491,7 @@ export const useCreateTest = () => {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: queryKeys.tests() });
       qc.invalidateQueries({ queryKey: QUERY_KEYS_INVALIDATE.ABSENCES });
-      qc.invalidateQueries({ queryKey: QUERY_KEYS_INVALIDATE.TEACHER_PUBLIC_ABSENCES });
+      qc.invalidateQueries({ queryKey: QUERY_KEYS_INVALIDATE.TEACHER_PUBLIC_ABSENCES, refetchType: 'all' });
     }
   });
 };
