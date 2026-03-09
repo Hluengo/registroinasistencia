@@ -25,7 +25,7 @@ export const getCourseOptions = (courses: Array<{ id: string; name: string }>) =
 export const getStatusOptions = () => {
   return [
     { value: '', label: 'Todos los Estados' },
-    { value: 'PENDIENTE', label: 'Pendiente' },
-    { value: 'JUSTIFICADA', label: 'Justificada' }
+    { value: 'PENDIENTE', label: 'Sin Certificado' },
+    { value: 'JUSTIFICADA', label: 'Con Certificado' }
   ];
 };

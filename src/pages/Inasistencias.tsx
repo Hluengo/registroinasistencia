@@ -10,7 +10,7 @@ import { Button, Badge, EmptyState, PageHeader, Input, Select, TableSkeleton } f
 import { InasistenciasCreateModal } from './InasistenciasCreateModal';
 import { InasistenciasDetailModal } from './InasistenciasDetailModal';
 import { MONTHS, getYearOptions, getCourseOptions } from '../utils/filterOptions';
-import { TOAST_TYPES } from '../constants';
+import { TOAST_TYPES, getAbsenceStatusLabel } from '../constants';
 
 interface InasistenciasProps {
   level: 'BASICA' | 'MEDIA';
@@ -274,7 +274,7 @@ export const Inasistencias: React.FC<InasistenciasProps> = ({ level }) => {
                   </td>
                   <td className="px-6 py-5">
                     <Badge variant={abs.status === 'JUSTIFICADA' ? 'success' : 'warning'}>
-                      {abs.status}
+                      {getAbsenceStatusLabel(abs.status || 'PENDIENTE')}
                     </Badge>
                   </td>
                   <td className="px-6 py-5 text-right">

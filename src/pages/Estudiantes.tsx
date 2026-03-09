@@ -3,6 +3,7 @@ import { Search, Calendar, ShieldAlert, ChevronRight, User } from 'lucide-react'
 import { Course, Absence, InspectorateRecord, Student } from '../types';
 import { useStudents, useCourses, useStudentDetails } from '../hooks/queries';
 import { formatDate, cn } from '../utils';
+import { getAbsenceStatusLabel } from '../constants';
 import { Modal, Button, Badge, EmptyState, PageHeader, Input, Select, TableSkeleton } from '../components/ui';
 
 interface EstudiantesProps {
@@ -222,7 +223,7 @@ export const Estudiantes: React.FC<EstudiantesProps> = ({ level }) => {
                         </div>
                       </div>
                       <Badge variant={abs.status === 'JUSTIFICADA' ? 'success' : 'warning'}>
-                        {abs.status}
+                        {getAbsenceStatusLabel(abs.status || 'PENDIENTE')}
                       </Badge>
                     </div>
                   ))

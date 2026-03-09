@@ -4,6 +4,7 @@ import { Modal, Button, Badge, FormError } from '../components/ui';
 import { useForm } from 'react-hook-form';
 import { AbsenceWithDetails, Course } from '../types';
 import { formatDate } from '../utils';
+import { getAbsenceStatusLabel } from '../constants';
 import { Upload } from 'lucide-react';
 
 interface InasistenciasDetailModalProps {
@@ -92,7 +93,7 @@ export const InasistenciasDetailModal: React.FC<InasistenciasDetailModalProps> =
                     <AlertCircle className="w-3 h-3" /> Estado Actual
                   </div>
                   <Badge variant={selectedAbsence.status === 'JUSTIFICADA' ? 'success' : 'warning'} className="mt-1">
-                    {selectedAbsence.status}
+                    {getAbsenceStatusLabel(selectedAbsence.status || 'PENDIENTE')}
                   </Badge>
                 </div>
               </div>
@@ -151,7 +152,7 @@ export const InasistenciasDetailModal: React.FC<InasistenciasDetailModalProps> =
                     <AlertCircle className="w-3 h-3" /> Estado
                   </div>
                   <Badge variant={selectedAbsence.status === 'JUSTIFICADA' ? 'success' : 'warning'} className="mt-1">
-                    {selectedAbsence.status}
+                    {getAbsenceStatusLabel(selectedAbsence.status || 'PENDIENTE')}
                   </Badge>
                 </div>
               </div>

@@ -15,7 +15,7 @@ import { Modal, Button, Badge, EmptyState, PageHeader, Select, TableSkeleton } f
 import { formatDate } from '../utils';
 import { MONTHS, getYearOptions, getCourseOptions } from '../utils/filterOptions';
 import { useToast } from '../contexts/ToastContext';
-import { TOAST_TYPES } from '../constants';
+import { TOAST_TYPES, getAbsenceStatusLabel } from '../constants';
 import { Tables } from '../types/db';
 
 interface DocentePublicoProps {
@@ -528,7 +528,7 @@ export const DocentePublico: React.FC<DocentePublicoProps> = ({ level, isStaff }
                     </div>
                   </td>
                   <td className="px-6 py-5">
-                    <Badge variant={row.status === 'JUSTIFICADA' ? 'success' : 'warning'}>{row.status}</Badge>
+                    <Badge variant={row.status === 'JUSTIFICADA' ? 'success' : 'warning'}>{getAbsenceStatusLabel(row.status || 'PENDIENTE')}</Badge>
                   </td>
                   <td className="px-6 py-5 text-sm font-bold text-rose-600">{row.affected_tests_count}</td>
                   <td className="px-6 py-5 text-right">

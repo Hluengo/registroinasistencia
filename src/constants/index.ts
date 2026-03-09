@@ -10,6 +10,16 @@ export const ABSENCE_STATUS = {
 
 export type AbsenceStatus = typeof ABSENCE_STATUS[keyof typeof ABSENCE_STATUS];
 
+// UI Labels for absence status (displayed to user)
+export const ABSENCE_STATUS_LABELS: Record<AbsenceStatus, string> = {
+  [ABSENCE_STATUS.PENDIENTE]: 'Sin Certificado',
+  [ABSENCE_STATUS.JUSTIFICADA]: 'Con Certificado'
+};
+
+export const getAbsenceStatusLabel = (status: AbsenceStatus | string): string => {
+  return ABSENCE_STATUS_LABELS[status as AbsenceStatus] || status;
+};
+
 // Education levels
 export const EDUCATION_LEVELS = {
   BASICA: 'BASICA',

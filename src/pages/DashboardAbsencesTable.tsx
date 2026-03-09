@@ -2,6 +2,7 @@ import React from 'react';
 import { Calendar, ChevronDown, ChevronUp, Eye, Download } from 'lucide-react';
 import { AbsenceWithDetails, Course, Test } from '../types';
 import { formatDate } from '../utils';
+import { getAbsenceStatusLabel } from '../constants';
 import { Button, Badge, TableSkeleton, EmptyState } from '../components/ui';
 
 interface DashboardAbsencesTableProps {
@@ -78,7 +79,7 @@ export const DashboardAbsencesTable: React.FC<DashboardAbsencesTableProps> = ({
                   </td>
                   <td className="px-6 py-5">
                     <Badge variant={abs.status === 'JUSTIFICADA' ? 'success' : 'warning'}>
-                      {abs.status}
+                      {getAbsenceStatusLabel(abs.status || 'PENDIENTE')}
                     </Badge>
                   </td>
                   <td className="px-6 py-5">

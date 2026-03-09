@@ -16,7 +16,7 @@ import { Button, Badge, PageHeader, Select, StatCard, Modal } from '../component
 import { DashboardAbsencesTable } from './DashboardAbsencesTable';
 import { MONTHS, getYearOptions, getCourseOptions, getStatusOptions } from '../utils/filterOptions';
 import { useQueryClient } from '@tanstack/react-query';
-import { QUERY_KEYS_INVALIDATE } from '../constants';
+import { QUERY_KEYS_INVALIDATE, getAbsenceStatusLabel } from '../constants';
 // jsPDF is large — dynamically import in exportToPDF to avoid bundling in main chunk
 
 interface DashboardProps {
@@ -62,7 +62,7 @@ const DashboardDetailModal: React.FC<DashboardDetailModalProps> = ({ isOpen, onC
                 <AlertCircle className="w-3 h-3" /> Estado
               </div>
               <Badge variant={selectedAbsence.status === 'JUSTIFICADA' ? 'success' : 'warning'} className="mt-1">
-                {selectedAbsence.status}
+                {getAbsenceStatusLabel(selectedAbsence.status || 'PENDIENTE')}
               </Badge>
             </div>
           </div>

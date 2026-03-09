@@ -87,8 +87,8 @@ describe('utils/filterOptions', () => {
       
       expect(options).toHaveLength(3);
       expect(options[0]).toEqual({ value: '', label: 'Todos los Estados' });
-      expect(options[1]).toEqual({ value: 'PENDIENTE', label: 'Pendiente' });
-      expect(options[2]).toEqual({ value: 'JUSTIFICADA', label: 'Justificada' });
+      expect(options[1]).toEqual({ value: 'PENDIENTE', label: 'Sin Certificado' });
+      expect(options[2]).toEqual({ value: 'JUSTIFICADA', label: 'Con Certificado' });
     });
   });
 });
