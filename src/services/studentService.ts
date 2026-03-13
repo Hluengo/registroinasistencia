@@ -8,7 +8,7 @@ export const studentService = {
     try {
       let query = supabase
         .from('students')
-        .select('id, full_name, course_id, rut, courses!inner(id, name, level)')
+        .select('id, full_name, course_id, rut, created_at, courses!inner(id, name, level)')
         .order('full_name');
 
       if (courseId) {

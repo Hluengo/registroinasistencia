@@ -358,6 +358,14 @@ export const DocentePublico: React.FC<DocentePublicoProps> = ({ level, isStaff }
   const loading = isLoading || coursesLoading;
   const showInitialSkeleton = loading && data.length === 0;
   const courseOptions = React.useMemo(() => getCourseOptions(courses), [courses]);
+  const sortedData = React.useMemo(() =>
+    [...data].sort((left, right) => {
+      const leftDate = new Date(left.start_date).getTime();
+      const rightDate = new Date(right.start_date).getTime();
+      return rightDate - leftDate;
+    }),
+    [data]
+  );
 
   return (
     <div className="space-y-10">
@@ -511,13 +519,13 @@ export const DocentePublico: React.FC<DocentePublicoProps> = ({ level, isStaff }
             <tbody className="divide-y divide-slate-100">
               {showInitialSkeleton ? (
                 <tr><td colSpan={6} className="px-6 py-12"><TableSkeleton /></td></tr>
-              ) : data.length === 0 ? (
+              ) : sortedData.length === 0 ? (
                 <tr>
                   <td colSpan={6} className="px-6 py-12">
                     <EmptyState title="Sin resultados" description="No hay inasistencias públicas para el período seleccionado." />
                   </td>
                 </tr>
-              ) : data.map((row) => (
+              ) : sortedData.map((row) => (
                 <tr key={row.absence_id} className="hover:bg-slate-50/80 transition-colors">
                   <td className="px-6 py-5 font-bold text-slate-900">{row.student_name}</td>
                   <td className="px-6 py-5 text-sm font-semibold text-slate-600">{row.course_name}</td>

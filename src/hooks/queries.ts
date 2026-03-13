@@ -310,7 +310,7 @@ export const useStudents = (courseId?: string, level?: 'BASICA' | 'MEDIA', enabl
   const result = useQ<StudentRow[]>(
     queryKeys.students(courseId, level),
     async () => {
-      let query = supabase.from('students').select('id, full_name, course_id, rut, courses!inner(id, name, level)').order('full_name');
+      let query = supabase.from('students').select('id, full_name, course_id, rut, created_at, courses!inner(id, name, level)').order('full_name');
       if (courseId) {
         const parsed = /^\d+$/.test(String(courseId)) ? Number(courseId) : courseId;
         query = query.eq('course_id', String(parsed));

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { 
   Users, 
   Calendar, 
@@ -164,6 +164,15 @@ export const Dashboard: React.FC<DashboardProps> = ({ level }) => {
     [absences, filters.courseId, filters.status, filters.onlyWithTests, filters.onlyWithoutDoc]
   );
 
+  const sortedFilteredAbsences = React.useMemo(() =>
+    [...filteredAbsences].sort((left, right) => {
+      const leftDate = new Date(left.start_date).getTime();
+      const rightDate = new Date(right.start_date).getTime();
+      return rightDate - leftDate;
+    }),
+    [filteredAbsences]
+  );
+
   const stats = {
     total: absences.length,
     justified: absences.filter((a: AbsenceWithDetails) => a.status === 'JUSTIFICADA').length,
@@ -210,7 +219,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ level }) => {
       const doc = new jsPDF();
       doc.text('Reporte de Inasistencias y Pruebas Afectadas', 14, 15);
 
-      const tableData = filteredAbsences.map((abs: AbsenceWithDetails) => [
+      const tableData = sortedFilteredAbsences.map((abs: AbsenceWithDetails) => [
         abs.student.full_name,
         coursesFromQuery.find(c => c.id === abs.student.course_id)?.name || 'N/A',
         `${formatDate(abs.start_date)} - ${formatDate(abs.end_date)}`,
@@ -337,7 +346,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ level }) => {
       </div>
 
       <DashboardAbsencesTable
-        absences={filteredAbsences}
+        absences={sortedFilteredAbsences}
         courses={coursesFromQuery}
         loading={loading}
         expandedRows={expandedRows}
