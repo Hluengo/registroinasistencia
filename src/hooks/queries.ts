@@ -103,12 +103,12 @@ export const useCourses = (level?: 'BASICA' | 'MEDIA', enabled: boolean = true) 
 };
 
 export const useTests = (courseId?: string, month?: number, year?: number, level?: 'BASICA' | 'MEDIA') => {
-  return useQ<TestRow[]>(
+  return useQ<(TestRow & { courses?: Pick<CourseRow, 'id' | 'name' | 'level'> | null })[]>(
     queryKeys.tests(courseId, month, year, level),
     async () => {
       let query = supabase
         .from('tests')
-        .select('id, course_id, date, subject, type, description, created_at, courses!inner(id, name, level)')
+        .select('id, course_id, date, subject, type, description, created_at, courses(id, name, level)')
         .order('date');
       if (courseId) {
         const parsed = /^\d+$/.test(String(courseId)) ? Number(courseId) : courseId;
@@ -124,7 +124,14 @@ export const useTests = (courseId?: string, month?: number, year?: number, level
       }
       const { data, error } = await query;
       if (error) throw error;
-      return (data || []) as TestRow[];
+      return (data || []) as (TestRow & { courses?: Pick<CourseRow, 'id' | 'name' | 'level'> | null })[];
+    },
+    {
+      // Tests can be updated directly in Supabase outside the app, so force a refresh
+      // when this screen mounts or regains focus instead of trusting short-lived cache.
+      staleTime: 0,
+      refetchOnMount: 'always',
+      refetchOnWindowFocus: true
     }
   );
 };
