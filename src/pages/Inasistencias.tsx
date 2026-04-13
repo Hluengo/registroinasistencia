@@ -5,7 +5,7 @@ import { useToast } from '../contexts/ToastContext';
 import { createMutationGuard } from '../utils';
 import { AbsenceWithDetails, Course, Student } from '../types';
 import { useAbsences, useCourses, useStudents } from '../hooks/queries';
-import { formatDate, cn } from '../utils';
+import { formatDate, cn, toLocalDateString } from '../utils';
 import { Button, Badge, EmptyState, PageHeader, Input, Select, TableSkeleton } from '../components/ui';
 import { InasistenciasCreateModal } from './InasistenciasCreateModal';
 import { InasistenciasDetailModal } from './InasistenciasDetailModal';
@@ -59,8 +59,8 @@ export const Inasistencias: React.FC<InasistenciasProps> = ({ level }) => {
   const { showToast } = useToast();
 
   // derive start/end ISO dates from filters
-  const startISO = new Date(filters.year, filters.month, 1).toISOString().split('T')[0];
-  const endISO = new Date(filters.year, filters.month + 1, 0).toISOString().split('T')[0];
+  const startISO = toLocalDateString(new Date(filters.year, filters.month, 1));
+  const endISO = toLocalDateString(new Date(filters.year, filters.month + 1, 0));
 
   const { data: absences = [], isLoading: loadingAbsences } = useAbsences(level, startISO, endISO);
   const { data: coursesData = [], isLoading: loadingCourses } = useCourses(level);
