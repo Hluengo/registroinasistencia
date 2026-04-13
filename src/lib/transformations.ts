@@ -6,6 +6,7 @@ import {
   Course,
   Test 
 } from '../types';
+import { parseDateOnly, toDateOnlyString } from '../utils/date';
 
 export interface Holiday {
   id: string;
@@ -25,12 +26,8 @@ export function normalizeHoliday(
   
   try {
     if (rawDate) {
-      const d = new Date(rawDate);
-      if (!isNaN(d.getTime())) {
-        dateStr = d.toISOString().slice(0, 10);
-      } else if (typeof rawDate === 'string') {
-        dateStr = rawDate.slice(0, 10);
-      }
+      const normalized = toDateOnlyString(rawDate);
+      dateStr = normalized && parseDateOnly(normalized) ? normalized : '';
     }
   } catch {
     dateStr = '';
@@ -59,7 +56,8 @@ export function filterHolidaysByPeriod(
   }
 
   return holidays.filter((h) => {
-    const d = new Date(h.date);
+    const d = parseDateOnly(h.date);
+    if (!d) return false;
     return d.getFullYear() === year && d.getMonth() === month;
   });
 }

@@ -13,6 +13,7 @@ import { testValidationSchema } from '../lib/validators';
 import { createMutationGuard } from '../utils';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
+import { formatDate } from '../utils';
 
 type TestFormValues = {
   course_id: string;
@@ -223,7 +224,7 @@ export const Pruebas: React.FC<PruebasProps> = ({ level }) => {
                     <tr key={t.id}>
                       <td className="px-6 py-4">{t.subject}</td>
                       <td className="px-6 py-4">{t.courses?.name ?? '-'}</td>
-                      <td className="px-6 py-4">{format(new Date(t.date), 'dd/MM/yyyy')}</td>
+                      <td className="px-6 py-4">{formatDate(t.date)}</td>
                       <td className="px-6 py-4">{t.type}</td>
                       <td className="px-6 py-4">{t.description ?? ''}</td>
                       <td className="px-6 py-4 text-right">-</td>

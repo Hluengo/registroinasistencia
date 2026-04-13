@@ -47,7 +47,7 @@ describe('utils/index', () => {
 
     it('returns empty string for invalid date', () => {
       const result = formatDate('invalid-date');
-      expect(result).toBe('Invalid Date');
+      expect(result).toBe('');
     });
   });
 

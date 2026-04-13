@@ -1,6 +1,12 @@
+const DATE_ONLY_PATTERN = /^(\d{4})-(\d{2})-(\d{2})$/;
+
+const buildLocalDate = (year: number, month: number, day: number): Date => new Date(year, month - 1, day, 12, 0, 0, 0);
+
 export const toDateOnlyString = (dateLike: string | Date | undefined | null): string => {
   if (!dateLike) return '';
-  if (dateLike instanceof Date) return dateLike.toISOString().slice(0, 10);
+  if (dateLike instanceof Date) {
+    return `${dateLike.getFullYear()}-${String(dateLike.getMonth() + 1).padStart(2, '0')}-${String(dateLike.getDate()).padStart(2, '0')}`;
+  }
   const s = (dateLike ?? '').toString();
   if (s.indexOf('T') !== -1) return s.split('T')[0] ?? '';
   return s.slice(0, 10);
@@ -8,6 +14,14 @@ export const toDateOnlyString = (dateLike: string | Date | undefined | null): st
 
 export const parseDateOnly = (dateStr: string): Date | null => {
   if (!dateStr) return null;
+  const match = DATE_ONLY_PATTERN.exec(dateStr.trim());
+  if (match) {
+    const year = Number(match[1]);
+    const month = Number(match[2]);
+    const day = Number(match[3]);
+    const d = buildLocalDate(year, month, day);
+    return d.getFullYear() === year && d.getMonth() === month - 1 && d.getDate() === day ? d : null;
+  }
   const d = new Date(dateStr);
   return isNaN(d.getTime()) ? null : d;
 };

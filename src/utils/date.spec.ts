@@ -21,7 +21,9 @@ describe('utils/date', () => {
   it('parseDateOnly returns Date for valid and null for invalid/empty', () => {
     const d = parseDateOnly('2021-01-02');
     expect(d).toBeInstanceOf(Date);
-    expect(d && d.toISOString().slice(0, 10)).toBe('2021-01-02');
+    expect(d?.getFullYear()).toBe(2021);
+    expect(d?.getMonth()).toBe(0);
+    expect(d?.getDate()).toBe(2);
     expect(parseDateOnly('')).toBeNull();
     expect(parseDateOnly('invalid-date')).toBeNull();
   });
@@ -34,9 +36,7 @@ describe('utils/date', () => {
 
   it('formatDateOnlyLocale formats according to locale', () => {
     const formatted = formatDateOnlyLocale('2022-12-05', 'es-ES');
-    // Avoid asserting exact day (timezone differences); check month and year present
-    expect(formatted).toContain('12');
-    expect(formatted).toContain('2022');
+    expect(formatted).toBe('05/12/2022');
     expect(formatDateOnlyLocale('', 'es-ES')).toBe('');
   });
 
