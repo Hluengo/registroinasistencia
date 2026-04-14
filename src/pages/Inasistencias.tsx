@@ -88,16 +88,34 @@ export const Inasistencias: React.FC<InasistenciasProps> = ({ level }) => {
 
   const loading = loadingAbsences || loadingCourses || loadingStudents;
 
+  useEffect(() => {
+    const handleGlobalSearch = (e: Event) => {
+      const customEvent = e as CustomEvent<{ query: string }>;
+      if (customEvent.detail?.query) {
+        patchUiState({ filters: { ...filters, searchQuery: customEvent.detail.query } });
+      }
+    };
+    window.addEventListener('global-search', handleGlobalSearch);
+    return () => window.removeEventListener('global-search', handleGlobalSearch);
+  }, [filters]);
+
   // data comes from hooks; no imperative loadData
 
-  const filteredAbsences = React.useMemo(() =>
+const filteredAbsences = React.useMemo(() =>
     absences.filter((abs: AbsenceWithDetails) => {
       const studentCourseId = abs.student?.course_id || (abs.student as unknown as { course?: { id?: string } })?.course?.id || '';
       const matchesCourse = filters.courseId === '' || studentCourseId === filters.courseId;
-      const studentName = abs.student?.full_name || '';
-      const matchesSearch = studentName.toLowerCase().includes(filters.searchQuery.toLowerCase());
+      
+      if (!filters.searchQuery) return matchesCourse;
+      
+      const searchLower = filters.searchQuery.toLowerCase();
+      const studentName = abs.student?.full_name?.toLowerCase() || '';
+      const studentRut = abs.student?.rut?.toLowerCase() || '';
+      const matchesSearch = studentName.includes(searchLower) || studentRut.includes(searchLower);
+      
       return matchesCourse && matchesSearch;
     }),
+
     [absences, filters.courseId, filters.searchQuery]
   );
 
@@ -118,12 +136,17 @@ export const Inasistencias: React.FC<InasistenciasProps> = ({ level }) => {
       patchUiState({ mutationLoading: true });
       const res = await updateAbsence.mutateAsync({ id: selectedAbsence.id, updates: { observation: data.observation }, file: file || undefined });
       patchUiState({ isDetailModalOpen: false, isEditing: false, file: null });
-      showToast({ type: TOAST_TYPES.SUCCESS, message: 'Inasistencia actualizada exitosamente' });
-      if (file && res && !res.uploadFailed && res.row && res.row.document_url) {
-        showToast({ type: TOAST_TYPES.SUCCESS, message: `Documento ${file.name} subido: ${res.row.document_url}` });
+      if (!res) {
+        showToast({ type: TOAST_TYPES.ERROR, message: 'Error al actualizar la inasistencia' });
+        return;
       }
-      if (res && res.uploadFailed) {
-        showToast({ type: TOAST_TYPES.WARNING, message: 'La inasistencia se guardó, pero NO se pudo subir el documento. Puedes reintentar adjuntarlo desde el detalle.' });
+      if (res.success) {
+        showToast({ type: TOAST_TYPES.SUCCESS, message: 'Inasistencia actualizada exitosamente' });
+        if (file && res.row?.document_url) {
+          showToast({ type: TOAST_TYPES.SUCCESS, message: `Documento ${file.name} subido exitosamente` });
+        }
+      } else {
+        showToast({ type: TOAST_TYPES.WARNING, message: res.error || 'La inasistencia se guardó, pero hubo un problema con el documento.' });
       }
     } catch (error) {
       console.error('Error updating absence:', error);
@@ -150,12 +173,17 @@ export const Inasistencias: React.FC<InasistenciasProps> = ({ level }) => {
         status: 'PENDIENTE'
       }, file: file || undefined });
       patchUiState({ isModalOpen: false, file: null });
-      showToast({ type: TOAST_TYPES.SUCCESS, message: 'Inasistencia registrada exitosamente' });
-      if (file && res && !res.uploadFailed && res.row && res.row.document_url) {
-        showToast({ type: TOAST_TYPES.SUCCESS, message: `Documento ${file.name} subido: ${res.row.document_url}` });
+      if (!res) {
+        showToast({ type: TOAST_TYPES.ERROR, message: 'Error al registrar la inasistencia' });
+        return;
       }
-      if (res && res.uploadFailed) {
-        showToast({ type: TOAST_TYPES.WARNING, message: 'La inasistencia se registró, pero no se pudo subir el documento. Intenta nuevamente.' });
+      if (res.success) {
+        showToast({ type: TOAST_TYPES.SUCCESS, message: 'Inasistencia registrada exitosamente' });
+        if (file && res.row?.document_url) {
+          showToast({ type: TOAST_TYPES.SUCCESS, message: `Documento ${file.name} subido exitosamente` });
+        }
+      } else {
+        showToast({ type: TOAST_TYPES.WARNING, message: res.error || 'La inasistencia se registró, pero hubo un problema con el documento.' });
       }
     } catch (error) {
       console.error('Error creating absence:', error);
@@ -180,7 +208,7 @@ export const Inasistencias: React.FC<InasistenciasProps> = ({ level }) => {
           <div className="w-full grid grid-cols-1 lg:grid-cols-12 gap-4 items-end">
             <div className="lg:col-span-5">
               <Input 
-                placeholder="Buscar estudiante..." 
+                placeholder="Buscar por nombre o RUT..." 
                 icon={<Search className="w-4 h-4" />}
                 value={filters.searchQuery}
                 onChange={(e) => patchUiState({ filters: { ...filters, searchQuery: e.target.value } })}

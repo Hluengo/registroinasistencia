@@ -2,12 +2,11 @@ import { supabase } from './supabaseClient';
 import { Course } from '../types';
 import { handleError } from '../utils/error-handler';
 import { Database } from '../types/db';
+import { ServiceResult, successResult, errorResult } from '../types/service';
 
 export const courseService = {
-  getCourses: async (level?: 'BASICA' | 'MEDIA'): Promise<Database['public']['Tables']['courses']['Row'][]> => {
+  getCourses: async (level?: 'BASICA' | 'MEDIA'): Promise<ServiceResult<Course[]>> => {
     try {
-      console.log('courseService: getCourses called with level', level);
-      
       let query = supabase
         .from('courses')
         .select('id, name, level')
@@ -16,27 +15,25 @@ export const courseService = {
       if (level) query = query.eq('level', level);
       
       const { data, error } = await query;
-      if (error) {
-        console.error('courseService: query error', error);
-        throw error;
-      }
+      if (error) throw error;
       
-      console.log('courseService: query success, data count', data?.length);
-      return (data || []) as Database['public']['Tables']['courses']['Row'][];
+      return successResult(data as unknown as Course[]);
     } catch (error) {
-      handleError(error);
-      return [];
+      console.error('courseService.getCourses failed:', error);
+      const msg = handleError(error);
+      return errorResult(msg);
     }
   },
 
-  bulkInsertCourses: async (courses: { name: string; level: 'BASICA' | 'MEDIA' }[]) => {
+  bulkInsertCourses: async (courses: { name: string; level: 'BASICA' | 'MEDIA' }[]): Promise<ServiceResult<Course[]>> => {
     try {
       const { data, error } = await supabase.from('courses').insert(courses as Database['public']['Tables']['courses']['Insert'][]).select();
       if (error) throw error;
-      // Note: React Query will handle invalidation, no manual cache invalidation needed
-      return data;
+      return successResult(data as unknown as Course[]);
     } catch (error) {
-      handleError(error);
+      console.error('courseService.bulkInsertCourses failed:', error);
+      const msg = handleError(error);
+      return errorResult(msg);
     }
   }
 };

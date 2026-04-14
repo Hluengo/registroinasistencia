@@ -9,7 +9,7 @@ export class AppError extends Error {
   }
 }
 
-export const handleError = (error: unknown): never => {
+export const handleError = (error: unknown): string => {
   console.error('[Service Error]:', error);
   
   if (error instanceof AppError) {
@@ -34,4 +34,10 @@ export const handleError = (error: unknown): never => {
   }
 
   throw new AppError((err && err.message) || 'Ocurrió un error inesperado.', 500);
+};
+
+export const getErrorMessage = (error: unknown): string => {
+  if (error instanceof AppError) return error.message;
+  if (error instanceof Error) return error.message;
+  return 'Error desconocido';
 };

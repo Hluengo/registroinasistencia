@@ -1,10 +1,11 @@
 import { supabase } from './supabaseClient';
 import { Student, Absence, InspectorateRecord } from '../types';
-import { handleError } from '../utils/error-handler';
 import { Database } from '../types/db';
+import { ServiceResult, successResult, errorResult } from '../types/service';
+import { handleError } from '../utils/error-handler';
 
 export const studentService = {
-  getStudents: async (courseId?: string, level?: 'BASICA' | 'MEDIA') : Promise<Student[]> => {
+  getStudents: async (courseId?: string, level?: 'BASICA' | 'MEDIA'): Promise<ServiceResult<Student[]>> => {
     try {
       let query = supabase
         .from('students')
@@ -19,14 +20,19 @@ export const studentService = {
       
       const { data, error } = await query;
       if (error) throw error;
-      return data as unknown as Student[];
+      return successResult(data as unknown as Student[]);
     } catch (error) {
-      handleError(error);
-      return [] as Student[];
+      console.error('studentService.getStudents failed:', error);
+      const msg = handleError(error);
+      return errorResult(msg);
     }
   },
 
-  getStudentDetails: async (studentId: string) => {
+  getStudentDetails: async (studentId: string): Promise<ServiceResult<{
+    student: Student | null;
+    absences: Absence[];
+    records: InspectorateRecord[];
+  }>> => {
     try {
       const [studentRes, absencesRes, recordsRes] = await Promise.all([
         supabase.from('students').select('id, full_name, course_id, rut, courses(id, name, level)').eq('id', studentId).single(),
@@ -38,24 +44,27 @@ export const studentService = {
       if (absencesRes.error) throw absencesRes.error;
       if (recordsRes.error) throw recordsRes.error;
 
-      return {
-        student: studentRes.data,
+      return successResult({
+        student: studentRes.data as unknown as Student,
         absences: absencesRes.data as Absence[],
         records: recordsRes.data as InspectorateRecord[]
-      };
+      });
     } catch (error) {
-      handleError(error);
-      return { student: null as unknown as Student, absences: [], records: [] };
+      console.error('studentService.getStudentDetails failed:', error);
+      const msg = handleError(error);
+      return errorResult(msg, { student: null, absences: [], records: [] });
     }
   },
 
-  bulkInsertStudents: async (students: { full_name: string; course_id: string; rut?: string }[]) => {
+  bulkInsertStudents: async (students: { full_name: string; course_id: string; rut?: string }[]): Promise<ServiceResult<Student[]>> => {
     try {
       const { data, error } = await supabase.from('students').insert(students as Database['public']['Tables']['students']['Insert'][]).select();
       if (error) throw error;
-      return data;
+      return successResult(data as unknown as Student[]);
     } catch (error) {
-      handleError(error);
+      console.error('studentService.bulkInsertStudents failed:', error);
+      const msg = handleError(error);
+      return errorResult(msg);
     }
   }
 };

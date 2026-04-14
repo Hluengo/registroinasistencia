@@ -1,80 +1,9 @@
 import { supabase } from './supabaseClient';
 import { Absence, AbsenceWithDetails } from '../types';
-import { handleError } from '../utils/error-handler';
+import { AppError, handleError } from '../utils/error-handler';
 import { Database } from '../types/db';
-import { ABSENCE_STATUS, FILE_CONFIG, RETRY_CONFIG } from '../constants';
-
-type AllowedFileExtension = (typeof FILE_CONFIG.ALLOWED_EXTENSIONS)[number];
-
-const isAllowedExtension = (ext: string): ext is AllowedFileExtension =>
-  (FILE_CONFIG.ALLOWED_EXTENSIONS as readonly string[]).includes(ext);
-
-/**
- * Helper function to get public URL from Supabase storage response
- * Handles differences in response structure across API versions
- */
-function extractPublicUrl(response: unknown): string | null {
-  if (!response || typeof response !== 'object') return null;
-  
-  const data = (response as Record<string, unknown>).data;
-  if (!data || typeof data !== 'object') return null;
-  
-  const publicUrl = (data as Record<string, unknown>).publicUrl || (data as Record<string, unknown>).publicURL;
-  return typeof publicUrl === 'string' ? publicUrl : null;
-}
-
-/**
- * Helper function to upload file to Supabase storage with retry logic
- * Supports common document formats (pdf, doc, docx, jpg, png)
- */
-async function uploadFileWithRetries(
-  file: File,
-  filePath: string,
-  maxAttempts: number = RETRY_CONFIG.MAX_ATTEMPTS
-): Promise<{ publicUrl: string | null; uploadFailed: boolean }> {
-  const fileExt = (file.name.split('.').pop() || '').toLowerCase();
-  
-  // Validate file extension
-  if (!fileExt || !isAllowedExtension(fileExt)) {
-    console.error('absenceService: invalid file extension', { fileExt, allowedExtensions: FILE_CONFIG.ALLOWED_EXTENSIONS });
-    return { publicUrl: null, uploadFailed: true };
-  }
-
-  let attempt = 0;
-  let uploaded = false;
-  let publicUrl: string | null = null;
-
-  while (attempt < maxAttempts && !uploaded) {
-    attempt += 1;
-    try {
-      const uploadResponse = await supabase.storage
-        .from(FILE_CONFIG.UPLOAD_BUCKET)
-        .upload(filePath, file);
-
-      if (!uploadResponse.error) {
-        const publicUrlResponse = supabase.storage
-          .from(FILE_CONFIG.UPLOAD_BUCKET)
-          .getPublicUrl(filePath);
-
-        publicUrl = extractPublicUrl(publicUrlResponse);
-        uploaded = true;
-        console.log('absenceService: file upload succeeded', { filePath, publicUrl });
-        break;
-      } else {
-        console.warn(`absenceService: upload attempt ${attempt} failed`, uploadResponse.error);
-      }
-    } catch (err) {
-      console.warn(`absenceService: unexpected upload error attempt ${attempt}`, err);
-    }
-
-    if (attempt < maxAttempts) {
-      // Simple backoff
-      await new Promise(res => setTimeout(res, attempt * 300));
-    }
-  }
-
-  return { publicUrl, uploadFailed: !uploaded };
-}
+import { ABSENCE_STATUS, FILE_CONFIG } from '../constants';
+import { uploadFile, validateFile } from '../utils/upload';
 
 export const absenceService = {
   getAbsences: async (filters?: { 
@@ -169,21 +98,18 @@ export const absenceService = {
   createAbsence: async (absence: Database['public']['Tables']['absences']['Insert'], file?: File) => {
     try {
       let document_url = absence.document_url;
-      let uploadFailed = false;
 
       if (file) {
-        const fileExt = file.name.split('.').pop();
-        const fileName = `${crypto.randomUUID()}.${fileExt}`;
-        const filePath = `absences/${fileName}`;
-
-        const uploadResult = await uploadFileWithRetries(file, filePath);
-        const { publicUrl } = uploadResult;
-        uploadFailed = uploadResult.uploadFailed;
-        document_url = publicUrl;
-
-        if (uploadFailed) {
-          console.error('absenceService.createAbsence - all upload attempts failed');
+        const validation = validateFile(file);
+        if (!validation.valid) {
+          throw new AppError(validation.error || 'Archivo inválido', 400, 'VALIDATION_ERROR');
         }
+
+        const uploadResult = await uploadFile(file, FILE_CONFIG.UPLOAD_BUCKET, 'absences');
+        if (!uploadResult.success) {
+          throw new AppError(uploadResult.error || 'Error al subir archivo', 500, 'UPLOAD_ERROR');
+        }
+        document_url = uploadResult.publicUrl;
       }
 
       const insertPayload: Database['public']['Tables']['absences']['Insert'] = {
@@ -199,8 +125,9 @@ export const absenceService = {
         .single();
 
       if (error) throw error;
-      return { row: data, uploadFailed };
+      return { row: data, error: null, success: true };
     } catch (error) {
+      console.error('absenceService.createAbsence failed:', error);
       handleError(error);
     }
   },
@@ -208,21 +135,18 @@ export const absenceService = {
   updateAbsence: async (id: string, updates: Partial<Absence>, file?: File) => {
     try {
       let document_url = updates.document_url;
-      let uploadFailed = false;
 
       if (file) {
-        const fileExt = file.name.split('.').pop();
-        const fileName = `${crypto.randomUUID()}.${fileExt}`;
-        const filePath = `absences/${fileName}`;
-
-        const uploadResult = await uploadFileWithRetries(file, filePath);
-        const { publicUrl } = uploadResult;
-        uploadFailed = uploadResult.uploadFailed;
-        document_url = publicUrl;
-
-        if (uploadFailed) {
-          console.error('absenceService.updateAbsence - all upload attempts failed');
+        const validation = validateFile(file);
+        if (!validation.valid) {
+          throw new AppError(validation.error || 'Archivo inválido', 400, 'VALIDATION_ERROR');
         }
+
+        const uploadResult = await uploadFile(file, FILE_CONFIG.UPLOAD_BUCKET, 'absences');
+        if (!uploadResult.success) {
+          throw new AppError(uploadResult.error || 'Error al subir archivo', 500, 'UPLOAD_ERROR');
+        }
+        document_url = uploadResult.publicUrl;
       }
 
       const finalUpdates: Partial<Database['public']['Tables']['absences']['Update']> = { ...updates };
@@ -239,8 +163,9 @@ export const absenceService = {
         .single();
       
       if (error) throw error;
-      return { row: data, uploadFailed };
+      return { row: data, error: null, success: true };
     } catch (error) {
+      console.error('absenceService.updateAbsence failed:', error);
       handleError(error);
     }
   }
