@@ -52,7 +52,8 @@ export const getDaysUntilTest = (testDate: string | Date): number => {
   if (!isValidDate(testDate)) return -Infinity;
   const today = new Date();
   today.setHours(0, 0, 0, 0);
-  const test = new Date(testDate);
+  const test = parseDateOnly(toDateOnlyString(testDate));
+  if (!test) return -Infinity;
   test.setHours(0, 0, 0, 0);
   const diff = test.getTime() - today.getTime();
   return Math.floor(diff / (1000 * 60 * 60 * 24));
