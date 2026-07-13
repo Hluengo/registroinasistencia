@@ -37,11 +37,11 @@ export const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children, 
     <>
       <dialog
         ref={dialogRef}
-        className={`bg-white rounded-2xl shadow-2xl w-full ${sizeClasses[size]} relative z-10 overflow-hidden flex flex-col max-h-[90vh] mx-auto my-auto`}
+        className={`bg-white rounded-2xl shadow-2xl w-full ${sizeClasses[size]} relative z-10 overflow-hidden mx-auto my-auto`}
         aria-labelledby={testId ? `${testId}-title` : undefined}
         data-testid={testId ? `${testId}-dialog` : undefined}
       >
-        <form method="dialog" className="w-full h-full flex flex-col">
+        <div className="w-full h-full flex flex-col">
           <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
             <h3 id={testId ? `${testId}-title` : undefined} className="text-lg font-bold text-slate-800">{title}</h3>
             <button
@@ -56,7 +56,7 @@ export const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children, 
           <div className="p-6 overflow-y-auto">
             {children}
           </div>
-        </form>
+          </div>
       </dialog>
     </>
   );
