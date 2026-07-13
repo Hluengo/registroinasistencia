@@ -418,7 +418,13 @@ export const useCreateAbsence = () => {
     Error,
     { absence: Parameters<typeof absenceService.createAbsence>[0]; file?: File }
   >({
-    mutationFn: (args) => absenceService.createAbsence(args.absence, args.file),
+    mutationFn: async (args) => {
+      const result = await absenceService.createAbsence(args.absence, args.file);
+      if (!result?.success) {
+        throw new Error(result?.error || 'Error al crear la inasistencia');
+      }
+      return result;
+    },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: QUERY_KEYS_INVALIDATE.ABSENCES });
       qc.invalidateQueries({ queryKey: QUERY_KEYS_INVALIDATE.TEACHER_PUBLIC_ABSENCES, refetchType: 'all' });
@@ -434,7 +440,13 @@ export const useUpdateAbsence = () => {
     Error,
     { id: string; updates: Partial<AbsenceUpdateRow>; file?: File }
   >({
-    mutationFn: (args) => absenceService.updateAbsence(args.id, args.updates, args.file),
+    mutationFn: async (args) => {
+      const result = await absenceService.updateAbsence(args.id, args.updates, args.file);
+      if (!result?.success) {
+        throw new Error(result?.error || 'Error al actualizar la inasistencia');
+      }
+      return result;
+    },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: QUERY_KEYS_INVALIDATE.ABSENCES });
       qc.invalidateQueries({ queryKey: QUERY_KEYS_INVALIDATE.TEACHER_PUBLIC_ABSENCES, refetchType: 'all' });

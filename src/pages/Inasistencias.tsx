@@ -268,6 +268,7 @@ const filteredAbsences = React.useMemo(() =>
       }
     } catch (error) {
       console.error('Error creating absence:', error);
+      patchUiState({ isModalOpen: false, file: null });
       showToast({ type: TOAST_TYPES.ERROR, message: 'Error al registrar la inasistencia' });
     } finally {
       patchUiState({ mutationLoading: false });

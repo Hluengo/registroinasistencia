@@ -1,6 +1,5 @@
 import { supabase } from './supabaseClient';
 import { Absence, AbsenceWithDetails } from '../types';
-import { AppError, handleError } from '../utils/error-handler';
 import { Database } from '../types/db';
 import { ABSENCE_STATUS, FILE_CONFIG } from '../constants';
 import { uploadFile, validateFile } from '../utils/upload';
@@ -91,7 +90,8 @@ export const absenceService = {
 
     } catch (error) {
       console.error('absenceService.getAbsences failed:', error);
-      handleError(error);
+      if (error instanceof Error) throw error;
+      throw new Error('Error inesperado al obtener inasistencias');
     }
   },
 
@@ -102,12 +102,12 @@ export const absenceService = {
       if (file) {
         const validation = validateFile(file);
         if (!validation.valid) {
-          throw new AppError(validation.error || 'Archivo inválido', 400, 'VALIDATION_ERROR');
+          return { row: null, error: validation.error || 'Archivo inválido', success: false };
         }
 
         const uploadResult = await uploadFile(file, FILE_CONFIG.UPLOAD_BUCKET, 'absences');
         if (!uploadResult.success) {
-          throw new AppError(uploadResult.error || 'Error al subir archivo', 500, 'UPLOAD_ERROR');
+          return { row: null, error: uploadResult.error || 'Error al subir archivo', success: false };
         }
         document_url = uploadResult.publicUrl;
       }
@@ -124,11 +124,14 @@ export const absenceService = {
         .select()
         .single();
 
-      if (error) throw error;
+      if (error) {
+        console.error('absenceService.createAbsence DB error:', error);
+        return { row: null, error: error.message, success: false };
+      }
       return { row: data, error: null, success: true };
     } catch (error) {
       console.error('absenceService.createAbsence failed:', error);
-      handleError(error);
+      return { row: null, error: error instanceof Error ? error.message : 'Error inesperado', success: false };
     }
   },
 
@@ -139,12 +142,12 @@ export const absenceService = {
       if (file) {
         const validation = validateFile(file);
         if (!validation.valid) {
-          throw new AppError(validation.error || 'Archivo inválido', 400, 'VALIDATION_ERROR');
+          return { row: null, error: validation.error || 'Archivo inválido', success: false };
         }
 
         const uploadResult = await uploadFile(file, FILE_CONFIG.UPLOAD_BUCKET, 'absences');
         if (!uploadResult.success) {
-          throw new AppError(uploadResult.error || 'Error al subir archivo', 500, 'UPLOAD_ERROR');
+          return { row: null, error: uploadResult.error || 'Error al subir archivo', success: false };
         }
         document_url = uploadResult.publicUrl;
       }
@@ -162,11 +165,14 @@ export const absenceService = {
         .select()
         .single();
       
-      if (error) throw error;
+      if (error) {
+        console.error('absenceService.updateAbsence DB error:', error);
+        return { row: null, error: error.message, success: false };
+      }
       return { row: data, error: null, success: true };
     } catch (error) {
       console.error('absenceService.updateAbsence failed:', error);
-      handleError(error);
+      return { row: null, error: error instanceof Error ? error.message : 'Error inesperado', success: false };
     }
   }
 };
