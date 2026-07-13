@@ -18,9 +18,7 @@ interface SidebarProps {
   onClose: () => void;
   level: 'BASICA' | 'MEDIA';
   setLevel: (level: 'BASICA' | 'MEDIA') => void;
-  isAuthenticated: boolean;
-  isStaff: boolean;
-  isSuperuser: boolean;
+  role: 'public' | 'staff' | 'superuser';
   roleLabel: string;
   userEmail?: string;
   onLoginClick: () => void;
@@ -44,30 +42,28 @@ export const Sidebar: React.FC<SidebarProps> = ({
   onClose,
   level,
   setLevel,
-  isAuthenticated,
-  isStaff,
-  isSuperuser,
+  role,
   roleLabel,
   userEmail,
   onLoginClick,
   onLogoutClick
 }) => {
   const visibleItems = menuItems.filter((item) => {
-    if (!isStaff) return item.id === 'docente_public';
-    if (!isSuperuser && item.id === 'configuracion') return false;
+    if (role === 'public') return item.id === 'docente_public';
+    if (role !== 'superuser' && item.id === 'configuracion') return false;
     return true;
   });
 
   return (
     <>
       {/* Mobile Overlay */}
-      <div 
+      <button
+        type="button"
         className={cn(
           "fixed inset-0 bg-slate-900/20 backdrop-blur-sm z-30 lg:hidden transition-opacity duration-300",
           isOpen ? "opacity-100" : "opacity-0 pointer-events-none"
         )}
         onClick={onClose}
-        role="button"
         tabIndex={isOpen ? 0 : -1}
         aria-label="Cerrar menú lateral"
         onKeyDown={(e) => {
@@ -91,7 +87,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             />
             <h1 className="text-lg font-bold text-slate-900 tracking-tight">Registro Escolar</h1>
           </div>
-          <button type="button" onClick={onClose} className="lg:hidden p-2 text-slate-400 hover:bg-slate-50 rounded-lg transition-colors">
+          <button type="button" onClick={onClose} aria-label="Cerrar menú" className="lg:hidden p-2 text-slate-400 hover:bg-slate-50 rounded-lg transition-colors">
             <X className="w-5 h-5" />
           </button>
         </div>
@@ -162,12 +158,12 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 {(userEmail?.[0] || 'G').toUpperCase()}
               </div>
               <div className="min-w-0">
-                <p className="text-sm font-bold text-slate-900 truncate tracking-tight">{isAuthenticated ? (userEmail || 'Usuario') : 'Invitado'}</p>
+                <p className="text-sm font-bold text-slate-900 truncate tracking-tight">{role !== 'public' ? (userEmail || 'Usuario') : 'Invitado'}</p>
                 <p className="text-[11px] text-slate-500 font-medium">{roleLabel}</p>
               </div>
             </div>
             <div className="mt-3">
-              {isAuthenticated ? (
+              {role !== 'public' ? (
                 <button
                   type="button"
                   onClick={onLogoutClick}

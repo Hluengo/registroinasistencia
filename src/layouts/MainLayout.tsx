@@ -11,9 +11,7 @@ interface MainLayoutProps {
   level: 'BASICA' | 'MEDIA';
   setLevel: (level: 'BASICA' | 'MEDIA') => void;
   title: string;
-  isAuthenticated: boolean;
-  isStaff: boolean;
-  isSuperuser: boolean;
+  role: 'public' | 'staff' | 'superuser';
   roleLabel: string;
   userEmail?: string;
   onLoginClick: () => void;
@@ -29,9 +27,7 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
   level,
   setLevel,
   title,
-  isAuthenticated,
-  isStaff,
-  isSuperuser,
+  role,
   roleLabel,
   userEmail,
   onLoginClick,
@@ -46,9 +42,7 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
         onClose={() => setIsSidebarOpen(false)}
         level={level}
         setLevel={setLevel}
-        isAuthenticated={isAuthenticated}
-        isStaff={isStaff}
-        isSuperuser={isSuperuser}
+        role={role}
         roleLabel={roleLabel}
         userEmail={userEmail}
         onLoginClick={onLoginClick}
@@ -59,7 +53,7 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
         <Topbar 
           title={title} 
           onMenuClick={() => setIsSidebarOpen(true)}
-          isAuthenticated={isAuthenticated}
+          isAuthenticated={role !== 'public'}
           roleLabel={roleLabel}
           userEmail={userEmail}
           onLoginClick={onLoginClick}

@@ -26,6 +26,18 @@ interface Notification {
   read: boolean;
 }
 
+const markAsRead = (id: string) => {
+  supabase.from('instant_messages').update({ is_active: false }).eq('id', id).then();
+};
+
+const formatTime = (dateStr: string) => {
+  try {
+    return formatDistanceToNow(new Date(dateStr), { addSuffix: true, locale: es });
+  } catch {
+    return 'recientemente';
+  }
+};
+
 export const Topbar: React.FC<TopbarProps> = ({
   title,
   onMenuClick,
@@ -100,18 +112,6 @@ export const Topbar: React.FC<TopbarProps> = ({
     }
   };
 
-  const markAsRead = (id: string) => {
-    supabase.from('instant_messages').update({ is_active: false }).eq('id', id).then();
-  };
-
-  const formatTime = (dateStr: string) => {
-    try {
-      return formatDistanceToNow(new Date(dateStr), { addSuffix: true, locale: es });
-    } catch {
-      return 'recientemente';
-    }
-  };
-
   const unreadCount = messages.filter(n => !n.read).length;
 
   return (
@@ -121,6 +121,7 @@ export const Topbar: React.FC<TopbarProps> = ({
           type="button"
           onClick={onMenuClick}
           className="lg:hidden p-2.5 text-slate-500 hover:bg-slate-50 rounded-xl transition-all duration-200 active:scale-95"
+          aria-label="Abrir menú lateral"
         >
           <Menu className="w-6 h-6" />
         </button>
@@ -155,6 +156,7 @@ export const Topbar: React.FC<TopbarProps> = ({
                 "p-2.5 rounded-2xl transition-all duration-200 relative active:scale-95",
                 showNotifications ? "bg-indigo-50 text-indigo-600" : "text-slate-400 hover:bg-slate-50 hover:text-slate-600"
               )}
+              aria-label={unreadCount > 0 ? `${unreadCount} notificaciones sin leer` : 'Notificaciones'}
             >
               <Bell className="w-5 h-5" strokeWidth={1.5} />
               {unreadCount > 0 && (

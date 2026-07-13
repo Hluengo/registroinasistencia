@@ -6,7 +6,13 @@ import { createMutationGuard } from '../utils';
 import { AbsenceWithDetails, Course, Student } from '../types';
 import { useAbsences, useCourses, useStudents } from '../hooks/queries';
 import { formatDate, cn, toLocalDateString } from '../utils';
-import { Button, Badge, EmptyState, PageHeader, Input, Select, TableSkeleton } from '../components/ui';
+import { Button } from '../components/ui/Button';
+import { Badge } from '../components/ui/Badge';
+import { EmptyState } from '../components/ui/EmptyState';
+import { PageHeader } from '../components/ui/PageHeader';
+import { Input } from '../components/ui/Input';
+import { Select } from '../components/ui/Select';
+import { TableSkeleton } from '../components/ui/Skeleton';
 import { InasistenciasCreateModal } from './InasistenciasCreateModal';
 import { InasistenciasDetailModal } from './InasistenciasDetailModal';
 import { MONTHS, getYearOptions, getCourseOptions } from '../utils/filterOptions';
@@ -15,6 +21,81 @@ import { TOAST_TYPES, getAbsenceStatusLabel } from '../constants';
 interface InasistenciasProps {
   level: 'BASICA' | 'MEDIA';
 }
+
+const AbsencesTable: React.FC<{
+  loading: boolean;
+  filteredAbsences: AbsenceWithDetails[];
+  courses: Course[];
+  onViewDetail: (abs: AbsenceWithDetails) => void;
+}> = ({ loading, filteredAbsences, courses, onViewDetail }) => (
+  <div className="card overflow-hidden border border-slate-200/60 shadow-sm shadow-slate-200/20 rounded-3xl">
+    <div className="overflow-x-auto">
+      <table className="w-full text-left border-collapse">
+        <thead>
+          <tr className="bg-slate-50/50 text-slate-400 text-[11px] font-bold uppercase tracking-widest">
+            <th className="px-6 py-4">Estudiante</th>
+            <th className="px-6 py-4">Curso</th>
+            <th className="px-6 py-4">Periodo</th>
+            <th className="px-6 py-4">Pruebas</th>
+            <th className="px-6 py-4">Estado</th>
+            <th className="px-6 py-4 text-right">Acciones</th>
+          </tr>
+        </thead>
+        <tbody className="divide-y divide-slate-100">
+          {loading ? (
+            <tr>
+              <td colSpan={6} className="px-6 py-12"><TableSkeleton /></td>
+            </tr>
+          ) : filteredAbsences.length === 0 ? (
+            <tr>
+              <td colSpan={6} className="px-6 py-12">
+                <EmptyState
+                  title="No se encontraron inasistencias"
+                  description="Prueba ajustando los filtros o busca otro estudiante."
+                />
+              </td>
+            </tr>
+          ) : filteredAbsences.map((abs: AbsenceWithDetails) => (
+            <tr key={abs.id} className="hover:bg-slate-50/80 transition-colors group">
+              <td className="px-6 py-5">
+                <div className="font-bold text-slate-900 tracking-tight">{abs.student.full_name}</div>
+                <div className="text-[11px] font-medium text-slate-400">RUT: {abs.student.rut || 'N/A'}</div>
+              </td>
+              <td className="px-6 py-5">
+                <span className="text-sm font-semibold text-slate-600 bg-slate-100/50 px-2 py-1 rounded-lg border border-slate-200/50">
+                  {courses.find(c => c.id === abs.student.course_id)?.name || 'N/A'}
+                </span>
+              </td>
+              <td className="px-6 py-5">
+                <div className="flex items-center gap-2 text-sm font-medium text-slate-500">
+                  <Calendar className="w-3.5 h-3.5 opacity-60" strokeWidth={1.5} />
+                  {formatDate(abs.start_date)} - {formatDate(abs.end_date)}
+                </div>
+              </td>
+              <td className="px-6 py-5">
+                {abs.affected_tests && abs.affected_tests.length > 0 ? (
+                  <span className="text-rose-600 font-bold text-xs uppercase tracking-wider">{abs.affected_tests.length} pruebas</span>
+                ) : (
+                  <span className="text-slate-300 text-xs font-medium italic">Ninguna</span>
+                )}
+              </td>
+              <td className="px-6 py-5">
+                <Badge variant={abs.status === 'JUSTIFICADA' ? 'success' : 'warning'}>
+                  {getAbsenceStatusLabel(abs.status || 'PENDIENTE')}
+                </Badge>
+              </td>
+              <td className="px-6 py-5 text-right">
+                <Button variant="ghost" size="sm" onClick={() => onViewDetail(abs)} className="text-slate-400 hover:text-indigo-600 hover:bg-indigo-50">
+                  Ver Detalle
+                </Button>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  </div>
+);
 
 export const Inasistencias: React.FC<InasistenciasProps> = ({ level }) => {
   const [courses, setCourses] = useState<Course[]>([]);
@@ -251,71 +332,12 @@ const filteredAbsences = React.useMemo(() =>
         }
       />
 
-      <div className="card overflow-hidden border border-slate-200/60 shadow-sm shadow-slate-200/20 rounded-3xl">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse">
-            <thead>
-              <tr className="bg-slate-50/50 text-slate-400 text-[11px] font-bold uppercase tracking-widest">
-                <th className="px-6 py-4">Estudiante</th>
-                <th className="px-6 py-4">Curso</th>
-                <th className="px-6 py-4">Periodo</th>
-                <th className="px-6 py-4">Pruebas</th>
-                <th className="px-6 py-4">Estado</th>
-                <th className="px-6 py-4 text-right">Acciones</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
-              {loading ? (
-                <tr>
-                  <td colSpan={6} className="px-6 py-12"><TableSkeleton /></td>
-                </tr>
-              ) : filteredAbsences.length === 0 ? (
-                <tr>
-                  <td colSpan={6} className="px-6 py-12">
-                    <EmptyState 
-                      title="No se encontraron inasistencias" 
-                      description="Prueba ajustando los filtros o busca otro estudiante."
-                    />
-                  </td>
-                </tr>
-              ) : filteredAbsences.map((abs: AbsenceWithDetails) => (
-                <tr key={abs.id} className="hover:bg-slate-50/80 transition-colors group">
-                  <td className="px-6 py-5">
-                    <div className="font-bold text-slate-900 tracking-tight">{abs.student.full_name}</div>
-                    <div className="text-[11px] font-medium text-slate-400">RUT: {abs.student.rut || 'N/A'}</div>
-                  </td>
-                  <td className="px-6 py-5">
-                    <span className="text-sm font-semibold text-slate-600 bg-slate-100/50 px-2 py-1 rounded-lg border border-slate-200/50">{courses.find(c => c.id === abs.student.course_id)?.name || 'N/A'}</span>
-                  </td>
-                  <td className="px-6 py-5">
-                    <div className="flex items-center gap-2 text-sm font-medium text-slate-500">
-                      <Calendar className="w-3.5 h-3.5 opacity-60" strokeWidth={1.5} />
-                      {formatDate(abs.start_date)} - {formatDate(abs.end_date)}
-                    </div>
-                  </td>
-                  <td className="px-6 py-5">
-                    {abs.affected_tests && abs.affected_tests.length > 0 ? (
-                      <span className="text-rose-600 font-bold text-xs uppercase tracking-wider">{abs.affected_tests.length} pruebas</span>
-                    ) : (
-                      <span className="text-slate-300 text-xs font-medium italic">Ninguna</span>
-                    )}
-                  </td>
-                  <td className="px-6 py-5">
-                    <Badge variant={abs.status === 'JUSTIFICADA' ? 'success' : 'warning'}>
-                      {getAbsenceStatusLabel(abs.status || 'PENDIENTE')}
-                    </Badge>
-                  </td>
-                  <td className="px-6 py-5 text-right">
-                    <Button variant="ghost" size="sm" onClick={() => handleViewDetail(abs)} className="text-slate-400 hover:text-indigo-600 hover:bg-indigo-50">
-                      Ver Detalle
-                    </Button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
+      <AbsencesTable
+        loading={loading}
+        filteredAbsences={filteredAbsences}
+        courses={courses}
+        onViewDetail={handleViewDetail}
+      />
 
       <InasistenciasCreateModal
         isOpen={isModalOpen}

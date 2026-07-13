@@ -11,14 +11,15 @@ const Skeleton: React.FC<SkeletonProps> = ({ className }) => {
   );
 };
 
+const skeletonRows = ['r1', 'r2', 'r3', 'r4', 'r5'];
+
 export const TableSkeleton: React.FC = () => {
-  const rows = ['r1', 'r2', 'r3', 'r4', 'r5'];
   return (
     <div className="space-y-4 w-full">
       <div className="flex gap-4">
         <Skeleton className="h-10 w-full" />
       </div>
-      {rows.map((row) => (
+      {skeletonRows.map((row) => (
         <div key={row} className="flex gap-4">
           <Skeleton className="h-12 w-full" />
         </div>

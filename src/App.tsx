@@ -1,7 +1,9 @@
 import React from 'react';
 import { MainLayout } from './layouts/MainLayout';
 import { ToastContainer } from './components/ToastContainer';
-import { Modal, Input, Button } from './components/ui';
+import { Modal } from './components/ui/Modal';
+import { Input } from './components/ui/Input';
+import { Button } from './components/ui/Button';
 import { useAuth } from './hooks/useAuth';
 import { isUsingPlaceholder } from './lib/supabaseClient';
 import { useToast } from './contexts/ToastContext';
@@ -15,6 +17,31 @@ const Pruebas = React.lazy(() => import('./pages/Pruebas').then((m) => ({ defaul
 const Inspectoria = React.lazy(() => import('./pages/Inspectoria').then((m) => ({ default: m.Inspectoria })));
 const Estudiantes = React.lazy(() => import('./pages/Estudiantes').then((m) => ({ default: m.Estudiantes })));
 const Configuracion = React.lazy(() => import('./pages/Configuracion').then((m) => ({ default: m.Configuracion })));
+
+const AppContentInner = React.memo(function AppContentInner({
+  activeTab, isStaff, isSuperuser, level
+}: {
+  activeTab: string; isStaff: boolean; isSuperuser: boolean; level: 'BASICA' | 'MEDIA';
+}) {
+  switch (true) {
+    case !isStaff || activeTab === 'docente_public':
+      return <DocentePublico level={level} isStaff={isStaff} />;
+    case activeTab === 'dashboard':
+      return <Dashboard level={level} />;
+    case activeTab === 'inasistencias':
+      return <Inasistencias level={level} />;
+    case activeTab === 'pruebas':
+      return <Pruebas level={level} />;
+    case activeTab === 'inspectoria':
+      return <Inspectoria level={level} />;
+    case activeTab === 'estudiantes':
+      return <Estudiantes level={level} />;
+    case activeTab === 'configuracion':
+      return isSuperuser ? <Configuracion /> : <Dashboard level={level} />;
+    default:
+      return <Dashboard level={level} />;
+  }
+});
 
 function AppContent() {
   const [uiState, patchUiState] = React.useReducer(
@@ -52,29 +79,6 @@ function AppContent() {
     }
   }, [loading, isStaff, isSuperuser, activeTab]);
 
-  const content = React.useMemo(() => {
-    if (!isStaff || activeTab === 'docente_public') {
-      return <DocentePublico level={level} isStaff={isStaff} />;
-    }
-
-    switch (activeTab) {
-      case 'dashboard':
-        return <Dashboard level={level} />;
-      case 'inasistencias':
-        return <Inasistencias level={level} />;
-      case 'pruebas':
-        return <Pruebas level={level} />;
-      case 'inspectoria':
-        return <Inspectoria level={level} />;
-      case 'estudiantes':
-        return <Estudiantes level={level} />;
-      case 'configuracion':
-        return isSuperuser ? <Configuracion /> : <Dashboard level={level} />;
-      default:
-        return <Dashboard level={level} />;
-    }
-  }, [activeTab, isStaff, isSuperuser, level]);
-
   const getTitle = () => {
     if (!isStaff || activeTab === 'docente_public') return 'Vista Docente';
     switch (activeTab) {
@@ -89,6 +93,7 @@ function AppContent() {
   };
 
   const roleLabel = !isAuthenticated ? 'Docente público' : role === 'superuser' ? 'Superusuario' : role === 'staff' ? 'Staff' : 'Docente';
+  const sidebarRole = !isAuthenticated ? 'public' as const : isSuperuser ? 'superuser' as const : 'staff' as const;
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -149,9 +154,7 @@ function AppContent() {
         level={level}
         setLevel={(nextLevel) => patchUiState({ level: nextLevel })}
         title={getTitle()}
-        isAuthenticated={isAuthenticated}
-        isStaff={isStaff}
-        isSuperuser={isSuperuser}
+        role={sidebarRole}
         roleLabel={roleLabel}
         userEmail={session?.user?.email}
         onLoginClick={() => {
@@ -161,7 +164,7 @@ function AppContent() {
         onLogoutClick={handleLogout}
       >
         <React.Suspense fallback={<div className="text-sm font-medium text-slate-500">Cargando módulo...</div>}>
-          {content}
+          <AppContentInner activeTab={activeTab} isStaff={isStaff} isSuperuser={isSuperuser} level={level} />
         </React.Suspense>
       </MainLayout>
       <Modal isOpen={isLoginOpen} onClose={() => patchAuthUiState({ isLoginOpen: false })} title="Ingreso Staff" size="sm">

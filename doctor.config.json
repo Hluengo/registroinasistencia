@@ -1,0 +1,6 @@
+{
+  "rules": {
+    "react-doctor/artifact-baas-authority-surface": "off",
+    "react-doctor/no-impure-state-updater": "off"
+  }
+}

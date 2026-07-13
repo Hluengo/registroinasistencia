@@ -1,6 +1,11 @@
 import React from 'react';
 import { useQuery, QueryKey, UseQueryOptions, UseQueryResult, useMutation, useQueryClient } from '@tanstack/react-query';
-import { inspectorateService, absenceService, courseService, studentService, testService, adminService } from '../services';
+import { inspectorateService } from '../services/inspectorateService';
+import { absenceService } from '../services/absenceService';
+import { courseService } from '../services/courseService';
+import { studentService } from '../services/studentService';
+import { testService } from '../services/testService';
+import { adminService } from '../services/adminService';
 import { normalizeInspectorateRows } from '../lib/transformations';
 import { supabase } from '../services/supabaseClient';
 import { QUERY_KEYS_INVALIDATE } from '../constants';
@@ -323,22 +328,7 @@ export const useStudents = (courseId?: string, level?: 'BASICA' | 'MEDIA', enabl
     { enabled }
   );
 
-  // Efficiently memoize the returned data array by comparing a compact
-  // key built from the items' ids. If the set/order of ids hasn't
-  // changed we return the previous array reference to keep identity
-  // stable and avoid unnecessary renders or state updates.
-  const lastRef = React.useRef<{
-    key: string;
-    data: StudentRow[];
-  } | null>(null);
-
-  const memoData = React.useMemo(() => {
-    const data = result.data ?? [];
-    const key = data.length === 0 ? '' : data.map(d => d.id).join('|');
-    if (lastRef.current && lastRef.current.key === key) return lastRef.current.data;
-    lastRef.current = { key, data };
-    return data;
-  }, [result.data]);
+  const memoData = React.useMemo(() => result.data ?? [], [result.data]);
 
   return { ...result, data: memoData } as UseQueryResult<StudentRow[]>;
 };

@@ -3,7 +3,10 @@ import { Calendar, ChevronDown, ChevronUp, Eye, Download } from 'lucide-react';
 import { AbsenceWithDetails, Course, Test } from '../types';
 import { formatDate } from '../utils';
 import { getAbsenceStatusLabel } from '../constants';
-import { Button, Badge, TableSkeleton, EmptyState } from '../components/ui';
+import { Button } from '../components/ui/Button';
+import { Badge } from '../components/ui/Badge';
+import { TableSkeleton } from '../components/ui/Skeleton';
+import { EmptyState } from '../components/ui/EmptyState';
 
 interface DashboardAbsencesTableProps {
   absences: AbsenceWithDetails[];

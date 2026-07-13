@@ -12,7 +12,12 @@ import {
 import { Course, AbsenceWithDetails, Test } from '../types';
 import { useAbsences, useCourses } from '../hooks/queries';
 import { formatDate } from '../utils';
-import { Button, Badge, PageHeader, Select, StatCard, Modal } from '../components/ui';
+import { Button } from '../components/ui/Button';
+import { Badge } from '../components/ui/Badge';
+import { PageHeader } from '../components/ui/PageHeader';
+import { Select } from '../components/ui/Select';
+import { StatCard } from '../components/ui/StatCard';
+import { Modal } from '../components/ui/Modal';
 import { DashboardAbsencesTable } from './DashboardAbsencesTable';
 import { MONTHS, getYearOptions, getCourseOptions, getStatusOptions } from '../utils/filterOptions';
 import { useQueryClient } from '@tanstack/react-query';
@@ -117,8 +122,10 @@ const DashboardDetailModal: React.FC<DashboardDetailModalProps> = ({ isOpen, onC
 
 export const Dashboard: React.FC<DashboardProps> = ({ level }) => {
   // use query results directly; avoid mirroring query data in local state
-  const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
-  const [selectedAbsence, setSelectedAbsence] = useState<AbsenceWithDetails | null>(null);
+  const [detailModal, setDetailModal] = useState<{ isOpen: boolean; absence: AbsenceWithDetails | null }>({
+    isOpen: false,
+    absence: null
+  });
   const [filters, setFilters] = useState({
     courseId: '',
     status: '',
@@ -188,8 +195,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ level }) => {
   };
 
   const handleViewDetail = (abs: AbsenceWithDetails) => {
-    setSelectedAbsence(abs);
-    setIsDetailModalOpen(true);
+    setDetailModal({ isOpen: true, absence: abs });
   };
 
   const handleRefresh = async () => {
@@ -355,9 +361,9 @@ export const Dashboard: React.FC<DashboardProps> = ({ level }) => {
       />
 
       <DashboardDetailModal
-        isOpen={isDetailModalOpen}
-        onClose={() => setIsDetailModalOpen(false)}
-        selectedAbsence={selectedAbsence}
+        isOpen={detailModal.isOpen}
+        onClose={() => setDetailModal({ isOpen: false, absence: null })}
+        selectedAbsence={detailModal.absence}
         courses={coursesFromQuery}
       />
     </div>

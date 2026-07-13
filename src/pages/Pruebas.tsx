@@ -5,7 +5,13 @@ import CalendarioPlazosLegales from '../components/CalendarioPlazosLegales';
 import { useToast } from '../contexts/ToastContext';
 import { useQueryClient } from '@tanstack/react-query';
 import { Course, Test, TestInsert } from '../types';
-import { Modal, Button, PageHeader, Select, TableSkeleton, FormError, Input } from '../components/ui';
+import { Modal } from '../components/ui/Modal';
+import { Button } from '../components/ui/Button';
+import { PageHeader } from '../components/ui/PageHeader';
+import { Select } from '../components/ui/Select';
+import { TableSkeleton } from '../components/ui/Skeleton';
+import { FormError } from '../components/ui/FormError';
+import { Input } from '../components/ui/Input';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { TOAST_TYPES, QUERY_KEYS_INVALIDATE } from '../constants';
@@ -22,6 +28,14 @@ type TestFormValues = {
   type: string;
   description?: string;
 };
+
+const testTypes = [
+  { value: 'Prueba Coeficiente 1', label: 'Prueba Coeficiente 1' },
+  { value: 'Prueba Coeficiente 2', label: 'Prueba Coeficiente 2' },
+  { value: 'Control', label: 'Control' },
+  { value: 'Trabajo Práctico', label: 'Trabajo Práctico' },
+  { value: 'Exposición', label: 'Exposición' }
+];
 
 interface PruebasProps {
   level: 'BASICA' | 'MEDIA';
@@ -105,14 +119,6 @@ export const Pruebas: React.FC<PruebasProps> = ({ level }) => {
   const courseOptions = [
     { value: '', label: 'Todos los Cursos' },
     ...courses.map((c: Course) => ({ value: c.id, label: c.name }))
-  ];
-
-  const testTypes = [
-    { value: 'Prueba Coeficiente 1', label: 'Prueba Coeficiente 1' },
-    { value: 'Prueba Coeficiente 2', label: 'Prueba Coeficiente 2' },
-    { value: 'Control', label: 'Control' },
-    { value: 'Trabajo Práctico', label: 'Trabajo Práctico' },
-    { value: 'Exposición', label: 'Exposición' }
   ];
 
   return (

@@ -10,6 +10,24 @@ interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   loading?: boolean;
 }
 
+const buttonVariants = {
+  primary: 'bg-indigo-600 text-white hover:bg-indigo-700 shadow-sm shadow-indigo-500/10',
+  secondary: 'bg-slate-900 text-white hover:bg-slate-800 shadow-sm shadow-slate-900/10',
+  outline: 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 hover:border-slate-300',
+  ghost: 'bg-transparent text-slate-500 hover:bg-slate-100 hover:text-slate-900',
+  danger: 'bg-rose-600 text-white hover:bg-rose-700 shadow-sm shadow-rose-500/10',
+  success: 'bg-emerald-600 text-white hover:bg-emerald-700 shadow-sm shadow-emerald-500/10',
+} as const;
+
+const buttonSizes = {
+  sm: 'px-3 py-1.5 text-xs font-semibold rounded-lg',
+  md: 'px-5 py-2.5 text-sm font-semibold rounded-xl',
+  lg: 'px-7 py-3 text-base font-semibold rounded-2xl',
+  icon: 'p-2 rounded-xl',
+} as const;
+
+const baseButtonClass = 'inline-flex items-center justify-center gap-2 transition-all duration-200 ease-in-out active:scale-[0.98] disabled:opacity-50 disabled:pointer-events-none';
+
 export const Button: React.FC<ButtonProps> = ({
   children,
   className,
@@ -22,28 +40,12 @@ export const Button: React.FC<ButtonProps> = ({
   type = 'button',
   ...props
 }) => {
-  const variants = {
-    primary: 'bg-indigo-600 text-white hover:bg-indigo-700 shadow-sm shadow-indigo-500/10',
-    secondary: 'bg-slate-900 text-white hover:bg-slate-800 shadow-sm shadow-slate-900/10',
-    outline: 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 hover:border-slate-300',
-    ghost: 'bg-transparent text-slate-500 hover:bg-slate-100 hover:text-slate-900',
-    danger: 'bg-rose-600 text-white hover:bg-rose-700 shadow-sm shadow-rose-500/10',
-    success: 'bg-emerald-600 text-white hover:bg-emerald-700 shadow-sm shadow-emerald-500/10',
-  };
-
-  const sizes = {
-    sm: 'px-3 py-1.5 text-xs font-semibold rounded-lg',
-    md: 'px-5 py-2.5 text-sm font-semibold rounded-xl',
-    lg: 'px-7 py-3 text-base font-semibold rounded-2xl',
-    icon: 'p-2 rounded-xl',
-  };
-
   return (
     <button
       className={cn(
-        'inline-flex items-center justify-center gap-2 transition-all duration-200 ease-in-out active:scale-[0.98] disabled:opacity-50 disabled:pointer-events-none',
-        variants[variant],
-        sizes[size],
+        baseButtonClass,
+        buttonVariants[variant],
+        buttonSizes[size],
         className
       )}
       type={type}

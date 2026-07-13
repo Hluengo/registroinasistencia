@@ -34,6 +34,8 @@ export function useAuth() {
   const [role, setRole] = React.useState<AppRole>(null);
   const [loading, setLoading] = React.useState(true);
   const [authError, setAuthError] = React.useState<string | null>(null);
+  const mountedRef = React.useRef(true);
+  const roleRefreshTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const normalizeRole = React.useCallback((value: unknown): AppRole => {
     if (value === 'staff' || value === 'superuser' || value === 'teacher') return value;
@@ -47,7 +49,6 @@ export function useAuth() {
     }
 
     try {
-      // Fuente principal en frontend: profiles del usuario autenticado.
       const profileRes = await withTimeout(
         Promise.resolve(
           supabase
@@ -74,7 +75,6 @@ export function useAuth() {
         console.warn('useAuth.refreshRole profiles timeout');
       }
 
-      // Fallback: RPC current_role si profiles no devolvió rol.
       const rpcRes = await withTimeout(Promise.resolve(supabase.rpc('current_role')), ROLE_TIMEOUT_MS);
       if (rpcRes !== TIMEOUT) {
         const { data: rpcRole, error: rpcErr } = rpcRes;
@@ -94,14 +94,12 @@ export function useAuth() {
       console.error('useAuth.refreshRole unexpected error', err);
     }
 
-    // Nunca romper sesión por fallo de rol; fallback seguro.
     setRole('teacher');
     return 'teacher';
   }, [normalizeRole]);
 
   React.useEffect(() => {
-    let mounted = true;
-    let roleRefreshTimer: ReturnType<typeof setTimeout> | null = null;
+    mountedRef.current = true;
 
     const bootstrap = async () => {
       setLoading(true);
@@ -132,14 +130,14 @@ export function useAuth() {
           return;
         }
         if (error) throw error;
-        if (!mounted) return;
+        if (!mountedRef.current) return;
         const nextSession = data.session ?? null;
         setSession(nextSession);
         setAuthError(null);
         await refreshRole(nextSession?.user?.id ?? null);
       } catch (error) {
         console.error('useAuth.bootstrap error', error);
-        if (mounted) {
+        if (mountedRef.current) {
           if (isInvalidRefreshTokenError(error)) {
             console.warn('useAuth.bootstrap: invalid refresh token during recovery; clearing local session');
             await supabase.auth.signOut({ scope: 'local' });
@@ -148,7 +146,6 @@ export function useAuth() {
             setAuthError(null);
             return;
           }
-          // Mantener cualquier sesión existente; no degradar a invitado por error transitorio.
           try {
             const { data } = await supabase.auth.getSession();
             const nextSession = data.session ?? null;
@@ -160,7 +157,7 @@ export function useAuth() {
           setAuthError(error instanceof Error ? error.message : 'No se pudo verificar la sesión.');
         }
       } finally {
-        if (mounted) setLoading(false);
+        if (mountedRef.current) setLoading(false);
       }
     };
 
@@ -168,17 +165,14 @@ export function useAuth() {
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, nextSession) => {
       if (isUsingPlaceholder) return;
+      if (!mountedRef.current) return;
       setSession(nextSession);
-      setAuthError(null);
 
-      // Important: keep this callback synchronous so GoTrue's lock is released quickly.
-      // Running async Supabase calls directly here can keep the auth lock for >5s.
-      if (roleRefreshTimer) clearTimeout(roleRefreshTimer);
-      roleRefreshTimer = setTimeout(() => {
-        if (!mounted) return;
+      if (roleRefreshTimerRef.current) clearTimeout(roleRefreshTimerRef.current);
+      roleRefreshTimerRef.current = setTimeout(() => {
+        if (!mountedRef.current) return;
         void refreshRole(nextSession?.user?.id ?? null).catch((e) => {
           console.error('useAuth.onAuthStateChange refreshRole error', e);
-          // Mantener sesión; fallback a rol docente.
           setRole('teacher');
           setAuthError(e instanceof Error ? e.message : 'No se pudo resolver el rol del usuario; usando rol docente.');
         });
@@ -186,8 +180,8 @@ export function useAuth() {
     });
 
     return () => {
-      mounted = false;
-      if (roleRefreshTimer) clearTimeout(roleRefreshTimer);
+      mountedRef.current = false;
+      if (roleRefreshTimerRef.current) clearTimeout(roleRefreshTimerRef.current);
       subscription?.unsubscribe();
     };
   }, [refreshRole]);
@@ -210,7 +204,6 @@ export function useAuth() {
     setAuthError(null);
     const { error } = await supabase.auth.signOut({ scope: 'global' });
     if (error) {
-      // If there is no active auth session in Supabase, still clear local UI state.
       const isMissingSession = /session|Auth session missing/i.test(error.message ?? '');
       const shouldFallbackLocal = isMissingSession || isInvalidRefreshTokenError(error);
       if (shouldFallbackLocal) {

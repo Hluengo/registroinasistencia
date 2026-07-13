@@ -6,7 +6,15 @@ import { Course, Student } from '../types';
 import { useInspectorate, useCourses, useStudents } from '../hooks/queries';
 import { createMutationGuard } from '../utils';
 import { formatDateTime } from '../utils';
-import { Modal, Button, Badge, EmptyState, PageHeader, Input, Select, TableSkeleton, FormError } from '../components/ui';
+import { Modal } from '../components/ui/Modal';
+import { Button } from '../components/ui/Button';
+import { Badge } from '../components/ui/Badge';
+import { EmptyState } from '../components/ui/EmptyState';
+import { PageHeader } from '../components/ui/PageHeader';
+import { Input } from '../components/ui/Input';
+import { Select } from '../components/ui/Select';
+import { TableSkeleton } from '../components/ui/Skeleton';
+import { FormError } from '../components/ui/FormError';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { inspectorateRecordValidationSchema } from '../lib/validators';
@@ -87,8 +95,72 @@ const InspectoriaDetailModal: React.FC<InspectoriaDetailModalProps> = ({ isOpen,
   );
 };
 
+type InspectorRow = InspectorRowView;
+
+const InspectorateTable: React.FC<{
+  loading: boolean;
+  records: InspectorRow[];
+  onViewDetail: (rec: InspectorRow) => void;
+}> = ({ loading, records, onViewDetail }) => (
+  <div className="card overflow-hidden border border-slate-200/60 shadow-sm shadow-slate-200/20 rounded-3xl">
+    <div className="overflow-x-auto">
+      <table className="w-full text-left border-collapse">
+        <thead>
+          <tr className="bg-slate-50/50 text-slate-400 text-[11px] font-bold uppercase tracking-widest">
+            <th className="px-6 py-4">Estudiante</th>
+            <th className="px-6 py-4">Fecha y Hora</th>
+            <th className="px-6 py-4">Observación</th>
+            <th className="px-6 py-4 text-right">Acciones</th>
+          </tr>
+        </thead>
+        <tbody className="divide-y divide-slate-100">
+          {loading ? (
+            <tr><td colSpan={4} className="px-6 py-12"><TableSkeleton /></td></tr>
+          ) : records.length === 0 ? (
+            <tr>
+              <td colSpan={4} className="px-6 py-12">
+                <EmptyState
+                  title="No se encontraron registros"
+                  description="No hay atenciones registradas para el periodo o filtros seleccionados."
+                />
+              </td>
+            </tr>
+          ) : records.map((rec) => (
+            <tr key={rec.id} className="hover:bg-slate-50/80 transition-colors group">
+              <td className="px-6 py-5">
+                <div className="flex items-center gap-4">
+                  <div className="w-10 h-10 bg-slate-100 rounded-2xl flex items-center justify-center text-slate-400 border border-slate-200/60 shadow-sm group-hover:scale-110 transition-transform duration-200">
+                    <User className="w-5 h-5" strokeWidth={1.5} />
+                  </div>
+                  <div>
+                    <div className="font-bold text-slate-900 tracking-tight group-hover:text-indigo-600 transition-colors">{rec.student.full_name}</div>
+                    <div className="text-[11px] font-medium text-slate-400">{rec.student.course.name}</div>
+                  </div>
+                </div>
+              </td>
+              <td className="px-6 py-5">
+                <div className="flex items-center gap-2 text-sm font-medium text-slate-500">
+                  <Clock className="w-4 h-4 opacity-60" strokeWidth={1.5} />
+                  {formatDateTime(rec.date_time)}
+                </div>
+              </td>
+              <td className="px-6 py-5">
+                <p className="text-sm text-slate-500 line-clamp-1 max-w-md italic font-medium">&quot;{rec.observation}&quot;</p>
+              </td>
+              <td className="px-6 py-5 text-right">
+                <Button variant="ghost" size="sm" onClick={() => onViewDetail(rec)} icon={ChevronRight} iconPosition="right" className="text-slate-400 hover:text-indigo-600 hover:bg-indigo-50">
+                  Ver Detalle
+                </Button>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  </div>
+);
+
 export const Inspectoria: React.FC<InspectoriaProps> = ({ level }) => {
-  type InspectorRow = InspectorRowView;
   const [uiState, patchUiState] = React.useReducer(
     (
       state: {
@@ -264,62 +336,11 @@ export const Inspectoria: React.FC<InspectoriaProps> = ({ level }) => {
         }
       />
 
-      <div className="card overflow-hidden border border-slate-200/60 shadow-sm shadow-slate-200/20 rounded-3xl">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse">
-            <thead>
-              <tr className="bg-slate-50/50 text-slate-400 text-[11px] font-bold uppercase tracking-widest">
-                <th className="px-6 py-4">Estudiante</th>
-                <th className="px-6 py-4">Fecha y Hora</th>
-                <th className="px-6 py-4">Observación</th>
-                <th className="px-6 py-4 text-right">Acciones</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
-              {loading ? (
-                <tr><td colSpan={4} className="px-6 py-12"><TableSkeleton /></td></tr>
-              ) : filteredRecords.length === 0 ? (
-                <tr>
-                  <td colSpan={4} className="px-6 py-12">
-                    <EmptyState 
-                      title="No se encontraron registros" 
-                      description="No hay atenciones registradas para el periodo o filtros seleccionados."
-                    />
-                  </td>
-                </tr>
-              ) : filteredRecords.map((rec) => (
-                <tr key={rec.id} className="hover:bg-slate-50/80 transition-colors group">
-                  <td className="px-6 py-5">
-                    <div className="flex items-center gap-4">
-                      <div className="w-10 h-10 bg-slate-100 rounded-2xl flex items-center justify-center text-slate-400 border border-slate-200/60 shadow-sm group-hover:scale-110 transition-transform duration-200">
-                        <User className="w-5 h-5" strokeWidth={1.5} />
-                      </div>
-                      <div>
-                        <div className="font-bold text-slate-900 tracking-tight group-hover:text-indigo-600 transition-colors">{rec.student.full_name}</div>
-                        <div className="text-[11px] font-medium text-slate-400">{rec.student.course.name}</div>
-                      </div>
-                    </div>
-                  </td>
-                  <td className="px-6 py-5">
-                    <div className="flex items-center gap-2 text-sm font-medium text-slate-500">
-                      <Clock className="w-4 h-4 opacity-60" strokeWidth={1.5} />
-                      {formatDateTime(rec.date_time)}
-                    </div>
-                  </td>
-                  <td className="px-6 py-5">
-                    <p className="text-sm text-slate-500 line-clamp-1 max-w-md italic font-medium">"{rec.observation}"</p>
-                  </td>
-                  <td className="px-6 py-5 text-right">
-                    <Button variant="ghost" size="sm" onClick={() => handleViewDetail(rec)} icon={ChevronRight} iconPosition="right" className="text-slate-400 hover:text-indigo-600 hover:bg-indigo-50">
-                      Ver Detalle
-                    </Button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
+      <InspectorateTable
+        loading={loading}
+        records={filteredRecords}
+        onViewDetail={handleViewDetail}
+      />
 
       <Modal 
         isOpen={isModalOpen} 

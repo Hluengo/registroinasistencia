@@ -11,7 +11,13 @@ import {
   useStudents
 } from '../hooks/queries';
 import { useCourses } from '../hooks/queries';
-import { Modal, Button, Badge, EmptyState, PageHeader, Select, TableSkeleton } from '../components/ui';
+import { Modal } from '../components/ui/Modal';
+import { Button } from '../components/ui/Button';
+import { Badge } from '../components/ui/Badge';
+import { EmptyState } from '../components/ui/EmptyState';
+import { PageHeader } from '../components/ui/PageHeader';
+import { Select } from '../components/ui/Select';
+import { TableSkeleton } from '../components/ui/Skeleton';
 import { formatDate } from '../utils';
 import { MONTHS, getYearOptions, getCourseOptions } from '../utils/filterOptions';
 import { useToast } from '../contexts/ToastContext';
@@ -34,6 +40,14 @@ interface StaffMessagesListProps {
   onEdit: (message: InstantMessageRow) => void;
   onToggleActive: (id: string, nextValue: boolean) => void;
 }
+
+const toDateTimeLocalValue = (isoDate: string | null | undefined) => {
+  if (!isoDate) return '';
+  const parsed = new Date(isoDate);
+  if (Number.isNaN(parsed.getTime())) return '';
+  const adjusted = new Date(parsed.getTime() - (parsed.getTimezoneOffset() * 60000));
+  return adjusted.toISOString().slice(0, 16);
+};
 
 const StaffMessagesList: React.FC<StaffMessagesListProps> = ({
   messages,
@@ -92,75 +106,92 @@ const StaffMessagesList: React.FC<StaffMessagesListProps> = ({
   </div>
 );
 
+interface MessageFormState {
+  title: string;
+  body: string;
+  scope: 'GENERAL' | 'BASICA' | 'MEDIA';
+  courseId: string;
+  studentId: string;
+  endsAt: string;
+  editingMessageId: string | null;
+}
+
+const initialMessageFormState: MessageFormState = {
+  title: '', body: '', scope: 'GENERAL', courseId: '', studentId: '', endsAt: '', editingMessageId: null,
+};
+
+type MessageFormAction =
+  | { type: 'RESET' }
+  | { type: 'SET'; payload: Partial<MessageFormState> }
+  | { type: 'START_EDIT'; message: InstantMessageRow };
+
+function messageFormReducer(state: MessageFormState, action: MessageFormAction): MessageFormState {
+  switch (action.type) {
+    case 'RESET': return initialMessageFormState;
+    case 'SET': return { ...state, ...action.payload };
+    case 'START_EDIT': {
+      const m = action.message;
+      return {
+        title: m.title,
+        body: m.body,
+        scope: m.level === 'BASICA' || m.level === 'MEDIA' ? m.level : 'GENERAL',
+        courseId: m.course_id ?? '',
+        studentId: m.student_id ?? '',
+        endsAt: toDateTimeLocalValue(m.ends_at),
+        editingMessageId: m.id,
+      };
+    }
+    default: return state;
+  }
+}
+
 const StaffInstantMessagesManager: React.FC<{ level: 'BASICA' | 'MEDIA'; courses: CourseRow[] }> = ({ level, courses }) => {
-  const [messageTitle, setMessageTitle] = React.useState('');
-  const [messageBody, setMessageBody] = React.useState('');
-  const [messageScope, setMessageScope] = React.useState<'GENERAL' | 'BASICA' | 'MEDIA'>('GENERAL');
-  const [messageCourseId, setMessageCourseId] = React.useState('');
-  const [messageStudentId, setMessageStudentId] = React.useState('');
-  const [messageEndsAt, setMessageEndsAt] = React.useState('');
-  const [editingMessageId, setEditingMessageId] = React.useState<string | null>(null);
+  const [formState, dispatch] = React.useReducer(messageFormReducer, initialMessageFormState);
   const { showToast } = useToast();
 
   const { data: manageableMessages = [], isLoading: manageableMessagesLoading, error: manageMessagesError } = useManageInstantMessages(undefined, true);
   const createMessage = useCreateInstantMessage();
   const updateMessage = useUpdateInstantMessage();
   const { data: messageStudents = [], isLoading: messageStudentsLoading } = useStudents(
-    messageCourseId || undefined,
+    formState.courseId || undefined,
     undefined,
-    Boolean(messageCourseId)
+    Boolean(formState.courseId)
   );
 
   const courseById = React.useMemo(() => new Map(courses.map((course) => [course.id, course])), [courses]);
   const messageCourseOptions = React.useMemo(() => {
-    const filteredCourses = messageScope === 'GENERAL'
+    const filteredCourses = formState.scope === 'GENERAL'
       ? courses
-      : courses.filter((course) => course.level === messageScope);
+      : courses.filter((course) => course.level === formState.scope);
     return [
       { value: '', label: 'Todos los cursos' },
       ...filteredCourses.map((course) => ({ value: course.id, label: `${course.name} (${course.level})` }))
     ];
-  }, [courses, messageScope]);
+  }, [courses, formState.scope]);
   const messageStudentOptions = React.useMemo(() => [
     { value: '', label: 'Todos los estudiantes' },
     ...messageStudents.map((student) => ({ value: student.id, label: student.full_name }))
   ], [messageStudents]);
-  const canSubmitMessage = messageTitle.trim().length >= 3 && messageBody.trim().length >= 3;
-  const isEditingMessage = editingMessageId !== null;
+  const canSubmitMessage = formState.title.trim().length >= 3 && formState.body.trim().length >= 3;
+  const isEditingMessage = formState.editingMessageId !== null;
 
   React.useEffect(() => {
-    if (!messageCourseId && messageStudentId) {
-      setMessageStudentId('');
+    if (!formState.courseId && formState.studentId) {
+      dispatch({ type: 'SET', payload: { studentId: '' } });
       return;
     }
-    if (messageStudentId && !messageStudents.some((student) => student.id === messageStudentId)) {
-      setMessageStudentId('');
+    if (formState.studentId && !messageStudents.some((student) => student.id === formState.studentId)) {
+      dispatch({ type: 'SET', payload: { studentId: '' } });
     }
-  }, [messageCourseId, messageStudentId, messageStudents]);
+  }, [formState.courseId, formState.studentId, messageStudents]);
 
-  const toDateTimeLocalValue = (isoDate: string | null | undefined) => {
-    if (!isoDate) return '';
-    const parsed = new Date(isoDate);
-    if (Number.isNaN(parsed.getTime())) return '';
-    const adjusted = new Date(parsed.getTime() - (parsed.getTimezoneOffset() * 60000));
-    return adjusted.toISOString().slice(0, 16);
-  };
-
-  const resetMessageForm = () => {
-    setEditingMessageId(null);
-    setMessageTitle('');
-    setMessageBody('');
-    setMessageScope('GENERAL');
-    setMessageCourseId('');
-    setMessageStudentId('');
-    setMessageEndsAt('');
-  };
+  const resetMessageForm = () => dispatch({ type: 'RESET' });
 
   const handleCreateMessage = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!canSubmitMessage) return;
 
-    const endsAtDate = messageEndsAt ? new Date(messageEndsAt) : null;
+    const endsAtDate = formState.endsAt ? new Date(formState.endsAt) : null;
     if (endsAtDate && Number.isNaN(endsAtDate.getTime())) {
       showToast({ type: TOAST_TYPES.ERROR, message: 'La fecha de vigencia no es válida.' });
       return;
@@ -171,26 +202,26 @@ const StaffInstantMessagesManager: React.FC<{ level: 'BASICA' | 'MEDIA'; courses
     }
 
     try {
-      if (isEditingMessage && editingMessageId) {
+      if (isEditingMessage && formState.editingMessageId) {
         await updateMessage.mutateAsync({
-          id: editingMessageId,
+          id: formState.editingMessageId,
           updates: {
-            title: messageTitle.trim(),
-            body: messageBody.trim(),
-            level: messageScope === 'GENERAL' ? null : messageScope,
-            course_id: messageCourseId || null,
-            student_id: messageStudentId || null,
+            title: formState.title.trim(),
+            body: formState.body.trim(),
+            level: formState.scope === 'GENERAL' ? null : formState.scope,
+            course_id: formState.courseId || null,
+            student_id: formState.studentId || null,
             ends_at: endsAtDate ? endsAtDate.toISOString() : null
           }
         });
         showToast({ type: TOAST_TYPES.SUCCESS, message: 'Mensaje instantáneo actualizado.' });
       } else {
         await createMessage.mutateAsync({
-          title: messageTitle.trim(),
-          body: messageBody.trim(),
-          level: messageScope === 'GENERAL' ? null : messageScope,
-          course_id: messageCourseId || null,
-          student_id: messageStudentId || null,
+          title: formState.title.trim(),
+          body: formState.body.trim(),
+          level: formState.scope === 'GENERAL' ? null : formState.scope,
+          course_id: formState.courseId || null,
+          student_id: formState.studentId || null,
           ends_at: endsAtDate ? endsAtDate.toISOString() : null,
           is_active: true
         });
@@ -198,10 +229,10 @@ const StaffInstantMessagesManager: React.FC<{ level: 'BASICA' | 'MEDIA'; courses
       }
 
       resetMessageForm();
-      if (!isEditingMessage && messageScope !== 'GENERAL' && messageScope !== level) {
+      if (!isEditingMessage && formState.scope !== 'GENERAL' && formState.scope !== level) {
         showToast({
           type: TOAST_TYPES.INFO,
-          message: `El mensaje fue creado para ${messageScope}. Cambia el nivel en el selector lateral para verlo en vista docente.`
+          message: `El mensaje fue creado para ${formState.scope}. Cambia el nivel en el selector lateral para verlo en vista docente.`
         });
       }
     } catch (error) {
@@ -223,13 +254,7 @@ const StaffInstantMessagesManager: React.FC<{ level: 'BASICA' | 'MEDIA'; courses
   };
 
   const startEditMessage = (message: InstantMessageRow) => {
-    setEditingMessageId(message.id);
-    setMessageTitle(message.title);
-    setMessageBody(message.body);
-    setMessageScope(message.level === 'BASICA' || message.level === 'MEDIA' ? message.level : 'GENERAL');
-    setMessageCourseId(message.course_id ?? '');
-    setMessageStudentId(message.student_id ?? '');
-    setMessageEndsAt(toDateTimeLocalValue(message.ends_at));
+    dispatch({ type: 'START_EDIT', message });
   };
 
   return (
@@ -240,8 +265,8 @@ const StaffInstantMessagesManager: React.FC<{ level: 'BASICA' | 'MEDIA'; courses
           <Select
             id="instant-message-course"
             className="mt-1"
-            value={messageCourseId}
-            onChange={(e) => setMessageCourseId(e.target.value)}
+            value={formState.courseId}
+            onChange={(e) => dispatch({ type: 'SET', payload: { courseId: e.target.value } })}
             options={messageCourseOptions}
           />
         </div>
@@ -252,18 +277,18 @@ const StaffInstantMessagesManager: React.FC<{ level: 'BASICA' | 'MEDIA'; courses
           <Select
             id="instant-message-student"
             className="mt-1"
-            value={messageStudentId}
-            onChange={(e) => setMessageStudentId(e.target.value)}
+            value={formState.studentId}
+            onChange={(e) => dispatch({ type: 'SET', payload: { studentId: e.target.value } })}
             options={messageStudentOptions}
-            disabled={!messageCourseId || messageStudentsLoading}
+            disabled={!formState.courseId || messageStudentsLoading}
           />
         </div>
         <div className="lg:col-span-6">
           <label htmlFor="instant-message-title" className="text-xs font-semibold text-slate-500 uppercase tracking-wider ml-1">Título</label>
           <input
             id="instant-message-title"
-            value={messageTitle}
-            onChange={(e) => setMessageTitle(e.target.value)}
+            value={formState.title}
+            onChange={(e) => dispatch({ type: 'SET', payload: { title: e.target.value } })}
             className="input-base mt-1"
             placeholder="Ej: Cambio de horario por contingencia"
             maxLength={120}
@@ -274,8 +299,8 @@ const StaffInstantMessagesManager: React.FC<{ level: 'BASICA' | 'MEDIA'; courses
           <Select
             id="instant-message-scope"
             className="mt-1"
-            value={messageScope}
-            onChange={(e) => setMessageScope(e.target.value as 'GENERAL' | 'BASICA' | 'MEDIA')}
+            value={formState.scope}
+            onChange={(e) => dispatch({ type: 'SET', payload: { scope: e.target.value as 'GENERAL' | 'BASICA' | 'MEDIA' } })}
             options={[
               { label: 'General', value: 'GENERAL' },
               { label: 'BÁSICA', value: 'BASICA' },
@@ -288,8 +313,8 @@ const StaffInstantMessagesManager: React.FC<{ level: 'BASICA' | 'MEDIA'; courses
           <input
             id="instant-message-ends-at"
             type="datetime-local"
-            value={messageEndsAt}
-            onChange={(e) => setMessageEndsAt(e.target.value)}
+            value={formState.endsAt}
+            onChange={(e) => dispatch({ type: 'SET', payload: { endsAt: e.target.value } })}
             className="input-base mt-1"
           />
         </div>
@@ -297,8 +322,8 @@ const StaffInstantMessagesManager: React.FC<{ level: 'BASICA' | 'MEDIA'; courses
           <label htmlFor="instant-message-body" className="text-xs font-semibold text-slate-500 uppercase tracking-wider ml-1">Mensaje</label>
           <textarea
             id="instant-message-body"
-            value={messageBody}
-            onChange={(e) => setMessageBody(e.target.value)}
+            value={formState.body}
+            onChange={(e) => dispatch({ type: 'SET', payload: { body: e.target.value } })}
             rows={3}
             maxLength={1200}
             className="input-base mt-1 resize-y"

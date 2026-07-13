@@ -4,7 +4,14 @@ import { Course, Absence, InspectorateRecord, Student } from '../types';
 import { useStudents, useCourses, useStudentDetails } from '../hooks/queries';
 import { formatDate, cn } from '../utils';
 import { getAbsenceStatusLabel } from '../constants';
-import { Modal, Button, Badge, EmptyState, PageHeader, Input, Select, TableSkeleton } from '../components/ui';
+import { Modal } from '../components/ui/Modal';
+import { Button } from '../components/ui/Button';
+import { Badge } from '../components/ui/Badge';
+import { EmptyState } from '../components/ui/EmptyState';
+import { PageHeader } from '../components/ui/PageHeader';
+import { Input } from '../components/ui/Input';
+import { Select } from '../components/ui/Select';
+import { TableSkeleton } from '../components/ui/Skeleton';
 
 interface EstudiantesProps {
   level: 'BASICA' | 'MEDIA';

@@ -1,15 +1,15 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { Database, RefreshCw, CheckCircle2, AlertTriangle, Upload, FileSpreadsheet } from 'lucide-react';
 import { useCourses, useBulkInsertCourses, useBulkInsertStudents, useSeedData } from '../hooks/queries';
 import { useToast } from '../contexts/ToastContext';
 import Papa from 'papaparse';
 import { cn } from '../utils';
-import { PageHeader } from '../components/ui';
+import { PageHeader } from '../components/ui/PageHeader';
 import { TOAST_TYPES } from '../constants';
 
 export const Configuracion: React.FC = () => {
   const [loading, setLoading] = useState(false);
-  const [status, setStatus] = useState<'idle' | 'success' | 'error'>('idle');
+  const statusRef = useRef<'idle' | 'success' | 'error'>('idle');
   const [uploadLevel, setUploadLevel] = useState<'BASICA' | 'MEDIA'>('BASICA');
   const { showToast } = useToast();
   const coursesQ = useCourses();
@@ -21,9 +21,9 @@ export const Configuracion: React.FC = () => {
     if (!confirm('¿Desea cargar datos de prueba? Esto agregará cursos, estudiantes y pruebas de ejemplo.')) return;
     try {
       setLoading(true);
-      setStatus('idle');
+      statusRef.current = 'idle';
       await seedM.mutateAsync();
-      setStatus('success');
+      statusRef.current = 'success';
       showToast({
         type: TOAST_TYPES.SUCCESS,
         message: 'Datos cargados exitosamente. Recargue la página para ver los cambios.',
@@ -31,7 +31,7 @@ export const Configuracion: React.FC = () => {
       });
     } catch (error: unknown) {
       console.error('Error seeding data:', error);
-      setStatus('error');
+      statusRef.current = 'error';
       showToast({
         type: TOAST_TYPES.ERROR,
         message: 'Error al cargar datos: ' + (error instanceof Error ? error.message : 'Verifique la conexión con Supabase y que las tablas existan.'),
@@ -166,6 +166,7 @@ export const Configuracion: React.FC = () => {
                   onChange={handleBulkCourses}
                   className="absolute inset-0 opacity-0 cursor-pointer w-full h-full z-10"
                   disabled={loading}
+                  aria-label="Subir archivo CSV de cursos"
                 />
                 <button type="button" className="w-full flex items-center justify-center gap-3 bg-slate-900 text-white px-8 py-4 rounded-2xl font-bold hover:bg-slate-800 transition-all shadow-lg shadow-slate-900/10">
                   <FileSpreadsheet className="w-5 h-5" strokeWidth={1.5} />
@@ -188,6 +189,7 @@ export const Configuracion: React.FC = () => {
                   onChange={handleBulkStudents}
                   className="absolute inset-0 opacity-0 cursor-pointer w-full h-full z-10"
                   disabled={loading}
+                  aria-label="Subir archivo CSV de estudiantes"
                 />
                 <button type="button" className="w-full flex items-center justify-center gap-3 bg-indigo-600 text-white px-8 py-4 rounded-2xl font-bold hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-600/20">
                   <Upload className="w-5 h-5" strokeWidth={1.5} />

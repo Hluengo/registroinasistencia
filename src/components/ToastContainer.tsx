@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { useToast, Toast } from '../contexts/ToastContext';
 import { ToastType } from '../constants';
 
@@ -22,11 +22,17 @@ interface ToastItemProps {
 }
 
 const ToastItem: React.FC<ToastItemProps> = ({ toast, onRemove }) => {
+  const onRemoveRef = useRef(onRemove);
+
+  useEffect(() => {
+    onRemoveRef.current = onRemove;
+  }, [onRemove]);
+
   useEffect(() => {
     if (!toast.duration) return;
-    const timer = setTimeout(() => onRemove(toast.id), toast.duration);
+    const timer = setTimeout(() => onRemoveRef.current(toast.id), toast.duration);
     return () => clearTimeout(timer);
-  }, [toast, onRemove]);
+  }, [toast]);
 
   return (
     <div
@@ -41,7 +47,7 @@ const ToastItem: React.FC<ToastItemProps> = ({ toast, onRemove }) => {
       <p className="text-sm font-medium flex-1">{toast.message}</p>
       <button
         type="button"
-        onClick={() => onRemove(toast.id)}
+        onClick={() => onRemoveRef.current(toast.id)}
         className="text-lg opacity-50 hover:opacity-100 transition-opacity"
         aria-label="Cerrar notificación"
       >

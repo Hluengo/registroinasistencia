@@ -1,6 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { Upload, AlertCircle } from 'lucide-react';
-import { Modal, Button, Select, Input, FormError } from '../components/ui';
+import { Modal } from '../components/ui/Modal';
+import { Button } from '../components/ui/Button';
+import { Select } from '../components/ui/Select';
+import { Input } from '../components/ui/Input';
+import { FormError } from '../components/ui/FormError';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { absenceValidationSchema, validateAbsenceCreation } from '../lib/validators';

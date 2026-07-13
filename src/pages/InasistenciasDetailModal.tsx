@@ -1,6 +1,9 @@
 import React from 'react';
 import { Calendar, AlertCircle, Edit2, Check, FileText, Download } from 'lucide-react';
-import { Modal, Button, Badge, FormError } from '../components/ui';
+import { Modal } from '../components/ui/Modal';
+import { Button } from '../components/ui/Button';
+import { Badge } from '../components/ui/Badge';
+import { FormError } from '../components/ui/FormError';
 import { useForm } from 'react-hook-form';
 import { AbsenceWithDetails, Course } from '../types';
 import { formatDate } from '../utils';
