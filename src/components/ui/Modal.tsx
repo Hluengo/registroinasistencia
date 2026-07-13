@@ -37,7 +37,7 @@ export const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children, 
     <>
       <dialog
         ref={dialogRef}
-        className={`bg-white rounded-2xl shadow-2xl w-full ${sizeClasses[size]} relative z-10 overflow-hidden flex flex-col max-h-[90vh]`}
+        className={`bg-white rounded-2xl shadow-2xl w-full ${sizeClasses[size]} relative z-10 overflow-hidden flex flex-col max-h-[90vh] mx-auto my-auto`}
         aria-labelledby={testId ? `${testId}-title` : undefined}
         data-testid={testId ? `${testId}-dialog` : undefined}
       >

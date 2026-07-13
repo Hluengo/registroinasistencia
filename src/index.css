@@ -51,3 +51,9 @@ dialog::backdrop {
   @apply bg-slate-900/40 backdrop-blur-sm;
 }
 
+/* Ensure dialog centers properly when opened via showModal() */
+dialog {
+  margin: auto;
+  max-height: 90vh;
+}
+
