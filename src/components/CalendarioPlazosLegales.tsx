@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Calendar, ChevronLeft, ChevronRight, Info, Bell, CheckCircle2, AlertCircle } from 'lucide-react';
 import { startOfMonth, endOfMonth, startOfWeek, endOfWeek, eachDayOfInterval, format, isSameMonth, isSameDay } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -42,6 +42,11 @@ const EMPTY_HOLIDAYS: Holiday[] = [];
 
 const CalendarioPlazosLegales: React.FC<Props> = ({ tests = EMPTY_EVENTS, holidays = EMPTY_HOLIDAYS, currentDate, selectedDate, setSelectedDate, onPrev, onNext }) => {
   const [hovered, setHovered] = useState<null | { ev: CalendarEvent; rect: DOMRect }>(null);
+  const [today, setToday] = useState(() => new Date());
+  useEffect(() => {
+    const id = setInterval(() => setToday(new Date()), 60_000);
+    return () => clearInterval(id);
+  }, []);
   const { showToast } = useToast();
 
   const calendarDays = useMemo(() => {
@@ -66,7 +71,7 @@ const CalendarioPlazosLegales: React.FC<Props> = ({ tests = EMPTY_EVENTS, holida
               {calendarDays.map((day) => {
                 const dayStr = format(day, 'yyyy-MM-dd');
                 const dayEvents = eventsByDay(dayStr);
-                const isToday = isSameDay(day, new Date());
+                const isToday = isSameDay(day, today);
                 const isWeekend = [0, 6].includes(day.getDay());
                 const holiday = (holidays || []).some((h) => h.date === dayStr);
 
@@ -79,12 +84,11 @@ const CalendarioPlazosLegales: React.FC<Props> = ({ tests = EMPTY_EVENTS, holida
                 ].join(' ');
 
                 return (
-                  <div
+                  <button
+                    type="button"
                     key={dayStr}
                     className={cellClass}
                     onClick={() => setSelectedDate(dayStr)}
-                    role="button"
-                    tabIndex={0}
                     aria-label={`Seleccionar día ${format(day, 'd')} de ${format(day, 'MMMM', { locale: es })}`}
                     onKeyDown={(e) => {
                       if (e.key === 'Enter' || e.key === ' ') {
@@ -104,34 +108,22 @@ const CalendarioPlazosLegales: React.FC<Props> = ({ tests = EMPTY_EVENTS, holida
                         const tone: Tone = (ev.tone as Tone) || 'interno';
                         const cls = toneClasses[tone];
                         return (
-                          <button
-                            type="button"
+                          <div
                             key={ev.id}
-                            className={`group text-xs font-black uppercase truncate px-3 py-1 rounded-md border cursor-pointer ${cls.base} transition-all hover:scale-105 active:scale-95 text-left`}
+                            className={`group text-xs font-black uppercase truncate px-3 py-1 rounded-md border ${cls.base} transition-all hover:scale-105 text-left`}
                             onMouseEnter={(e) => { const rect = e.currentTarget.getBoundingClientRect(); setHovered({ ev, rect }); }}
                             onMouseLeave={() => setHovered(null)}
-                            onKeyDown={(e) => {
-                              if (e.key === 'Enter' || e.key === ' ') {
-                                e.preventDefault();
-                                setSelectedDate(dayStr);
-                              }
-                            }}
                             title={ev.description ?? ev.subject}
-                            aria-label={`Evento ${ev.subject ?? ev.title} del día ${format(day, 'd/M/yyyy')}`}
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setSelectedDate(dayStr);
-                            }}
                           >
                             <div className="flex items-center gap-2">
                               <span className={`w-1.5 h-5 rounded inline-block ${cls.dot}`} />
                               <span className="truncate">{ev.subject ?? ev.title}</span>
                             </div>
-                          </button>
+                          </div>
                         );
                       })}
                     </div>
-                  </div>
+                  </button>
                 );
               })}
             </div>
