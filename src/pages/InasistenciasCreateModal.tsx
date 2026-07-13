@@ -103,7 +103,7 @@ export const InasistenciasCreateModal: React.FC<InasistenciasCreateModalProps> =
       isOpen={isOpen}
       onClose={handleClose}
       title="Registrar Nueva Inasistencia"
-      size="lg"
+      size="xl"
     >
       <form data-testid="form-create-absence" onSubmit={handleSubmit(onSubmit)} className="space-y-6">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
