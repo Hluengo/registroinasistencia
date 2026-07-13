@@ -57,12 +57,6 @@ export const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children, 
             {children}
           </div>
         </form>
-        <div
-          className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm"
-          onClick={onClose}
-          aria-hidden="true"
-          data-testid={testId ? `${testId}-overlay` : undefined}
-        />
       </dialog>
     </>
   );
