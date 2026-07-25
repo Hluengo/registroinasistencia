@@ -11,3 +11,9 @@ playwright-report/
 supabase/.temp/
 tmp/
 *.local
+.vercel
+.kilo/
+.mimocode/
+.vscode/
+.idea/
+create_tenant_fn.js

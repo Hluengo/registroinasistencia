@@ -1,13 +1,13 @@
-import React, { useRef, useEffect } from 'react';
-import { X } from 'lucide-react';
+import React, { useRef, useEffect } from 'react'
+import { X } from 'lucide-react'
 
 interface ModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-  title: string;
-  children: React.ReactNode;
-  size?: 'sm' | 'md' | 'lg' | 'xl';
-  testId?: string;
+  isOpen: boolean
+  onClose: () => void
+  title: string
+  children: React.ReactNode
+  size?: 'sm' | 'md' | 'lg' | 'xl'
+  testId?: string
 }
 
 const sizeClasses = {
@@ -15,23 +15,30 @@ const sizeClasses = {
   md: 'max-w-lg',
   lg: 'max-w-2xl',
   xl: 'max-w-4xl',
-};
+}
 
-export const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children, size = 'md', testId }) => {
-  const dialogRef = useRef<HTMLDialogElement>(null);
+export const Modal: React.FC<ModalProps> = ({
+  isOpen,
+  onClose,
+  title,
+  children,
+  size = 'md',
+  testId,
+}) => {
+  const dialogRef = useRef<HTMLDialogElement>(null)
 
   useEffect(() => {
-    const dialog = dialogRef.current;
-    if (!dialog) return;
+    const dialog = dialogRef.current
+    if (!dialog) return
     if (isOpen) {
-      dialog.showModal();
+      dialog.showModal()
     } else {
-      dialog.close();
+      dialog.close()
     }
-    return () => dialog.close();
-  }, [isOpen]);
+    return () => dialog.close()
+  }, [isOpen])
 
-  if (!isOpen) return null;
+  if (!isOpen) return null
 
   return (
     <>
@@ -42,7 +49,12 @@ export const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children, 
         data-testid={testId ? `${testId}-dialog` : undefined}
       >
         <div className="shrink-0 px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
-          <h3 id={testId ? `${testId}-title` : undefined} className="text-lg font-bold text-slate-800">{title}</h3>
+          <h3
+            id={testId ? `${testId}-title` : undefined}
+            className="text-lg font-bold text-slate-800"
+          >
+            {title}
+          </h3>
           <button
             type="button"
             onClick={onClose}
@@ -52,10 +64,8 @@ export const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children, 
             <X className="w-5 h-5" />
           </button>
         </div>
-        <div className="flex-1 min-h-0 p-6 overflow-y-auto">
-          {children}
-        </div>
+        <div className="flex-1 min-h-0 p-6 overflow-y-auto">{children}</div>
       </dialog>
     </>
-  );
-};
+  )
+}

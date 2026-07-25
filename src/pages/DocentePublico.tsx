@@ -1,396 +1,104 @@
-import React from 'react';
-import { AlertCircle, Bell, Calendar, ChevronLeft, ChevronRight, Eye, Megaphone, PauseCircle, Pencil, PlayCircle } from 'lucide-react';
+import React from 'react'
+import {
+  Bell,
+  Calendar,
+  ChevronLeft,
+  ChevronRight,
+  Eye,
+  Megaphone,
+} from 'lucide-react'
 import {
   useTeacherPublicAbsences,
-  TeacherPublicAbsence,
+  type TeacherPublicAbsence,
   useTeacherPublicAbsenceDetail,
   useTeacherInstantMessages,
-  useManageInstantMessages,
-  useCreateInstantMessage,
-  useUpdateInstantMessage,
-  useStudents
-} from '../hooks/queries';
-import { useCourses } from '../hooks/queries';
-import { Modal } from '../components/ui/Modal';
-import { Button } from '../components/ui/Button';
-import { Badge } from '../components/ui/Badge';
-import { EmptyState } from '../components/ui/EmptyState';
-import { PageHeader } from '../components/ui/PageHeader';
-import { Select } from '../components/ui/Select';
-import { TableSkeleton } from '../components/ui/Skeleton';
-import { formatDate } from '../utils';
-import { MONTHS, getYearOptions, getCourseOptions } from '../utils/filterOptions';
-import { useToast } from '../contexts/ToastContext';
-import { TOAST_TYPES, getAbsenceStatusLabel } from '../constants';
-import { Tables } from '../types/db';
+} from '../hooks/queries'
+import { useCourses } from '../hooks/queries'
+import { Modal } from '../components/ui/Modal'
+import { Button } from '../components/ui/Button'
+import { Badge } from '../components/ui/Badge'
+import { EmptyState } from '../components/ui/EmptyState'
+import { PageHeader } from '../components/ui/PageHeader'
+import { Select } from '../components/ui/Select'
+import { TableSkeleton } from '../components/ui/Skeleton'
+import { formatDate } from '../utils'
+import {
+  MONTHS,
+  getYearOptions,
+  getCourseOptions,
+} from '../utils/filterOptions'
+import { getAbsenceStatusLabel } from '../constants'
+import { StaffInstantMessagesManager } from '../components/staff-messages'
 
 interface DocentePublicoProps {
-  level: 'BASICA' | 'MEDIA';
-  isStaff: boolean;
+  level: 'BASICA' | 'MEDIA'
+  isStaff: boolean
 }
 
-type CourseRow = Tables<'courses'>;
-type InstantMessageRow = Tables<'instant_messages'>;
+export const DocentePublico: React.FC<DocentePublicoProps> = ({
+  level,
+  isStaff,
+}) => {
+  const [currentDate, setCurrentDate] = React.useState(new Date())
+  const [selectedCourseId, setSelectedCourseId] = React.useState('')
+  const [isStaffManagerOpen, setIsStaffManagerOpen] = React.useState(false)
+  const [isMessagesCollapsed, setIsMessagesCollapsed] = React.useState(false)
+  const [selected, setSelected] = React.useState<TeacherPublicAbsence | null>(
+    null
+  )
+  const [isOpen, setIsOpen] = React.useState(false)
 
-interface StaffMessagesListProps {
-  messages: InstantMessageRow[];
-  isLoading: boolean;
-  hasError: boolean;
-  courseById: Map<string, CourseRow>;
-  onEdit: (message: InstantMessageRow) => void;
-  onToggleActive: (id: string, nextValue: boolean) => void;
-}
-
-const toDateTimeLocalValue = (isoDate: string | null | undefined) => {
-  if (!isoDate) return '';
-  const parsed = new Date(isoDate);
-  if (Number.isNaN(parsed.getTime())) return '';
-  const adjusted = new Date(parsed.getTime() - (parsed.getTimezoneOffset() * 60000));
-  return adjusted.toISOString().slice(0, 16);
-};
-
-const StaffMessagesList: React.FC<StaffMessagesListProps> = ({
-  messages,
-  isLoading,
-  hasError,
-  courseById,
-  onEdit,
-  onToggleActive
-}) => (
-  <div className="space-y-2">
-    <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">Mensajes existentes</p>
-    <p className="text-xs text-slate-400">Se listan todos los mensajes creados, independiente del nivel actual.</p>
-    {isLoading ? (
-      <p className="text-sm text-slate-400">Cargando mensajes...</p>
-    ) : hasError ? (
-      <p className="text-sm text-rose-600">Error al cargar mensajes para gestión.</p>
-    ) : messages.length === 0 ? (
-      <p className="text-sm text-slate-500">No hay mensajes creados.</p>
-    ) : messages.map((message) => (
-      <div key={message.id} className="rounded-2xl bg-white border border-slate-200 p-4 flex items-start justify-between gap-4">
-        <div>
-          <div className="flex items-center gap-2">
-            <p className="font-semibold text-slate-900">{message.title}</p>
-            <Badge variant={message.is_active ? 'success' : 'secondary'}>
-              {message.is_active ? 'Activo' : 'Inactivo'}
-            </Badge>
-          </div>
-          <p className="text-sm text-slate-600 mt-1 whitespace-pre-line">{message.body}</p>
-          <p className="text-[11px] text-slate-400 mt-2">
-            {message.level ? `Nivel ${message.level}` : 'General'}
-            {message.course_id ? ` • ${courseById.get(message.course_id)?.name ?? `Curso ${message.course_id}`}` : ''}
-            {message.student_id ? ` • Estudiante ${message.student_id}` : ''}
-            {message.ends_at ? ` • Expira ${formatDate(message.ends_at)}` : ''}
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
-          <Button
-            size="sm"
-            variant="ghost"
-            icon={Pencil}
-            onClick={() => onEdit(message)}
-          >
-            Editar
-          </Button>
-          <Button
-            size="sm"
-            variant={message.is_active ? 'ghost' : 'secondary'}
-            icon={message.is_active ? PauseCircle : PlayCircle}
-            onClick={() => onToggleActive(message.id, !message.is_active)}
-          >
-            {message.is_active ? 'Desactivar' : 'Activar'}
-          </Button>
-        </div>
-      </div>
-    ))}
-  </div>
-);
-
-interface MessageFormState {
-  title: string;
-  body: string;
-  scope: 'GENERAL' | 'BASICA' | 'MEDIA';
-  courseId: string;
-  studentId: string;
-  endsAt: string;
-  editingMessageId: string | null;
-}
-
-const initialMessageFormState: MessageFormState = {
-  title: '', body: '', scope: 'GENERAL', courseId: '', studentId: '', endsAt: '', editingMessageId: null,
-};
-
-type MessageFormAction =
-  | { type: 'RESET' }
-  | { type: 'SET'; payload: Partial<MessageFormState> }
-  | { type: 'START_EDIT'; message: InstantMessageRow };
-
-function messageFormReducer(state: MessageFormState, action: MessageFormAction): MessageFormState {
-  switch (action.type) {
-    case 'RESET': return initialMessageFormState;
-    case 'SET': return { ...state, ...action.payload };
-    case 'START_EDIT': {
-      const m = action.message;
-      return {
-        title: m.title,
-        body: m.body,
-        scope: m.level === 'BASICA' || m.level === 'MEDIA' ? m.level : 'GENERAL',
-        courseId: m.course_id ?? '',
-        studentId: m.student_id ?? '',
-        endsAt: toDateTimeLocalValue(m.ends_at),
-        editingMessageId: m.id,
-      };
-    }
-    default: return state;
-  }
-}
-
-const StaffInstantMessagesManager: React.FC<{ level: 'BASICA' | 'MEDIA'; courses: CourseRow[] }> = ({ level, courses }) => {
-  const [formState, dispatch] = React.useReducer(messageFormReducer, initialMessageFormState);
-  const { showToast } = useToast();
-
-  const { data: manageableMessages = [], isLoading: manageableMessagesLoading, error: manageMessagesError } = useManageInstantMessages(undefined, true);
-  const createMessage = useCreateInstantMessage();
-  const updateMessage = useUpdateInstantMessage();
-  const { data: messageStudents = [], isLoading: messageStudentsLoading } = useStudents(
-    formState.courseId || undefined,
+  const month = currentDate.getMonth()
+  const year = currentDate.getFullYear()
+  const {
+    data = [],
+    isLoading,
+    isFetching,
+  } = useTeacherPublicAbsences(
+    month,
+    year,
+    level,
+    selectedCourseId || undefined
+  )
+  const { data: selectedTests = [], isLoading: selectedTestsLoading } =
+    useTeacherPublicAbsenceDetail(selected?.absence_id)
+  const {
+    data: courses = [],
+    isLoading: coursesLoading,
+  } = useCourses(level, true)
+  const activeMessagesLevel = level
+  const {
+    data: instantMessages = [],
+    isLoading: instantMessagesLoading,
+  } = useTeacherInstantMessages(
+    activeMessagesLevel,
+    selectedCourseId || undefined
+  )
+  const { data: allActiveMessages = [] } = useTeacherInstantMessages(
     undefined,
-    Boolean(formState.courseId)
-  );
-
-  const courseById = React.useMemo(() => new Map(courses.map((course) => [course.id, course])), [courses]);
-  const messageCourseOptions = React.useMemo(() => {
-    const filteredCourses = formState.scope === 'GENERAL'
-      ? courses
-      : courses.filter((course) => course.level === formState.scope);
-    return [
-      { value: '', label: 'Todos los cursos' },
-      ...filteredCourses.map((course) => ({ value: course.id, label: `${course.name} (${course.level})` }))
-    ];
-  }, [courses, formState.scope]);
-  const messageStudentOptions = React.useMemo(() => [
-    { value: '', label: 'Todos los estudiantes' },
-    ...messageStudents.map((student) => ({ value: student.id, label: student.full_name }))
-  ], [messageStudents]);
-  const canSubmitMessage = formState.title.trim().length >= 3 && formState.body.trim().length >= 3;
-  const isEditingMessage = formState.editingMessageId !== null;
+    undefined,
+    !isStaff
+  )
 
   React.useEffect(() => {
-    if (!formState.courseId && formState.studentId) {
-      dispatch({ type: 'SET', payload: { studentId: '' } });
-      return;
-    }
-    if (formState.studentId && !messageStudents.some((student) => student.id === formState.studentId)) {
-      dispatch({ type: 'SET', payload: { studentId: '' } });
-    }
-  }, [formState.courseId, formState.studentId, messageStudents]);
+    setSelectedCourseId('')
+  }, [level])
 
-  const resetMessageForm = () => dispatch({ type: 'RESET' });
-
-  const handleCreateMessage = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!canSubmitMessage) return;
-
-    const endsAtDate = formState.endsAt ? new Date(formState.endsAt) : null;
-    if (endsAtDate && Number.isNaN(endsAtDate.getTime())) {
-      showToast({ type: TOAST_TYPES.ERROR, message: 'La fecha de vigencia no es válida.' });
-      return;
-    }
-    if (endsAtDate && endsAtDate.getTime() < Date.now()) {
-      showToast({ type: TOAST_TYPES.WARNING, message: 'La fecha "Vigente hasta" debe ser futura.' });
-      return;
-    }
-
-    try {
-      if (isEditingMessage && formState.editingMessageId) {
-        await updateMessage.mutateAsync({
-          id: formState.editingMessageId,
-          updates: {
-            title: formState.title.trim(),
-            body: formState.body.trim(),
-            level: formState.scope === 'GENERAL' ? null : formState.scope,
-            course_id: formState.courseId || null,
-            student_id: formState.studentId || null,
-            ends_at: endsAtDate ? endsAtDate.toISOString() : null
-          }
-        });
-        showToast({ type: TOAST_TYPES.SUCCESS, message: 'Mensaje instantáneo actualizado.' });
-      } else {
-        await createMessage.mutateAsync({
-          title: formState.title.trim(),
-          body: formState.body.trim(),
-          level: formState.scope === 'GENERAL' ? null : formState.scope,
-          course_id: formState.courseId || null,
-          student_id: formState.studentId || null,
-          ends_at: endsAtDate ? endsAtDate.toISOString() : null,
-          is_active: true
-        });
-        showToast({ type: TOAST_TYPES.SUCCESS, message: 'Mensaje instantáneo publicado.' });
-      }
-
-      resetMessageForm();
-      if (!isEditingMessage && formState.scope !== 'GENERAL' && formState.scope !== level) {
-        showToast({
-          type: TOAST_TYPES.INFO,
-          message: `El mensaje fue creado para ${formState.scope}. Cambia el nivel en el selector lateral para verlo en vista docente.`
-        });
-      }
-    } catch (error) {
-      console.error('create instant message error', error);
-      const message = error instanceof Error ? error.message : 'No se pudo publicar el mensaje.';
-      showToast({ type: TOAST_TYPES.ERROR, message });
-    }
-  };
-
-  const toggleMessageActive = async (id: string, nextValue: boolean) => {
-    try {
-      await updateMessage.mutateAsync({ id, updates: { is_active: nextValue } });
-      showToast({ type: TOAST_TYPES.SUCCESS, message: nextValue ? 'Mensaje activado.' : 'Mensaje desactivado.' });
-    } catch (error) {
-      console.error('toggle instant message error', error);
-      const message = error instanceof Error ? error.message : 'No se pudo actualizar el mensaje.';
-      showToast({ type: TOAST_TYPES.ERROR, message });
-    }
-  };
-
-  const startEditMessage = (message: InstantMessageRow) => {
-    dispatch({ type: 'START_EDIT', message });
-  };
-
-  return (
-    <div className="space-y-5">
-      <form onSubmit={handleCreateMessage} className="grid grid-cols-1 lg:grid-cols-12 gap-3">
-        <div className="lg:col-span-6">
-          <label htmlFor="instant-message-course" className="text-xs font-semibold text-slate-500 uppercase tracking-wider ml-1">Curso</label>
-          <Select
-            id="instant-message-course"
-            className="mt-1"
-            value={formState.courseId}
-            onChange={(e) => dispatch({ type: 'SET', payload: { courseId: e.target.value } })}
-            options={messageCourseOptions}
-          />
-        </div>
-        <div className="lg:col-span-6">
-          <label htmlFor="instant-message-student" className="text-xs font-semibold text-slate-500 uppercase tracking-wider ml-1">
-            Estudiante
-          </label>
-          <Select
-            id="instant-message-student"
-            className="mt-1"
-            value={formState.studentId}
-            onChange={(e) => dispatch({ type: 'SET', payload: { studentId: e.target.value } })}
-            options={messageStudentOptions}
-            disabled={!formState.courseId || messageStudentsLoading}
-          />
-        </div>
-        <div className="lg:col-span-6">
-          <label htmlFor="instant-message-title" className="text-xs font-semibold text-slate-500 uppercase tracking-wider ml-1">Título</label>
-          <input
-            id="instant-message-title"
-            value={formState.title}
-            onChange={(e) => dispatch({ type: 'SET', payload: { title: e.target.value } })}
-            className="input-base mt-1"
-            placeholder="Ej: Cambio de horario por contingencia"
-            maxLength={120}
-          />
-        </div>
-        <div className="lg:col-span-3">
-          <label htmlFor="instant-message-scope" className="text-xs font-semibold text-slate-500 uppercase tracking-wider ml-1">Alcance</label>
-          <Select
-            id="instant-message-scope"
-            className="mt-1"
-            value={formState.scope}
-            onChange={(e) => dispatch({ type: 'SET', payload: { scope: e.target.value as 'GENERAL' | 'BASICA' | 'MEDIA' } })}
-            options={[
-              { label: 'General', value: 'GENERAL' },
-              { label: 'BÁSICA', value: 'BASICA' },
-              { label: 'MEDIA', value: 'MEDIA' }
-            ]}
-          />
-        </div>
-        <div className="lg:col-span-3">
-          <label htmlFor="instant-message-ends-at" className="text-xs font-semibold text-slate-500 uppercase tracking-wider ml-1">Vigente hasta</label>
-          <input
-            id="instant-message-ends-at"
-            type="datetime-local"
-            value={formState.endsAt}
-            onChange={(e) => dispatch({ type: 'SET', payload: { endsAt: e.target.value } })}
-            className="input-base mt-1"
-          />
-        </div>
-        <div className="lg:col-span-12">
-          <label htmlFor="instant-message-body" className="text-xs font-semibold text-slate-500 uppercase tracking-wider ml-1">Mensaje</label>
-          <textarea
-            id="instant-message-body"
-            value={formState.body}
-            onChange={(e) => dispatch({ type: 'SET', payload: { body: e.target.value } })}
-            rows={3}
-            maxLength={1200}
-            className="input-base mt-1 resize-y"
-            placeholder="Describe la situación particular a informar."
-          />
-        </div>
-        <div className="lg:col-span-12 flex items-center justify-between gap-3">
-          <p className="text-xs text-slate-500 flex items-center gap-1.5">
-            <AlertCircle className="w-3.5 h-3.5" />
-            Se mostrará de inmediato en la vista docente.
-          </p>
-          <div className="flex items-center gap-2">
-            {isEditingMessage ? (
-              <Button type="button" variant="ghost" onClick={resetMessageForm}>
-                Cancelar edición
-              </Button>
-            ) : null}
-            <Button type="submit" loading={createMessage.isPending || updateMessage.isPending} disabled={!canSubmitMessage}>
-              {isEditingMessage ? 'Guardar cambios' : 'Publicar mensaje'}
-            </Button>
-          </div>
-        </div>
-      </form>
-      <StaffMessagesList
-        messages={manageableMessages}
-        isLoading={manageableMessagesLoading}
-        hasError={Boolean(manageMessagesError)}
-        courseById={courseById}
-        onEdit={startEditMessage}
-        onToggleActive={toggleMessageActive}
-      />
-    </div>
-  );
-};
-
-export const DocentePublico: React.FC<DocentePublicoProps> = ({ level, isStaff }) => {
-  const [currentDate, setCurrentDate] = React.useState(new Date());
-  const [selectedCourseId, setSelectedCourseId] = React.useState('');
-  const [isStaffManagerOpen, setIsStaffManagerOpen] = React.useState(false);
-  const [isMessagesCollapsed, setIsMessagesCollapsed] = React.useState(false);
-  const [selected, setSelected] = React.useState<TeacherPublicAbsence | null>(null);
-  const [isOpen, setIsOpen] = React.useState(false);
-
-  const month = currentDate.getMonth();
-  const year = currentDate.getFullYear();
-  const { data = [], isLoading, isFetching, error: absencesError } = useTeacherPublicAbsences(month, year, level, selectedCourseId || undefined);
-  const { data: selectedTests = [], isLoading: selectedTestsLoading } = useTeacherPublicAbsenceDetail(selected?.absence_id);
-  const { data: courses = [], isLoading: coursesLoading, error: coursesError } = useCourses(level, true);
-  const activeMessagesLevel = level;
-  const { data: instantMessages = [], isLoading: instantMessagesLoading, error: messagesError } = useTeacherInstantMessages(activeMessagesLevel, selectedCourseId || undefined);
-  const { data: allActiveMessages = [] } = useTeacherInstantMessages(undefined, undefined, !isStaff);
-
-  React.useEffect(() => {
-    setSelectedCourseId('');
-  }, [level]);
-
-  const loading = isLoading || coursesLoading;
-  const showInitialSkeleton = loading && data.length === 0;
-  const courseOptions = React.useMemo(() => getCourseOptions(courses), [courses]);
-  const sortedData = React.useMemo(() =>
-    [...data].sort((left, right) => {
-      const leftDate = new Date(left.start_date).getTime();
-      const rightDate = new Date(right.start_date).getTime();
-      return rightDate - leftDate;
-    }),
+  const loading = isLoading || coursesLoading
+  const showInitialSkeleton = loading && data.length === 0
+  const courseOptions = React.useMemo(
+    () => getCourseOptions(courses),
+    [courses]
+  )
+  const sortedData = React.useMemo(
+    () =>
+      [...data].sort((left, right) => {
+        const leftDate = new Date(left.start_date).getTime()
+        const rightDate = new Date(right.start_date).getTime()
+        return rightDate - leftDate
+      }),
     [data]
-  );
+  )
 
   return (
     <div className="space-y-10">
@@ -400,18 +108,40 @@ export const DocentePublico: React.FC<DocentePublicoProps> = ({ level, isStaff }
         breadcrumbs={[{ label: 'Vista Docente', active: true }]}
         action={
           <div className="flex items-center gap-3">
-            <Button variant="secondary" size="icon" onClick={() => setCurrentDate(new Date(year, month - 1, 1))}>
+            <Button
+              variant="secondary"
+              size="icon"
+              onClick={() => setCurrentDate(new Date(year, month - 1, 1))}
+            >
               <ChevronLeft className="w-4 h-4" />
             </Button>
-            <Button variant="secondary" size="icon" onClick={() => setCurrentDate(new Date(year, month + 1, 1))}>
+            <Button
+              variant="secondary"
+              size="icon"
+              onClick={() => setCurrentDate(new Date(year, month + 1, 1))}
+            >
               <ChevronRight className="w-4 h-4" />
             </Button>
           </div>
         }
         filters={
           <>
-            <Select options={MONTHS} value={month} onChange={(e) => setCurrentDate(new Date(year, Number(e.target.value), 1))} className="md:w-44" />
-            <Select options={getYearOptions()} value={year} onChange={(e) => setCurrentDate(new Date(Number(e.target.value), month, 1))} className="md:w-36" />
+            <Select
+              options={MONTHS}
+              value={month}
+              onChange={(e) =>
+                setCurrentDate(new Date(year, Number(e.target.value), 1))
+              }
+              className="md:w-44"
+            />
+            <Select
+              options={getYearOptions()}
+              value={year}
+              onChange={(e) =>
+                setCurrentDate(new Date(Number(e.target.value), month, 1))
+              }
+              className="md:w-36"
+            />
             <Select
               options={courseOptions}
               value={selectedCourseId}
@@ -422,24 +152,19 @@ export const DocentePublico: React.FC<DocentePublicoProps> = ({ level, isStaff }
         }
       />
       {isFetching && data.length > 0 ? (
-        <p className="text-xs font-medium text-slate-400 -mt-6">Actualizando resultados...</p>
-      ) : null}
-      {absencesError || messagesError ? (
-        <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
-          No se pudieron cargar algunos datos desde Supabase.
-        </div>
-      ) : null}
-      {coursesError ? (
-        <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-700">
-          No se pudo cargar el listado de cursos. {' '}
-          {String((coursesError as Error | undefined)?.message || 'Revisa permisos de `courses` en Supabase.')}
-        </div>
+        <p className="text-xs font-medium text-slate-400 -mt-6">
+          Actualizando resultados...
+        </p>
       ) : null}
       <div className="card border border-indigo-100 bg-gradient-to-br from-indigo-50 to-white rounded-3xl p-5 md:p-6">
         <div className="flex items-start justify-between gap-4">
           <div>
-            <p className="text-xs font-bold text-indigo-500 uppercase tracking-[0.2em]">Comunicados</p>
-            <h3 className="text-lg font-bold text-slate-900 mt-1">Mensajes instantáneos</h3>
+            <p className="text-xs font-bold text-indigo-500 uppercase tracking-[0.2em]">
+              Comunicados
+            </p>
+            <h3 className="text-lg font-bold text-slate-900 mt-1">
+              Mensajes instantáneos
+            </h3>
             <p className="text-sm text-slate-500 mt-1">
               {isStaff
                 ? 'Vista previa staff: muestra todos los comunicados activos.'
@@ -450,13 +175,17 @@ export const DocentePublico: React.FC<DocentePublicoProps> = ({ level, isStaff }
             type="button"
             onClick={() => setIsMessagesCollapsed((prev) => !prev)}
             className="inline-flex items-center gap-2 rounded-xl border border-indigo-200 bg-white px-3 py-2 text-indigo-600 hover:bg-indigo-50 transition-colors"
-            aria-label={isMessagesCollapsed ? 'Expandir mensajes' : 'Colapsar mensajes'}
+            aria-label={
+              isMessagesCollapsed ? 'Expandir mensajes' : 'Colapsar mensajes'
+            }
           >
             <Bell className="w-4 h-4" />
             <span className="inline-flex items-center justify-center min-w-5 h-5 rounded-full bg-indigo-600 text-white text-[11px] font-bold px-1.5">
               {instantMessages.length}
             </span>
-            <ChevronRight className={`w-4 h-4 transition-transform ${isMessagesCollapsed ? '' : 'rotate-90'}`} />
+            <ChevronRight
+              className={`w-4 h-4 transition-transform ${isMessagesCollapsed ? '' : 'rotate-90'}`}
+            />
           </button>
         </div>
         {!isMessagesCollapsed ? (
@@ -468,25 +197,37 @@ export const DocentePublico: React.FC<DocentePublicoProps> = ({ level, isStaff }
                 Sin comunicados activos en este momento.
                 {!isStaff && allActiveMessages.length > 0 ? (
                   <span className="block mt-1 text-xs text-slate-400">
-                    Hay comunicados activos en otro nivel. Cambia BÁSICA/MEDIA desde el selector lateral.
+                    Hay comunicados activos en otro nivel. Cambia BÁSICA/MEDIA
+                    desde el selector lateral.
                   </span>
                 ) : null}
               </div>
-            ) : instantMessages.map((message) => (
-              <div key={message.id} className="rounded-2xl bg-white border border-slate-200 p-4 md:p-5 shadow-sm">
-                <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-indigo-500">
-                  <Megaphone className="w-3.5 h-3.5" />
-                  Aviso activo
+            ) : (
+              instantMessages.map((message) => (
+                <div
+                  key={message.id}
+                  className="rounded-2xl bg-white border border-slate-200 p-4 md:p-5 shadow-sm"
+                >
+                  <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-indigo-500">
+                    <Megaphone className="w-3.5 h-3.5" />
+                    Aviso activo
+                  </div>
+                  <h4 className="text-slate-900 font-bold mt-1">
+                    {message.title}
+                  </h4>
+                  <p className="text-sm text-slate-600 mt-2 whitespace-pre-line">
+                    {message.body}
+                  </p>
+                  <p className="text-[11px] text-slate-400 mt-3">
+                    {message.level ? `Nivel ${message.level} • ` : ''}
+                    Publicado: {formatDate(message.created_at)}
+                    {message.ends_at
+                      ? ` • Vigente hasta ${formatDate(message.ends_at)}`
+                      : ''}
+                  </p>
                 </div>
-                <h4 className="text-slate-900 font-bold mt-1">{message.title}</h4>
-                <p className="text-sm text-slate-600 mt-2 whitespace-pre-line">{message.body}</p>
-                <p className="text-[11px] text-slate-400 mt-3">
-                  {message.level ? `Nivel ${message.level} • ` : ''}
-                  Publicado: {formatDate(message.created_at)}
-                  {message.ends_at ? ` • Vigente hasta ${formatDate(message.ends_at)}` : ''}
-                </p>
-              </div>
-            ))}
+              ))
+            )}
           </div>
         ) : (
           <p className="mt-4 text-sm text-slate-600">
@@ -501,9 +242,16 @@ export const DocentePublico: React.FC<DocentePublicoProps> = ({ level, isStaff }
         <div className="card border border-amber-200/70 bg-amber-50/40 rounded-3xl p-5 md:p-6 space-y-4">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
-              <p className="text-xs font-bold text-amber-600 uppercase tracking-[0.2em]">Gestión Staff</p>
-              <h3 className="text-lg font-bold text-slate-900 mt-1">Gestor de mensajes instantáneos</h3>
-              <p className="text-sm text-slate-600 mt-1">Crea avisos generales, por nivel o por curso para la vista docente.</p>
+              <p className="text-xs font-bold text-amber-600 uppercase tracking-[0.2em]">
+                Gestión Staff
+              </p>
+              <h3 className="text-lg font-bold text-slate-900 mt-1">
+                Gestor de mensajes instantáneos
+              </h3>
+              <p className="text-sm text-slate-600 mt-1">
+                Crea avisos generales, por nivel o por curso para la vista
+                docente.
+              </p>
             </div>
             <Button
               type="button"
@@ -525,90 +273,157 @@ export const DocentePublico: React.FC<DocentePublicoProps> = ({ level, isStaff }
 
       <div>
         <div className="mb-3 px-1">
-          <h3 className="text-lg font-bold text-slate-900">Inasistencias, Justificaciones y Evaluaciones</h3>
-          <p className="text-sm text-slate-500">Resumen de ausencias con su estado y pruebas afectadas.</p>
+          <h3 className="text-lg font-bold text-slate-900">
+            Inasistencias, Justificaciones y Evaluaciones
+          </h3>
+          <p className="text-sm text-slate-500">
+            Resumen de ausencias con su estado y pruebas afectadas.
+          </p>
         </div>
         <div className="card overflow-hidden border border-slate-200/60 shadow-sm shadow-slate-200/20 rounded-3xl">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse">
-            <thead>
-              <tr className="bg-slate-50/50 text-slate-400 text-[11px] font-bold uppercase tracking-widest">
-                <th className="px-6 py-4">Estudiante</th>
-                <th className="px-6 py-4">Curso</th>
-                <th className="px-6 py-4">Fechas</th>
-                <th className="px-6 py-4">Estado</th>
-                <th className="px-6 py-4">Pruebas Afectadas</th>
-                <th className="px-6 py-4 text-right">Detalle</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
-              {showInitialSkeleton ? (
-                <tr><td colSpan={6} className="px-6 py-12"><TableSkeleton /></td></tr>
-              ) : sortedData.length === 0 ? (
-                <tr>
-                  <td colSpan={6} className="px-6 py-12">
-                    <EmptyState title="Sin resultados" description="No hay inasistencias públicas para el período seleccionado." />
-                  </td>
+          <div className="overflow-x-auto">
+            <table className="w-full text-left border-collapse">
+              <thead>
+                <tr className="bg-slate-50/50 text-slate-400 text-[11px] font-bold uppercase tracking-widest">
+                  <th className="px-6 py-4">Estudiante</th>
+                  <th className="px-6 py-4">Curso</th>
+                  <th className="px-6 py-4">Fechas</th>
+                  <th className="px-6 py-4">Estado</th>
+                  <th className="px-6 py-4">Pruebas Afectadas</th>
+                  <th className="px-6 py-4 text-right">Detalle</th>
                 </tr>
-              ) : sortedData.map((row) => (
-                <tr key={row.absence_id} className="hover:bg-slate-50/80 transition-colors">
-                  <td className="px-6 py-5 font-bold text-slate-900">{row.student_name}</td>
-                  <td className="px-6 py-5 text-sm font-semibold text-slate-600">{row.course_name}</td>
-                  <td className="px-6 py-5">
-                    <div className="flex items-center gap-2 text-sm font-medium text-slate-500">
-                      <Calendar className="w-3.5 h-3.5 opacity-60" />
-                      {formatDate(row.start_date)} - {formatDate(row.end_date)}
-                    </div>
-                  </td>
-                  <td className="px-6 py-5">
-                    <Badge variant={row.status === 'JUSTIFICADA' ? 'success' : 'warning'}>{getAbsenceStatusLabel(row.status || 'PENDIENTE')}</Badge>
-                  </td>
-                  <td className="px-6 py-5 text-sm font-bold text-rose-600">{row.affected_tests_count}</td>
-                  <td className="px-6 py-5 text-right">
-                    <Button variant="ghost" size="sm" icon={Eye} onClick={() => { setSelected(row); setIsOpen(true); }}>
-                      Ver
-                    </Button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {showInitialSkeleton ? (
+                  <tr>
+                    <td colSpan={6} className="px-6 py-12">
+                      <TableSkeleton />
+                    </td>
+                  </tr>
+                ) : sortedData.length === 0 ? (
+                  <tr>
+                    <td colSpan={6} className="px-6 py-12">
+                      <EmptyState
+                        title="Sin resultados"
+                        description="No hay inasistencias públicas para el período seleccionado."
+                      />
+                    </td>
+                  </tr>
+                ) : (
+                  sortedData.map((row) => (
+                    <tr
+                      key={row.absence_id}
+                      className="hover:bg-slate-50/80 transition-colors"
+                    >
+                      <td className="px-6 py-5 font-bold text-slate-900">
+                        {row.student_name}
+                      </td>
+                      <td className="px-6 py-5 text-sm font-semibold text-slate-600">
+                        {row.course_name}
+                      </td>
+                      <td className="px-6 py-5">
+                        <div className="flex items-center gap-2 text-sm font-medium text-slate-500">
+                          <Calendar className="w-3.5 h-3.5 opacity-60" />
+                          {formatDate(row.start_date)} -{' '}
+                          {formatDate(row.end_date)}
+                        </div>
+                      </td>
+                      <td className="px-6 py-5">
+                        <Badge
+                          variant={
+                            row.status === 'JUSTIFICADA' ? 'success' : 'warning'
+                          }
+                        >
+                          {getAbsenceStatusLabel(row.status || 'PENDIENTE')}
+                        </Badge>
+                      </td>
+                      <td className="px-6 py-5 text-sm font-bold text-rose-600">
+                        {row.affected_tests_count}
+                      </td>
+                      <td className="px-6 py-5 text-right">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          icon={Eye}
+                          onClick={() => {
+                            setSelected(row)
+                            setIsOpen(true)
+                          }}
+                        >
+                          Ver
+                        </Button>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
-      </div>
 
-      <Modal isOpen={isOpen} onClose={() => setIsOpen(false)} title="Detalle de Inasistencia" size="lg">
+      <Modal
+        isOpen={isOpen}
+        onClose={() => setIsOpen(false)}
+        title="Detalle de Inasistencia"
+        size="lg"
+      >
         {!selected ? null : (
           <div className="space-y-5">
             <div className="text-sm text-slate-500">
-              <p><span className="font-bold text-slate-700">Estudiante:</span> {selected.student_name}</p>
-              <p><span className="font-bold text-slate-700">Curso:</span> {selected.course_name}</p>
-              <p><span className="font-bold text-slate-700">Fechas:</span> {formatDate(selected.start_date)} - {formatDate(selected.end_date)}</p>
+              <p>
+                <span className="font-bold text-slate-700">Estudiante:</span>{' '}
+                {selected.student_name}
+              </p>
+              <p>
+                <span className="font-bold text-slate-700">Curso:</span>{' '}
+                {selected.course_name}
+              </p>
+              <p>
+                <span className="font-bold text-slate-700">Fechas:</span>{' '}
+                {formatDate(selected.start_date)} -{' '}
+                {formatDate(selected.end_date)}
+              </p>
             </div>
             <div>
-              <p className="text-xs font-bold text-slate-400 uppercase mb-2">Observación</p>
+              <p className="text-xs font-bold text-slate-400 uppercase mb-2">
+                Observación
+              </p>
               <div className="p-4 bg-white border border-slate-200 rounded-xl text-slate-700 text-sm">
                 {selected.observation || 'Sin observación registrada.'}
               </div>
             </div>
             <div>
-              <p className="text-xs font-bold text-slate-400 uppercase mb-2">Pruebas Afectadas ({selected.affected_tests_count})</p>
+              <p className="text-xs font-bold text-slate-400 uppercase mb-2">
+                Pruebas Afectadas ({selected.affected_tests_count})
+              </p>
               {selectedTestsLoading ? (
                 <p className="text-sm text-slate-400">Cargando detalle...</p>
               ) : selectedTests.length ? (
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   {selectedTests.map((test) => (
-                    <div key={test.id} className="bg-rose-50 p-3 rounded-lg border border-rose-100 text-sm">
-                      <div className="font-bold text-slate-800">{test.subject}</div>
-                      <div className="text-rose-600 font-medium">{test.type} - {formatDate(test.date)}</div>
+                    <div
+                      key={test.id}
+                      className="bg-rose-50 p-3 rounded-lg border border-rose-100 text-sm"
+                    >
+                      <div className="font-bold text-slate-800">
+                        {test.subject}
+                      </div>
+                      <div className="text-rose-600 font-medium">
+                        {test.type} - {formatDate(test.date)}
+                      </div>
                     </div>
                   ))}
                 </div>
-              ) : <p className="text-sm text-slate-400">No hay pruebas afectadas.</p>}
+              ) : (
+                <p className="text-sm text-slate-400">
+                  No hay pruebas afectadas.
+                </p>
+              )}
             </div>
           </div>
         )}
       </Modal>
     </div>
-  );
-};
+  )
+}

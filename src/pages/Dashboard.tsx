@@ -1,41 +1,51 @@
-import React, { useState } from 'react';
-import { 
-  Users, 
-  Calendar, 
-  CheckCircle2, 
-  AlertCircle, 
-  FileText, 
+import React, { useState } from 'react'
+import {
+  Users,
+  Calendar,
+  CheckCircle2,
+  AlertCircle,
+  FileText,
   Download,
   Filter,
-  RefreshCw
-} from 'lucide-react';
-import { Course, AbsenceWithDetails, Test } from '../types';
-import { useAbsences, useCourses } from '../hooks/queries';
-import { formatDate } from '../utils';
-import { Button } from '../components/ui/Button';
-import { Badge } from '../components/ui/Badge';
-import { PageHeader } from '../components/ui/PageHeader';
-import { Select } from '../components/ui/Select';
-import { StatCard } from '../components/ui/StatCard';
-import { Modal } from '../components/ui/Modal';
-import { DashboardAbsencesTable } from './DashboardAbsencesTable';
-import { MONTHS, getYearOptions, getCourseOptions, getStatusOptions } from '../utils/filterOptions';
-import { useQueryClient } from '@tanstack/react-query';
-import { QUERY_KEYS_INVALIDATE, getAbsenceStatusLabel } from '../constants';
+  RefreshCw,
+} from 'lucide-react'
+import { Course, AbsenceWithDetails, Test } from '../types'
+import { useAbsences, useCourses } from '../hooks/queries'
+import { formatDate } from '../utils'
+import { Button } from '../components/ui/Button'
+import { Badge } from '../components/ui/Badge'
+import { PageHeader } from '../components/ui/PageHeader'
+import { Select } from '../components/ui/Select'
+import { StatCard } from '../components/ui/StatCard'
+import { Modal } from '../components/ui/Modal'
+import { DashboardAbsencesTable } from './DashboardAbsencesTable'
+import {
+  MONTHS,
+  getYearOptions,
+  getCourseOptions,
+  getStatusOptions,
+} from '../utils/filterOptions'
+import { useQueryClient } from '@tanstack/react-query'
+import { QUERY_KEYS_INVALIDATE, getAbsenceStatusLabel } from '../constants'
 // jsPDF is large — dynamically import in exportToPDF to avoid bundling in main chunk
 
 interface DashboardProps {
-  level: 'BASICA' | 'MEDIA';
+  level: 'BASICA' | 'MEDIA'
 }
 
 interface DashboardDetailModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-  selectedAbsence: AbsenceWithDetails | null;
-  courses: Course[];
+  isOpen: boolean
+  onClose: () => void
+  selectedAbsence: AbsenceWithDetails | null
+  courses: Course[]
 }
 
-const DashboardDetailModal: React.FC<DashboardDetailModalProps> = ({ isOpen, onClose, selectedAbsence, courses }) => {
+const DashboardDetailModal: React.FC<DashboardDetailModalProps> = React.memo(({
+  isOpen,
+  onClose,
+  selectedAbsence,
+  courses,
+}) => {
   return (
     <Modal
       isOpen={isOpen}
@@ -50,8 +60,14 @@ const DashboardDetailModal: React.FC<DashboardDetailModalProps> = ({ isOpen, onC
               {selectedAbsence.student.full_name.charAt(0)}
             </div>
             <div>
-              <h3 className="font-bold text-slate-900">{selectedAbsence.student.full_name}</h3>
-              <p className="text-slate-500 text-sm font-medium uppercase tracking-wider">{courses.find(c => c.id === selectedAbsence.student.course_id)?.name || 'N/A'} • RUT: {selectedAbsence.student.rut || 'N/A'}</p>
+              <h3 className="font-bold text-slate-900">
+                {selectedAbsence.student.full_name}
+              </h3>
+              <p className="text-slate-500 text-sm font-medium uppercase tracking-wider">
+                {courses.find((c) => c.id === selectedAbsence.student.course_id)
+                  ?.name || 'N/A'}{' '}
+                • RUT: {selectedAbsence.student.rut || 'N/A'}
+              </p>
             </div>
           </div>
 
@@ -60,20 +76,32 @@ const DashboardDetailModal: React.FC<DashboardDetailModalProps> = ({ isOpen, onC
               <div className="text-xs font-bold text-slate-400 uppercase mb-1 flex items-center gap-1">
                 <Calendar className="w-3 h-3" /> Periodo
               </div>
-              <div className="text-sm font-bold text-slate-700">{formatDate(selectedAbsence.start_date)} al {formatDate(selectedAbsence.end_date)}</div>
+              <div className="text-sm font-bold text-slate-700">
+                {formatDate(selectedAbsence.start_date)} al{' '}
+                {formatDate(selectedAbsence.end_date)}
+              </div>
             </div>
             <div className="p-4 bg-slate-50 rounded-xl border border-slate-100">
               <div className="text-xs font-bold text-slate-400 uppercase mb-1 flex items-center gap-1">
                 <AlertCircle className="w-3 h-3" /> Estado
               </div>
-              <Badge variant={selectedAbsence.status === 'JUSTIFICADA' ? 'success' : 'warning'} className="mt-1">
+              <Badge
+                variant={
+                  selectedAbsence.status === 'JUSTIFICADA'
+                    ? 'success'
+                    : 'warning'
+                }
+                className="mt-1"
+              >
                 {getAbsenceStatusLabel(selectedAbsence.status || 'PENDIENTE')}
               </Badge>
             </div>
           </div>
 
           <div className="space-y-2">
-            <p className="text-xs font-bold text-slate-400 uppercase">Observación</p>
+            <p className="text-xs font-bold text-slate-400 uppercase">
+              Observación
+            </p>
             <div className="p-4 bg-white border border-slate-200 rounded-xl text-slate-700 text-sm leading-relaxed italic">
               {selectedAbsence.observation || 'Sin observación registrada.'}
             </div>
@@ -81,173 +109,228 @@ const DashboardDetailModal: React.FC<DashboardDetailModalProps> = ({ isOpen, onC
 
           {selectedAbsence.document_url && (
             <div className="space-y-2">
-              <p className="text-xs font-bold text-slate-400 uppercase">Documento Adjunto</p>
-              <a 
-                href={selectedAbsence.document_url} 
-                target="_blank" 
+              <p className="text-xs font-bold text-slate-400 uppercase">
+                Documento Adjunto
+              </p>
+              <a
+                href={selectedAbsence.document_url}
+                target="_blank"
                 rel="noreferrer"
                 className="flex items-center gap-3 p-4 bg-blue-50 border border-blue-100 rounded-xl text-blue-700 hover:bg-blue-100 transition-colors"
               >
                 <FileText className="w-5 h-5" />
-                <span className="font-bold text-sm">Ver Certificado / Justificativo</span>
+                <span className="font-bold text-sm">
+                  Ver Certificado / Justificativo
+                </span>
                 <Download className="w-4 h-4 ml-auto" />
               </a>
             </div>
           )}
 
-          {selectedAbsence.affected_tests && selectedAbsence.affected_tests.length > 0 && (
-            <div className="space-y-3">
-              <p className="text-xs font-bold text-slate-400 uppercase">Pruebas Afectadas ({selectedAbsence.affected_tests.length})</p>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                {selectedAbsence.affected_tests.map((test: Test) => (
-                  <div key={test.id} className="bg-rose-50 p-3 rounded-lg border border-rose-100 text-sm">
-                    <div className="font-bold text-slate-800">{test.subject}</div>
-                    <div className="text-rose-600 font-medium">{test.type} - {formatDate(test.date)}</div>
-                  </div>
-                ))}
+          {selectedAbsence.affected_tests &&
+            selectedAbsence.affected_tests.length > 0 && (
+              <div className="space-y-3">
+                <p className="text-xs font-bold text-slate-400 uppercase">
+                  Pruebas Afectadas ({selectedAbsence.affected_tests.length})
+                </p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {selectedAbsence.affected_tests.map((test: Test) => (
+                    <div
+                      key={test.id}
+                      className="bg-rose-50 p-3 rounded-lg border border-rose-100 text-sm"
+                    >
+                      <div className="font-bold text-slate-800">
+                        {test.subject}
+                      </div>
+                      <div className="text-rose-600 font-medium">
+                        {test.type} - {formatDate(test.date)}
+                      </div>
+                    </div>
+                  ))}
+                </div>
               </div>
-            </div>
-          )}
+            )}
 
           <div className="flex justify-end pt-4">
-            <Button onClick={onClose}>
-              Cerrar
-            </Button>
+            <Button onClick={onClose}>Cerrar</Button>
           </div>
         </div>
       )}
     </Modal>
-  );
-};
+  )
+})
 
 export const Dashboard: React.FC<DashboardProps> = ({ level }) => {
   // use query results directly; avoid mirroring query data in local state
-  const [detailModal, setDetailModal] = useState<{ isOpen: boolean; absence: AbsenceWithDetails | null }>({
+  const [detailModal, setDetailModal] = useState<{
+    isOpen: boolean
+    absence: AbsenceWithDetails | null
+  }>({
     isOpen: false,
-    absence: null
-  });
+    absence: null,
+  })
   const [filters, setFilters] = useState({
     courseId: '',
     status: '',
     month: new Date().getMonth(),
     year: new Date().getFullYear(),
     onlyWithTests: false,
-    onlyWithoutDoc: false
-  });
-  const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
-  const queryClient = useQueryClient();
+    onlyWithoutDoc: false,
+  })
+  const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set())
+  const queryClient = useQueryClient()
 
   // derive date range for queries
-  const startDate = new Date(filters.year, filters.month, 1).toISOString().split('T')[0];
-  const endDate = new Date(filters.year, filters.month + 1, 0).toISOString().split('T')[0];
+  const startDate = new Date(filters.year, filters.month, 1)
+    .toISOString()
+    .split('T')[0]
+  const endDate = new Date(filters.year, filters.month + 1, 0)
+    .toISOString()
+    .split('T')[0]
 
   const {
     data: absences = [],
     isLoading: loadingAbsences,
     isFetching: fetchingAbsences,
-    error: absencesError
-  } = useAbsences(level, startDate, endDate);
+    error: absencesError,
+  } = useAbsences(level, startDate, endDate)
   const {
     data: coursesFromQuery = [],
     isLoading: loadingCourses,
     isFetching: fetchingCourses,
-    error: coursesError
-  } = useCourses(level);
+    error: coursesError,
+  } = useCourses(level)
 
-  const loading = loadingAbsences || loadingCourses;
+  const loading = loadingAbsences || loadingCourses
 
-  const courseOptions = getCourseOptions(coursesFromQuery);
-  const statusOptions = getStatusOptions();
+  const courseOptions = getCourseOptions(coursesFromQuery)
+  const statusOptions = getStatusOptions()
 
-  const filteredAbsences = React.useMemo(() =>
-    absences.filter((abs: AbsenceWithDetails) => {
-      const studentCourse = abs.student?.course_id || '';
-      if (filters.courseId && studentCourse !== filters.courseId) return false;
-      if (filters.status && abs.status !== filters.status) return false;
-      if (filters.onlyWithTests && (!abs.affected_tests || abs.affected_tests.length === 0)) return false;
-      if (filters.onlyWithoutDoc && abs.document_url) return false;
-      return true;
-    }),
-    [absences, filters.courseId, filters.status, filters.onlyWithTests, filters.onlyWithoutDoc]
-  );
+  const filteredAbsences = React.useMemo(
+    () =>
+      absences.filter((abs: AbsenceWithDetails) => {
+        const studentCourse = abs.student?.course_id || ''
+        if (filters.courseId && studentCourse !== filters.courseId) return false
+        if (filters.status && abs.status !== filters.status) return false
+        if (
+          filters.onlyWithTests &&
+          (!abs.affected_tests || abs.affected_tests.length === 0)
+        )
+          return false
+        if (filters.onlyWithoutDoc && abs.document_url) return false
+        return true
+      }),
+    [
+      absences,
+      filters.courseId,
+      filters.status,
+      filters.onlyWithTests,
+      filters.onlyWithoutDoc,
+    ]
+  )
 
-  const sortedFilteredAbsences = React.useMemo(() =>
-    [...filteredAbsences].sort((left, right) => {
-      const leftDate = new Date(left.start_date).getTime();
-      const rightDate = new Date(right.start_date).getTime();
-      return rightDate - leftDate;
-    }),
+  const sortedFilteredAbsences = React.useMemo(
+    () =>
+      [...filteredAbsences].sort((left, right) => {
+        const leftDate = new Date(left.start_date).getTime()
+        const rightDate = new Date(right.start_date).getTime()
+        return rightDate - leftDate
+      }),
     [filteredAbsences]
-  );
+  )
 
-  const stats = {
+  const stats = React.useMemo(() => ({
     total: absences.length,
-    justified: absences.filter((a: AbsenceWithDetails) => a.status === 'JUSTIFICADA').length,
-    pending: absences.filter((a: AbsenceWithDetails) => a.status === 'PENDIENTE').length,
-    withTests: absences.filter((a: AbsenceWithDetails) => a.affected_tests && a.affected_tests.length > 0).length
-  };
+    justified: absences.filter(
+      (a: AbsenceWithDetails) => a.status === 'JUSTIFICADA'
+    ).length,
+    pending: absences.filter(
+      (a: AbsenceWithDetails) => a.status === 'PENDIENTE'
+    ).length,
+    withTests: absences.filter(
+      (a: AbsenceWithDetails) => a.affected_tests && a.affected_tests.length > 0
+    ).length,
+  }), [absences])
 
   const toggleRow = (id: string) => {
-    const newSet = new Set(expandedRows);
-    if (newSet.has(id)) newSet.delete(id);
-    else newSet.add(id);
-    setExpandedRows(newSet);
-  };
+    const newSet = new Set(expandedRows)
+    if (newSet.has(id)) newSet.delete(id)
+    else newSet.add(id)
+    setExpandedRows(newSet)
+  }
 
   const handleViewDetail = (abs: AbsenceWithDetails) => {
-    setDetailModal({ isOpen: true, absence: abs });
-  };
+    setDetailModal({ isOpen: true, absence: abs })
+  }
 
   const handleRefresh = async () => {
     await Promise.all([
-      queryClient.invalidateQueries({ queryKey: QUERY_KEYS_INVALIDATE.ABSENCES }),
-      queryClient.invalidateQueries({ queryKey: QUERY_KEYS_INVALIDATE.COURSES })
-    ]);
-  };
+      queryClient.invalidateQueries({
+        queryKey: QUERY_KEYS_INVALIDATE.ABSENCES,
+      }),
+      queryClient.invalidateQueries({
+        queryKey: QUERY_KEYS_INVALIDATE.COURSES,
+      }),
+    ])
+  }
 
   const exportToPDF = async () => {
     try {
       const [{ default: jsPDF }, autoTableModule] = await Promise.all([
         import('jspdf'),
-        import('jspdf-autotable')
-      ]);
-      const maybeDefault = (autoTableModule as { default?: unknown }).default;
-      const autoTableFn = (typeof maybeDefault === 'function'
-        ? maybeDefault
-        : typeof autoTableModule === 'function'
-          ? autoTableModule
-          : null) as ((doc: InstanceType<typeof jsPDF>, options: Record<string, unknown>) => void) | null;
+        import('jspdf-autotable'),
+      ])
+      const maybeDefault = (autoTableModule as { default?: unknown }).default
+      const autoTableFn = (
+        typeof maybeDefault === 'function'
+          ? maybeDefault
+          : typeof autoTableModule === 'function'
+            ? autoTableModule
+            : null
+      ) as
+        | ((
+            doc: InstanceType<typeof jsPDF>,
+            options: Record<string, unknown>
+          ) => void)
+        | null
 
       if (!autoTableFn) {
-        throw new Error('No se pudo cargar jspdf-autotable correctamente');
+        throw new Error('No se pudo cargar jspdf-autotable correctamente')
       }
 
-      const doc = new jsPDF();
-      doc.text('Reporte de Inasistencias y Pruebas Afectadas', 14, 15);
+      const doc = new jsPDF()
+      doc.text('Reporte de Inasistencias y Pruebas Afectadas', 14, 15)
 
-      const tableData = sortedFilteredAbsences.map((abs: AbsenceWithDetails) => [
-        abs.student.full_name,
-        coursesFromQuery.find(c => c.id === abs.student.course_id)?.name || 'N/A',
-        `${formatDate(abs.start_date)} - ${formatDate(abs.end_date)}`,
-        abs.status,
-        abs.affected_tests?.map((t: Test) => `${t.subject} (${formatDate(t.date)})`).join(', ') || 'Ninguna'
-      ]);
+      const tableData = sortedFilteredAbsences.map(
+        (abs: AbsenceWithDetails) => [
+          abs.student.full_name,
+          coursesFromQuery.find((c) => c.id === abs.student.course_id)?.name ||
+            'N/A',
+          `${formatDate(abs.start_date)} - ${formatDate(abs.end_date)}`,
+          abs.status,
+          abs.affected_tests
+            ?.map((t: Test) => `${t.subject} (${formatDate(t.date)})`)
+            .join(', ') || 'Ninguna',
+        ]
+      )
 
       autoTableFn(doc, {
-        head: [['Estudiante', 'Curso', 'Fechas', 'Estado', 'Pruebas Afectadas']],
+        head: [
+          ['Estudiante', 'Curso', 'Fechas', 'Estado', 'Pruebas Afectadas'],
+        ],
         body: tableData,
         startY: 25,
-      });
+      })
 
-      doc.save('inasistencias_reporte.pdf');
+      doc.save('inasistencias_reporte.pdf')
     } catch (err) {
-      console.error('Error generating PDF', err);
+      console.error('Error generating PDF', err)
     }
-  };
+  }
 
   return (
     <div className="space-y-10 animate-in fade-in duration-500">
-      <PageHeader 
+      <PageHeader
         title="Panel Informativo"
         description={`Resumen ejecutivo de inasistencias y evaluaciones para Educación ${level === 'BASICA' ? 'Básica' : 'Media'}.`}
         breadcrumbs={[{ label: 'Dashboard', active: true }]}
@@ -264,89 +347,111 @@ export const Dashboard: React.FC<DashboardProps> = ({ level }) => {
       />
       {absencesError || coursesError ? (
         <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
-          Error al cargar datos del dashboard desde Supabase. {' '}
-          {String((absencesError as Error | undefined)?.message || (coursesError as Error | undefined)?.message || 'Revisa sesión/permisos.')}
+          Error al cargar datos del dashboard desde Supabase.{' '}
+          {String(
+            (absencesError as Error | undefined)?.message ||
+              (coursesError as Error | undefined)?.message ||
+              'Revisa sesión/permisos.'
+          )}
         </div>
       ) : null}
       {fetchingAbsences || fetchingCourses ? (
-        <p className="text-xs font-medium text-slate-400 -mt-6">Sincronizando datos con Supabase...</p>
+        <p className="text-xs font-medium text-slate-400 -mt-6">
+          Sincronizando datos con Supabase...
+        </p>
       ) : null}
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-        <StatCard 
-          title="Total Inasistencias" 
-          value={stats.total} 
-          icon={Users} 
-          color="blue" 
+        <StatCard
+          title="Total Inasistencias"
+          value={stats.total}
+          icon={Users}
+          color="blue"
         />
-        <StatCard 
-          title="Justificadas" 
-          value={stats.justified} 
-          icon={CheckCircle2} 
-          color="emerald" 
+        <StatCard
+          title="Justificadas"
+          value={stats.justified}
+          icon={CheckCircle2}
+          color="emerald"
         />
-        <StatCard 
-          title="Pendientes" 
-          value={stats.pending} 
-          icon={AlertCircle} 
-          color="amber" 
+        <StatCard
+          title="Pendientes"
+          value={stats.pending}
+          icon={AlertCircle}
+          color="amber"
         />
-        <StatCard 
-          title="Con Pruebas Afectadas" 
-          value={stats.withTests} 
-          icon={FileText} 
-          color="rose" 
+        <StatCard
+          title="Con Pruebas Afectadas"
+          value={stats.withTests}
+          icon={FileText}
+          color="rose"
         />
       </div>
 
       <div className="bg-white p-8 rounded-3xl border border-slate-200 shadow-sm shadow-slate-200/20 space-y-8">
         <div className="flex items-center gap-2.5 text-slate-400">
           <Filter className="w-4 h-4" />
-          <span className="text-[11px] font-bold uppercase tracking-widest">Filtros Avanzados</span>
+          <span className="text-[11px] font-bold uppercase tracking-widest">
+            Filtros Avanzados
+          </span>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-          <Select 
+          <Select
             options={MONTHS}
             value={filters.month}
-            onChange={(e) => setFilters({...filters, month: parseInt(e.target.value)})}
+            onChange={(e) =>
+              setFilters({ ...filters, month: parseInt(e.target.value) })
+            }
           />
-          <Select 
+          <Select
             options={getYearOptions()}
             value={filters.year}
-            onChange={(e) => setFilters({...filters, year: parseInt(e.target.value)})}
+            onChange={(e) =>
+              setFilters({ ...filters, year: parseInt(e.target.value) })
+            }
           />
-          <Select 
+          <Select
             options={courseOptions}
             value={filters.courseId}
-            onChange={(e) => setFilters({...filters, courseId: e.target.value})}
+            onChange={(e) =>
+              setFilters({ ...filters, courseId: e.target.value })
+            }
           />
-          <Select 
+          <Select
             options={statusOptions}
             value={filters.status}
-            onChange={(e) => setFilters({...filters, status: e.target.value})}
+            onChange={(e) => setFilters({ ...filters, status: e.target.value })}
           />
         </div>
 
         <div className="flex flex-wrap gap-8 pt-2">
           <label className="flex items-center gap-3 cursor-pointer group">
-            <input 
-              type="checkbox" 
+            <input
+              type="checkbox"
               className="w-5 h-5 rounded-lg border-slate-300 text-indigo-600 focus:ring-indigo-500 transition-all cursor-pointer"
               checked={filters.onlyWithTests}
-              onChange={(e) => setFilters({...filters, onlyWithTests: e.target.checked})}
+              onChange={(e) =>
+                setFilters({ ...filters, onlyWithTests: e.target.checked })
+              }
             />
-            <span className="text-sm font-bold text-slate-600 group-hover:text-slate-900 transition-colors">Solo con pruebas afectadas</span>
+            <span className="text-sm font-bold text-slate-600 group-hover:text-slate-900 transition-colors">
+              Solo con pruebas afectadas
+            </span>
           </label>
 
           <label className="flex items-center gap-3 cursor-pointer group">
-            <input 
-              type="checkbox" 
+            <input
+              type="checkbox"
               className="w-5 h-5 rounded-lg border-slate-300 text-indigo-600 focus:ring-indigo-500 transition-all cursor-pointer"
               checked={filters.onlyWithoutDoc}
-              onChange={(e) => setFilters({...filters, onlyWithoutDoc: e.target.checked})}
+              onChange={(e) =>
+                setFilters({ ...filters, onlyWithoutDoc: e.target.checked })
+              }
             />
-            <span className="text-sm font-bold text-slate-600 group-hover:text-slate-900 transition-colors">Sin documento adjunto</span>
+            <span className="text-sm font-bold text-slate-600 group-hover:text-slate-900 transition-colors">
+              Sin documento adjunto
+            </span>
           </label>
         </div>
       </div>
@@ -367,5 +472,5 @@ export const Dashboard: React.FC<DashboardProps> = ({ level }) => {
         courses={coursesFromQuery}
       />
     </div>
-  );
-};
+  )
+}

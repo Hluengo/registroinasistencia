@@ -1,40 +1,45 @@
-import React, { useState, useEffect } from 'react';
-import { Upload, AlertCircle } from 'lucide-react';
-import { Modal } from '../components/ui/Modal';
-import { Button } from '../components/ui/Button';
-import { Select } from '../components/ui/Select';
-import { Input } from '../components/ui/Input';
-import { FormError } from '../components/ui/FormError';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { absenceValidationSchema, validateAbsenceCreation } from '../lib/validators';
-import { Course, Student, Test } from '../types';
-import { formatDate } from '../utils';
-import { isValidDate } from '../utils/date';
-import { useTests } from '../hooks/queries';
+import React, { useState, useEffect } from 'react'
+import { Upload, AlertCircle } from 'lucide-react'
+import { Modal } from '../components/ui/Modal'
+import { Button } from '../components/ui/Button'
+import { Select } from '../components/ui/Select'
+import { Input } from '../components/ui/Input'
+import { FormError } from '../components/ui/FormError'
+import { useForm } from 'react-hook-form'
+import { zodResolver } from '@hookform/resolvers/zod'
+import {
+  absenceValidationSchema,
+  validateAbsenceCreation,
+} from '../lib/validators'
+import { Course, Student, Test } from '../types'
+import { formatDate } from '../utils'
+import { isValidDate } from '../utils/date'
+import { useTests } from '../hooks/queries'
 
 interface InasistenciasCreateModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-  file: File | null;
-  onFileChange: (file: File | null) => void;
-  courses: Course[];
-  students: Student[];
-  loading: boolean;
-  mutationLoading: boolean;
-  onSubmit: (data: any) => void;
-  level: 'BASICA' | 'MEDIA';
+  isOpen: boolean
+  onClose: () => void
+  file: File | null
+  onFileChange: (file: File | null) => void
+  courses: Course[]
+  students: Student[]
+  loading: boolean
+  mutationLoading: boolean
+  onSubmit: (data: AbsenceCreateForm & { document?: File | null }) => void
+  level: 'BASICA' | 'MEDIA'
 }
 
 type AbsenceCreateForm = {
-  course_id: string;
-  student_id: string;
-  start_date: string;
-  end_date: string;
-  observation?: string | null;
-};
+  course_id: string
+  student_id: string
+  start_date: string
+  end_date: string
+  observation?: string | null
+}
 
-export const InasistenciasCreateModal: React.FC<InasistenciasCreateModalProps> = ({
+export const InasistenciasCreateModal: React.FC<
+  InasistenciasCreateModalProps
+> = ({
   isOpen,
   onClose,
   file,
@@ -46,56 +51,70 @@ export const InasistenciasCreateModal: React.FC<InasistenciasCreateModalProps> =
   onSubmit,
   level,
 }) => {
-  const { 
-    register, 
-    handleSubmit, 
-    watch, 
+  const {
+    register,
+    handleSubmit,
+    watch,
     setValue,
     reset,
-    formState: { errors }
+    formState: { errors },
   } = useForm<AbsenceCreateForm>({
     resolver: zodResolver(absenceValidationSchema),
-    mode: 'onBlur'
-  });
+    mode: 'onBlur',
+  })
 
   const handleClose = () => {
-    onClose();
-    onFileChange(null);
-    reset();
-  };
+    onClose()
+    onFileChange(null)
+    reset()
+  }
 
-  const watchCourse = watch('course_id');
-  const startDate = watch('start_date');
-  const endDate = watch('end_date');
-  const [affectedTests, setAffectedTests] = useState<Test[]>([]);
-  const bufferResult = validateAbsenceCreation(startDate);
+  const watchCourse = watch('course_id')
+  const startDate = watch('start_date')
+  const endDate = watch('end_date')
+  const [affectedTests, setAffectedTests] = useState<Test[]>([])
+  const bufferResult = validateAbsenceCreation(startDate)
   const filteredStudents = React.useMemo(
     () => students.filter((s) => !watchCourse || s.course_id === watchCourse),
     [students, watchCourse]
-  );
+  )
 
-  const { data: testsForCourse = [] as Test[] } = useTests(watchCourse || undefined, undefined, undefined, level);
+  const { data: testsForCourse = [] as Test[] } = useTests(
+    watchCourse || undefined,
+    undefined,
+    undefined,
+    level
+  )
 
   useEffect(() => {
-    const next: Test[] = (startDate && endDate && testsForCourse.length > 0)
-      ? testsForCourse.filter((t: Test) => {
-          if (!isValidDate(t.date) || !isValidDate(startDate) || !isValidDate(endDate)) return false;
-          const d = new Date(t.date);
-          return d >= new Date(startDate) && d <= new Date(endDate);
-        })
-      : [];
+    const next: Test[] =
+      startDate && endDate && testsForCourse.length > 0
+        ? testsForCourse.filter((t: Test) => {
+            if (
+              !isValidDate(t.date) ||
+              !isValidDate(startDate) ||
+              !isValidDate(endDate)
+            )
+              return false
+            const d = new Date(t.date)
+            return d >= new Date(startDate) && d <= new Date(endDate)
+          })
+        : []
 
     setAffectedTests((prev) => {
-      if (prev.length === next.length && prev.every((p, i) => p.id === next[i]?.id)) {
-        return prev;
+      if (
+        prev.length === next.length &&
+        prev.every((p, i) => p.id === next[i]?.id)
+      ) {
+        return prev
       }
-      return next;
-    });
-  }, [startDate, endDate, testsForCourse]);
+      return next
+    })
+  }, [startDate, endDate, testsForCourse])
 
   useEffect(() => {
-    setValue('student_id', '');
-  }, [watchCourse, setValue]);
+    setValue('student_id', '')
+  }, [watchCourse, setValue])
 
   return (
     <Modal
@@ -105,23 +124,38 @@ export const InasistenciasCreateModal: React.FC<InasistenciasCreateModalProps> =
       title="Registrar Nueva Inasistencia"
       size="xl"
     >
-      <form data-testid="form-create-absence" onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+      <form
+        data-testid="form-create-absence"
+        onSubmit={handleSubmit(onSubmit)}
+        className="space-y-6"
+      >
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div>
-            <Select 
+            <Select
               data-testid="create-absence-course"
               label="Curso"
-              options={[{ value: '', label: 'Seleccionar curso' }, ...courses.map(c => ({ value: c.id, label: c.name }))]}
+              options={[
+                { value: '', label: 'Seleccionar curso' },
+                ...courses.map((c) => ({ value: c.id, label: c.name })),
+              ]}
               {...register('course_id', { required: 'El curso es requerido' })}
             />
             <FormError error={errors.course_id} />
           </div>
           <div>
-            <Select 
+            <Select
               data-testid="create-absence-student"
               label="Estudiante"
-              options={[{ value: '', label: 'Seleccionar estudiante' }, ...filteredStudents.map(s => ({ value: s.id, label: s.full_name }))]}
-              {...register('student_id', { required: 'El estudiante es requerido' })}
+              options={[
+                { value: '', label: 'Seleccionar estudiante' },
+                ...filteredStudents.map((s) => ({
+                  value: s.id,
+                  label: s.full_name,
+                })),
+              ]}
+              {...register('student_id', {
+                required: 'El estudiante es requerido',
+              })}
               disabled={!watchCourse}
             />
             <FormError error={errors.student_id} />
@@ -130,33 +164,43 @@ export const InasistenciasCreateModal: React.FC<InasistenciasCreateModalProps> =
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div>
-            <Input 
+            <Input
               data-testid="create-absence-start"
               label="Fecha Inicio"
               type="date"
-              {...register('start_date', { required: 'La fecha de inicio es requerida' })}
+              {...register('start_date', {
+                required: 'La fecha de inicio es requerida',
+              })}
             />
             <FormError error={errors.start_date} />
           </div>
           <div>
-            <Input 
+            <Input
               data-testid="create-absence-end"
               label="Fecha Fin"
               type="date"
-              {...register('end_date', { required: 'La fecha de fin es requerida' })}
+              {...register('end_date', {
+                required: 'La fecha de fin es requerida',
+              })}
             />
             <FormError error={errors.end_date} />
           </div>
         </div>
         {bufferResult.warning && (
           <div className="p-3 bg-yellow-50 border-l-4 border-yellow-400 text-yellow-700 rounded-md">
-            <AlertCircle className="inline w-4 h-4 mr-2" />{bufferResult.warning}
+            <AlertCircle className="inline w-4 h-4 mr-2" />
+            {bufferResult.warning}
           </div>
         )}
 
         <div className="space-y-2">
-          <label htmlFor="create-absence-observation" className="text-sm font-bold text-slate-700 ml-1">Observación (Opcional)</label>
-          <textarea 
+          <label
+            htmlFor="create-absence-observation"
+            className="text-sm font-bold text-slate-700 ml-1"
+          >
+            Observación (Opcional)
+          </label>
+          <textarea
             id="create-absence-observation"
             data-testid="create-absence-observation"
             aria-label="Observación de la inasistencia"
@@ -168,15 +212,22 @@ export const InasistenciasCreateModal: React.FC<InasistenciasCreateModalProps> =
         </div>
 
         <div className="space-y-2">
-          <label htmlFor="create-absence-file" className="text-sm font-bold text-slate-700 ml-1">Documento de Justificación (Opcional)</label>
+          <label
+            htmlFor="create-absence-file"
+            className="text-sm font-bold text-slate-700 ml-1"
+          >
+            Documento de Justificación (Opcional)
+          </label>
           <div className="border-2 border-dashed border-slate-200 rounded-xl p-6 flex flex-col items-center justify-center bg-slate-50 hover:bg-slate-100 transition-colors cursor-pointer relative">
             <Upload className="w-8 h-8 text-slate-400 mb-2" />
-            <p className="text-sm text-slate-500">{file ? file.name : 'Subir PDF, JPG o PNG'}</p>
-            <input 
+            <p className="text-sm text-slate-500">
+              {file ? file.name : 'Subir PDF, JPG o PNG'}
+            </p>
+            <input
               id="create-absence-file"
-              type="file" 
+              type="file"
               aria-label="Subir documento de justificación"
-              className="absolute inset-0 opacity-0 cursor-pointer" 
+              className="absolute inset-0 opacity-0 cursor-pointer"
               onChange={(e) => onFileChange(e.target.files?.[0] || null)}
             />
           </div>
@@ -189,10 +240,15 @@ export const InasistenciasCreateModal: React.FC<InasistenciasCreateModalProps> =
               Pruebas Afectadas Detectadas ({affectedTests.length})
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              {affectedTests.map(test => (
-                <div key={test.id} className="bg-white p-3 rounded-lg border border-rose-200 text-sm">
+              {affectedTests.map((test) => (
+                <div
+                  key={test.id}
+                  className="bg-white p-3 rounded-lg border border-rose-200 text-sm"
+                >
                   <div className="font-bold text-slate-800">{test.subject}</div>
-                  <div className="text-slate-500">{test.type} - {formatDate(test.date)}</div>
+                  <div className="text-slate-500">
+                    {test.type} - {formatDate(test.date)}
+                  </div>
                 </div>
               ))}
             </div>
@@ -200,14 +256,22 @@ export const InasistenciasCreateModal: React.FC<InasistenciasCreateModalProps> =
         )}
 
         <div className="flex justify-end gap-3 pt-4">
-          <Button variant="ghost" data-testid="create-absence-cancel" onClick={handleClose}>
+          <Button
+            variant="ghost"
+            data-testid="create-absence-cancel"
+            onClick={handleClose}
+          >
             Cancelar
           </Button>
-          <Button data-testid="create-absence-submit" type="submit" loading={loading || mutationLoading}>
+          <Button
+            data-testid="create-absence-submit"
+            type="submit"
+            loading={loading || mutationLoading}
+          >
             Guardar Inasistencia
           </Button>
         </div>
       </form>
     </Modal>
-  );
-};
+  )
+}

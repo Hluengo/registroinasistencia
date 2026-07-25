@@ -1,46 +1,65 @@
-const DATE_ONLY_PATTERN = /^(\d{4})-(\d{2})-(\d{2})$/;
+const DATE_ONLY_PATTERN = /^(\d{4})-(\d{2})-(\d{2})$/
 
-const buildLocalDate = (year: number, month: number, day: number): Date => new Date(year, month - 1, day, 12, 0, 0, 0);
+const buildLocalDate = (year: number, month: number, day: number): Date =>
+  new Date(year, month - 1, day, 12, 0, 0, 0)
 
-export const toDateOnlyString = (dateLike: string | Date | undefined | null): string => {
-  if (!dateLike) return '';
+export const toDateOnlyString = (
+  dateLike: string | Date | undefined | null
+): string => {
+  if (!dateLike) return ''
   if (dateLike instanceof Date) {
-    return `${dateLike.getFullYear()}-${String(dateLike.getMonth() + 1).padStart(2, '0')}-${String(dateLike.getDate()).padStart(2, '0')}`;
+    return `${dateLike.getFullYear()}-${String(dateLike.getMonth() + 1).padStart(2, '0')}-${String(dateLike.getDate()).padStart(2, '0')}`
   }
-  const s = (dateLike ?? '').toString();
-  if (s.indexOf('T') !== -1) return s.split('T')[0] ?? '';
-  return s.slice(0, 10);
-};
+  const s = (dateLike ?? '').toString()
+  if (s.indexOf('T') !== -1) return s.split('T')[0] ?? ''
+  return s.slice(0, 10)
+}
 
 export const parseDateOnly = (dateStr: string): Date | null => {
-  if (!dateStr) return null;
-  const match = DATE_ONLY_PATTERN.exec(dateStr.trim());
+  if (!dateStr) return null
+  const match = DATE_ONLY_PATTERN.exec(dateStr.trim())
   if (match) {
-    const year = Number(match[1]);
-    const month = Number(match[2]);
-    const day = Number(match[3]);
-    const d = buildLocalDate(year, month, day);
-    return d.getFullYear() === year && d.getMonth() === month - 1 && d.getDate() === day ? d : null;
+    const year = Number(match[1])
+    const month = Number(match[2])
+    const day = Number(match[3])
+    const d = buildLocalDate(year, month, day)
+    return d.getFullYear() === year &&
+      d.getMonth() === month - 1 &&
+      d.getDate() === day
+      ? d
+      : null
   }
-  const d = new Date(dateStr);
-  return isNaN(d.getTime()) ? null : d;
-};
+  const d = new Date(dateStr)
+  return isNaN(d.getTime()) ? null : d
+}
 
-export const isValidDate = (dateStr: string | Date | undefined | null): boolean => {
-  if (!dateStr) return false;
-  const d = dateStr instanceof Date ? dateStr : new Date(dateStr);
-  return !isNaN(d.getTime());
-};
+export const isValidDate = (
+  dateStr: string | Date | undefined | null
+): boolean => {
+  if (!dateStr) return false
+  const d = dateStr instanceof Date ? dateStr : new Date(dateStr)
+  return !isNaN(d.getTime())
+}
 
-export const isSameDateOnly = (a: string | Date | undefined | null, b: string | Date | undefined | null) => {
-  return toDateOnlyString(a) === toDateOnlyString(b);
-};
+export const isSameDateOnly = (
+  a: string | Date | undefined | null,
+  b: string | Date | undefined | null
+) => {
+  return toDateOnlyString(a) === toDateOnlyString(b)
+}
 
-export const formatDateOnlyLocale = (dateLike: string | Date | undefined | null, locale = 'es-CL') => {
-  const d = parseDateOnly(toDateOnlyString(dateLike));
-  if (!d) return '';
-  return d.toLocaleDateString(locale, { day: '2-digit', month: '2-digit', year: 'numeric' });
-};
+export const formatDateOnlyLocale = (
+  dateLike: string | Date | undefined | null,
+  locale = 'es-CL'
+) => {
+  const d = parseDateOnly(toDateOnlyString(dateLike))
+  if (!d) return ''
+  return d.toLocaleDateString(locale, {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+  })
+}
 
 /**
  * Calculate days until a test date from today.
@@ -49,12 +68,12 @@ export const formatDateOnlyLocale = (dateLike: string | Date | undefined | null,
  * @returns Number of days until test (0 = today, -1 = yesterday, 5 = in 5 days)
  */
 export const getDaysUntilTest = (testDate: string | Date): number => {
-  if (!isValidDate(testDate)) return -Infinity;
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  const test = parseDateOnly(toDateOnlyString(testDate));
-  if (!test) return -Infinity;
-  test.setHours(0, 0, 0, 0);
-  const diff = test.getTime() - today.getTime();
-  return Math.floor(diff / (1000 * 60 * 60 * 24));
-};
+  if (!isValidDate(testDate)) return -Infinity
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+  const test = parseDateOnly(toDateOnlyString(testDate))
+  if (!test) return -Infinity
+  test.setHours(0, 0, 0, 0)
+  const diff = test.getTime() - today.getTime()
+  return Math.floor(diff / (1000 * 60 * 60 * 24))
+}

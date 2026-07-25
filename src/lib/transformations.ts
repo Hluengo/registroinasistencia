@@ -1,18 +1,18 @@
-import { 
-  Database, 
-  Absence, 
-  AbsenceWithDetails, 
-  Student, 
+import {
+  Absence,
+  AbsenceWithDetails,
+  Student,
   Course,
-  Test 
-} from '../types';
-import { parseDateOnly, toDateOnlyString } from '../utils/date';
+  Test,
+} from '../types'
+import { Json, Database } from '../types/db'
+import { parseDateOnly, toDateOnlyString } from '../utils/date'
 
 export interface Holiday {
-  id: string;
-  date: string;
-  name: string;
-  es_irrenunciable: boolean;
+  id: string
+  date: string
+  name: string
+  es_irrenunciable: boolean
 }
 
 /**
@@ -21,26 +21,26 @@ export interface Holiday {
 export function normalizeHoliday(
   row: Database['public']['Tables']['feriados_chile']['Row']
 ): Holiday | null {
-  const rawDate = row.fecha;
-  let dateStr = '';
-  
+  const rawDate = row.fecha
+  let dateStr = ''
+
   try {
     if (rawDate) {
-      const normalized = toDateOnlyString(rawDate);
-      dateStr = normalized && parseDateOnly(normalized) ? normalized : '';
+      const normalized = toDateOnlyString(rawDate)
+      dateStr = normalized && parseDateOnly(normalized) ? normalized : ''
     }
   } catch {
-    dateStr = '';
+    dateStr = ''
   }
 
-  if (!dateStr) return null;
+  if (!dateStr) return null
 
   return {
     id: String(row.fecha),
     date: dateStr,
     name: row.descripcion ?? '',
-    es_irrenunciable: Boolean(row.es_irrenunciable ?? false)
-  };
+    es_irrenunciable: Boolean(row.es_irrenunciable ?? false),
+  }
 }
 
 /**
@@ -52,14 +52,14 @@ export function filterHolidaysByPeriod(
   year?: number
 ): Holiday[] {
   if (month === undefined || year === undefined) {
-    return holidays;
+    return holidays
   }
 
   return holidays.filter((h) => {
-    const d = parseDateOnly(h.date);
-    if (!d) return false;
-    return d.getFullYear() === year && d.getMonth() === month;
-  });
+    const d = parseDateOnly(h.date)
+    if (!d) return false
+    return d.getFullYear() === year && d.getMonth() === month
+  })
 }
 
 /**
@@ -67,18 +67,18 @@ export function filterHolidaysByPeriod(
  */
 export function normalizeAbsenceWithDetails(
   absence: Absence & {
-    students: Student & { courses: Course };
+    students: Student & { courses: Course }
   },
   affectedTests: Test[]
 ): AbsenceWithDetails {
-  const { students, ...rest } = absence;
-  const { courses, ...studentRest } = students;
-  
+  const { students, ...rest } = absence
+  const { courses, ...studentRest } = students
+
   return {
     ...rest,
     student: { ...studentRest, course: courses },
-    affected_tests: affectedTests
-  };
+    affected_tests: affectedTests,
+  }
 }
 
 /**
@@ -90,22 +90,23 @@ export function findAffectedTests(
   absenceEndDate: string
 ): Test[] {
   return courseTests.filter(
-    test => test.date >= absenceStartDate && test.date <= absenceEndDate
-  );
+    (test) => test.date >= absenceStartDate && test.date <= absenceEndDate
+  )
 }
 
 /**
  * Groups tests by course ID for efficient lookup
  */
-export function groupTestsByCourse(
-  tests: Test[]
-): Record<string, Test[]> {
-  return tests.reduce((acc, test) => {
-    const key = String(test.course_id ?? '');
-    if (!acc[key]) acc[key] = [];
-    acc[key].push(test);
-    return acc;
-  }, {} as Record<string, Test[]>);
+export function groupTestsByCourse(tests: Test[]): Record<string, Test[]> {
+  return tests.reduce(
+    (acc, test) => {
+      const key = String(test.course_id ?? '')
+      if (!acc[key]) acc[key] = []
+      acc[key].push(test)
+      return acc
+    },
+    {} as Record<string, Test[]>
+  )
 }
 
 /**
@@ -117,20 +118,41 @@ export function groupTestsByCourse(
 export function normalizeInspectorateRows(
   rows: Array<Record<string, unknown>>
 ): Array<{
-  id: string;
-  student_id: string | null;
-  created_at: string | null;
-  student: { id: string; full_name: string; course_id: string | null; created_at: string | null; rut: string | null; course: Course };
-  date_time: string;
-  observation: string;
+  id: string
+  student_id: string | null
+  created_at: string | null
+  student: {
+    id: string
+    full_name: string
+    course_id: string | null
+    created_at: string | null
+    rut: string | null
+    ai_analysis: Json | null
+    tenant_id: string
+    course: Course
+  }
+  date_time: string
+  observation: string
 }> {
   return rows.map((r) => {
     // Type-safe access to student property
     if ('student' in r) {
-      const recordWithStudent = r as Record<string, unknown> & { student: unknown };
-      if (recordWithStudent.student && typeof recordWithStudent.student === 'object') {
-        const stud = recordWithStudent.student as Record<string, unknown>;
-        const existingCourse = (stud.course as Course | undefined) ?? { id: '', name: 'Sin curso', level: null, position: null, created_at: null };
+      const recordWithStudent = r as Record<string, unknown> & {
+        student: unknown
+      }
+      if (
+        recordWithStudent.student &&
+        typeof recordWithStudent.student === 'object'
+      ) {
+        const stud = recordWithStudent.student as Record<string, unknown>
+        const existingCourse = (stud.course as Course | undefined) ?? {
+          id: '',
+          name: 'Sin curso',
+          level: null,
+          position: null,
+          created_at: null,
+          tenant_id: '',
+        }
         return {
           id: String(r.id ?? ''),
           student_id: (r.student_id as string | null | undefined) ?? null,
@@ -143,20 +165,41 @@ export function normalizeInspectorateRows(
             course_id: (stud.course_id as string | null | undefined) ?? null,
             created_at: (stud.created_at as string | null | undefined) ?? null,
             rut: (stud.rut as string | null | undefined) ?? null,
-            course: existingCourse
-          }
-        };
+            ai_analysis: (stud.ai_analysis as Json | null | undefined) ?? null,
+            tenant_id: String(stud.tenant_id ?? ''),
+            course: existingCourse,
+          },
+        }
       }
     }
     // Type-safe conversion from `students` form
     if ('students' in r) {
-      const recordWithStudents = r as Record<string, unknown> & { students: unknown };
-      const { students, ...rest } = recordWithStudents;
-      const stud = students as Record<string, unknown> & { id: string; full_name: string; course_id?: string | null; rut?: string | null; courses?: unknown };
-      
-      let course: Course = { id: '', name: 'Sin curso', level: null, position: null, created_at: null };
+      const recordWithStudents = r as Record<string, unknown> & {
+        students: unknown
+      }
+      const { students, ...rest } = recordWithStudents
+      const stud = students as Record<string, unknown> & {
+        id: string
+        full_name: string
+        course_id?: string | null
+        rut?: string | null
+        ai_analysis?: Json | null
+        tenant_id?: string
+        courses?: unknown
+      }
+
+      let course: Course = {
+        id: '',
+        name: 'Sin curso',
+        level: null,
+        position: null,
+        created_at: null,
+        tenant_id: '',
+      }
       if (stud.courses) {
-        course = Array.isArray(stud.courses) ? (stud.courses[0] as Course) : (stud.courses as Course);
+        course = Array.isArray(stud.courses)
+          ? (stud.courses[0] as Course)
+          : (stud.courses as Course)
       }
       return {
         id: String(rest.id ?? ''),
@@ -170,9 +213,11 @@ export function normalizeInspectorateRows(
           course_id: stud.course_id ?? null,
           created_at: (stud.created_at as string | null | undefined) ?? null,
           rut: stud.rut ?? null,
-          course
-        }
-      };
+          ai_analysis: stud.ai_analysis ?? null,
+          tenant_id: String(stud.tenant_id ?? ''),
+          course,
+        },
+      }
     }
     return {
       id: String(r.id ?? ''),
@@ -186,8 +231,17 @@ export function normalizeInspectorateRows(
         course_id: null,
         created_at: null,
         rut: null,
-        course: { id: '', name: 'Sin curso', level: null, position: null, created_at: null }
-      }
-    };
-  });
+        ai_analysis: null,
+        tenant_id: '',
+        course: {
+          id: '',
+          name: 'Sin curso',
+          level: null,
+          position: null,
+          created_at: null,
+          tenant_id: '',
+        },
+      },
+    }
+  })
 }

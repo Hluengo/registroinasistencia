@@ -1,46 +1,62 @@
-import React from 'react';
-import { Plus, ShieldAlert, Search, Calendar, Clock, User, ChevronRight } from 'lucide-react';
-import { useCreateInspectorateRecord } from '../hooks/queries';
-import { useToast } from '../contexts/ToastContext';
-import { Course, Student } from '../types';
-import { useInspectorate, useCourses, useStudents } from '../hooks/queries';
-import { createMutationGuard } from '../utils';
-import { formatDateTime } from '../utils';
-import { Modal } from '../components/ui/Modal';
-import { Button } from '../components/ui/Button';
-import { Badge } from '../components/ui/Badge';
-import { EmptyState } from '../components/ui/EmptyState';
-import { PageHeader } from '../components/ui/PageHeader';
-import { Input } from '../components/ui/Input';
-import { Select } from '../components/ui/Select';
-import { TableSkeleton } from '../components/ui/Skeleton';
-import { FormError } from '../components/ui/FormError';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { inspectorateRecordValidationSchema } from '../lib/validators';
-import { MONTHS, getYearOptions, getCourseOptions } from '../utils/filterOptions';
-import { TOAST_TYPES } from '../constants';
+import React from 'react'
+import {
+  Plus,
+  ShieldAlert,
+  Search,
+  Calendar,
+  Clock,
+  User,
+  ChevronRight,
+} from 'lucide-react'
+import { useCreateInspectorateRecord } from '../hooks/queries'
+import { useToast } from '../contexts/ToastContext'
+import { Course, Student } from '../types'
+import { useInspectorate, useCourses, useStudents } from '../hooks/queries'
+import { createMutationGuard } from '../utils'
+import { formatDateTime } from '../utils'
+import { Modal } from '../components/ui/Modal'
+import { Button } from '../components/ui/Button'
+import { Badge } from '../components/ui/Badge'
+import { EmptyState } from '../components/ui/EmptyState'
+import { PageHeader } from '../components/ui/PageHeader'
+import { Input } from '../components/ui/Input'
+import { Select } from '../components/ui/Select'
+import { TableSkeleton } from '../components/ui/Skeleton'
+import { FormError } from '../components/ui/FormError'
+import { useForm } from 'react-hook-form'
+import { zodResolver } from '@hookform/resolvers/zod'
+import { inspectorateRecordValidationSchema } from '../lib/validators'
+import {
+  MONTHS,
+  getYearOptions,
+  getCourseOptions,
+} from '../utils/filterOptions'
+import { TOAST_TYPES } from '../constants'
 
 interface InspectoriaProps {
-  level: 'BASICA' | 'MEDIA';
+  level: 'BASICA' | 'MEDIA'
 }
 
 type InspectorRowView = {
-  id: string;
-  student_id: string | null;
-  created_at: string | null;
-  date_time: string;
-  observation: string;
-  student: Student & { course: Course };
-};
-
-interface InspectoriaDetailModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-  selectedRecord: InspectorRowView | null;
+  id: string
+  student_id: string | null
+  created_at: string | null
+  date_time: string
+  observation: string
+  student: Student & { course: Course }
 }
 
-const InspectoriaDetailModal: React.FC<InspectoriaDetailModalProps> = ({ isOpen, onClose, selectedRecord }) => {
+interface InspectoriaDetailModalProps {
+  isOpen: boolean
+  onClose: () => void
+  selectedRecord: InspectorRowView | null
+}
+
+const InspectoriaDetailModal: React.FC<InspectoriaDetailModalProps> = ({
+  isOpen,
+  onClose,
+  selectedRecord,
+}) => {
   return (
     <Modal
       isOpen={isOpen}
@@ -55,8 +71,12 @@ const InspectoriaDetailModal: React.FC<InspectoriaDetailModalProps> = ({ isOpen,
               <User className="w-8 h-8" />
             </div>
             <div>
-              <h3 className="text-xl font-bold text-slate-900">{selectedRecord.student.full_name}</h3>
-              <Badge variant="secondary" className="mt-1">{selectedRecord.student.course.name}</Badge>
+              <h3 className="text-xl font-bold text-slate-900">
+                {selectedRecord.student.full_name}
+              </h3>
+              <Badge variant="secondary" className="mt-1">
+                {selectedRecord.student.course.name}
+              </Badge>
             </div>
           </div>
 
@@ -65,19 +85,27 @@ const InspectoriaDetailModal: React.FC<InspectoriaDetailModalProps> = ({ isOpen,
               <div className="text-xs font-bold text-slate-400 uppercase mb-1.5 flex items-center gap-1.5">
                 <Calendar className="w-3.5 h-3.5" /> Fecha
               </div>
-              <div className="text-sm font-bold text-slate-700">{formatDateTime(selectedRecord.date_time).split(' ')[0]}</div>
+              <div className="text-sm font-bold text-slate-700">
+                {formatDateTime(selectedRecord.date_time).split(' ')[0]}
+              </div>
             </div>
             <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100">
               <div className="text-xs font-bold text-slate-400 uppercase mb-1.5 flex items-center gap-1.5">
                 <Clock className="w-3.5 h-3.5" /> Hora
               </div>
-              <div className="text-sm font-bold text-slate-700">{new Date(selectedRecord.date_time).toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit' })}</div>
+              <div className="text-sm font-bold text-slate-700">
+                {new Date(selectedRecord.date_time).toLocaleTimeString(
+                  'es-CL',
+                  { hour: '2-digit', minute: '2-digit' }
+                )}
+              </div>
             </div>
           </div>
 
           <div className="space-y-3">
             <p className="text-xs font-bold text-slate-400 uppercase flex items-center gap-1.5 ml-1">
-              <ShieldAlert className="w-3.5 h-3.5 text-rose-500" /> Observación Completa
+              <ShieldAlert className="w-3.5 h-3.5 text-rose-500" /> Observación
+              Completa
             </p>
             <div className="p-5 bg-white border border-slate-200 rounded-2xl text-slate-700 text-sm leading-relaxed italic shadow-sm">
               "{selectedRecord.observation}"
@@ -85,22 +113,20 @@ const InspectoriaDetailModal: React.FC<InspectoriaDetailModalProps> = ({ isOpen,
           </div>
 
           <div className="flex justify-end pt-4">
-            <Button onClick={onClose}>
-              Cerrar
-            </Button>
+            <Button onClick={onClose}>Cerrar</Button>
           </div>
         </div>
       )}
     </Modal>
-  );
-};
+  )
+}
 
-type InspectorRow = InspectorRowView;
+type InspectorRow = InspectorRowView
 
 const InspectorateTable: React.FC<{
-  loading: boolean;
-  records: InspectorRow[];
-  onViewDetail: (rec: InspectorRow) => void;
+  loading: boolean
+  records: InspectorRow[]
+  onViewDetail: (rec: InspectorRow) => void
 }> = ({ loading, records, onViewDetail }) => (
   <div className="card overflow-hidden border border-slate-200/60 shadow-sm shadow-slate-200/20 rounded-3xl">
     <div className="overflow-x-auto">
@@ -115,7 +141,11 @@ const InspectorateTable: React.FC<{
         </thead>
         <tbody className="divide-y divide-slate-100">
           {loading ? (
-            <tr><td colSpan={4} className="px-6 py-12"><TableSkeleton /></td></tr>
+            <tr>
+              <td colSpan={4} className="px-6 py-12">
+                <TableSkeleton />
+              </td>
+            </tr>
           ) : records.length === 0 ? (
             <tr>
               <td colSpan={4} className="px-6 py-12">
@@ -125,57 +155,85 @@ const InspectorateTable: React.FC<{
                 />
               </td>
             </tr>
-          ) : records.map((rec) => (
-            <tr key={rec.id} className="hover:bg-slate-50/80 transition-colors group">
-              <td className="px-6 py-5">
-                <div className="flex items-center gap-4">
-                  <div className="w-10 h-10 bg-slate-100 rounded-2xl flex items-center justify-center text-slate-400 border border-slate-200/60 shadow-sm group-hover:scale-110 transition-transform duration-200">
-                    <User className="w-5 h-5" strokeWidth={1.5} />
+          ) : (
+            records.map((rec) => (
+              <tr
+                key={rec.id}
+                className="hover:bg-slate-50/80 transition-colors group"
+              >
+                <td className="px-6 py-5">
+                  <div className="flex items-center gap-4">
+                    <div className="w-10 h-10 bg-slate-100 rounded-2xl flex items-center justify-center text-slate-400 border border-slate-200/60 shadow-sm group-hover:scale-110 transition-transform duration-200">
+                      <User className="w-5 h-5" strokeWidth={1.5} />
+                    </div>
+                    <div>
+                      <div className="font-bold text-slate-900 tracking-tight group-hover:text-indigo-600 transition-colors">
+                        {rec.student.full_name}
+                      </div>
+                      <div className="text-[11px] font-medium text-slate-400">
+                        {rec.student.course.name}
+                      </div>
+                    </div>
                   </div>
-                  <div>
-                    <div className="font-bold text-slate-900 tracking-tight group-hover:text-indigo-600 transition-colors">{rec.student.full_name}</div>
-                    <div className="text-[11px] font-medium text-slate-400">{rec.student.course.name}</div>
+                </td>
+                <td className="px-6 py-5">
+                  <div className="flex items-center gap-2 text-sm font-medium text-slate-500">
+                    <Clock className="w-4 h-4 opacity-60" strokeWidth={1.5} />
+                    {formatDateTime(rec.date_time)}
                   </div>
-                </div>
-              </td>
-              <td className="px-6 py-5">
-                <div className="flex items-center gap-2 text-sm font-medium text-slate-500">
-                  <Clock className="w-4 h-4 opacity-60" strokeWidth={1.5} />
-                  {formatDateTime(rec.date_time)}
-                </div>
-              </td>
-              <td className="px-6 py-5">
-                <p className="text-sm text-slate-500 line-clamp-1 max-w-md italic font-medium">&quot;{rec.observation}&quot;</p>
-              </td>
-              <td className="px-6 py-5 text-right">
-                <Button variant="ghost" size="sm" onClick={() => onViewDetail(rec)} icon={ChevronRight} iconPosition="right" className="text-slate-400 hover:text-indigo-600 hover:bg-indigo-50">
-                  Ver Detalle
-                </Button>
-              </td>
-            </tr>
-          ))}
+                </td>
+                <td className="px-6 py-5">
+                  <p className="text-sm text-slate-500 line-clamp-1 max-w-md italic font-medium">
+                    &quot;{rec.observation}&quot;
+                  </p>
+                </td>
+                <td className="px-6 py-5 text-right">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => onViewDetail(rec)}
+                    icon={ChevronRight}
+                    iconPosition="right"
+                    className="text-slate-400 hover:text-indigo-600 hover:bg-indigo-50"
+                  >
+                    Ver Detalle
+                  </Button>
+                </td>
+              </tr>
+            ))
+          )}
         </tbody>
       </table>
     </div>
   </div>
-);
+)
 
 export const Inspectoria: React.FC<InspectoriaProps> = ({ level }) => {
   const [uiState, patchUiState] = React.useReducer(
     (
       state: {
-        mutationLoading: boolean;
-        isModalOpen: boolean;
-        selectedRecord: InspectorRow | null;
-        isDetailModalOpen: boolean;
-        filters: { courseId: string; month: number; year: number; searchQuery: string };
+        mutationLoading: boolean
+        isModalOpen: boolean
+        selectedRecord: InspectorRow | null
+        isDetailModalOpen: boolean
+        filters: {
+          courseId: string
+          month: number
+          year: number
+          searchQuery: string
+        }
       },
       patch: Partial<{
-        mutationLoading: boolean;
-        isModalOpen: boolean;
-        selectedRecord: InspectorRow | null;
-        isDetailModalOpen: boolean;
-        filters: { courseId: string; month: number; year: number; searchQuery: string };
+        mutationLoading: boolean
+        isModalOpen: boolean
+        selectedRecord: InspectorRow | null
+        isDetailModalOpen: boolean
+        filters: {
+          courseId: string
+          month: number
+          year: number
+          searchQuery: string
+        }
       }>
     ) => ({ ...state, ...patch }),
     {
@@ -190,93 +248,161 @@ export const Inspectoria: React.FC<InspectoriaProps> = ({ level }) => {
         searchQuery: '',
       },
     }
-  );
-  const { mutationLoading, isModalOpen, selectedRecord, isDetailModalOpen, filters } = uiState;
-  const { showToast } = useToast();
+  )
+  const {
+    mutationLoading,
+    isModalOpen,
+    selectedRecord,
+    isDetailModalOpen,
+    filters,
+  } = uiState
+  const { showToast } = useToast()
 
-  const { register, handleSubmit, watch, reset, setValue, formState: { errors } } = useForm<{ course_id?: string; student_id: string; date_time: string; observation: string }>({
+  const {
+    register,
+    handleSubmit,
+    watch,
+    reset,
+    setValue,
+    formState: { errors },
+  } = useForm<{
+    course_id?: string
+    student_id: string
+    date_time: string
+    observation: string
+  }>({
     resolver: zodResolver(inspectorateRecordValidationSchema),
     mode: 'onBlur',
     defaultValues: {
       course_id: '',
       student_id: '',
       date_time: '',
-      observation: ''
-    }
-  });
-  const watchCourse = watch('course_id') || '';
-  const courseField = register('course_id');
-  const studentField = register('student_id', { required: 'El estudiante es requerido' });
-  const startISO = new Date(filters.year, filters.month, 1, 0, 0, 0, 0).toISOString();
-  const endISO = new Date(filters.year, filters.month + 1, 0, 23, 59, 59, 999).toISOString();
+      observation: '',
+    },
+  })
+  const watchCourse = watch('course_id') || ''
+  const courseField = register('course_id')
+  const studentField = register('student_id', {
+    required: 'El estudiante es requerido',
+  })
+  const startISO = new Date(
+    filters.year,
+    filters.month,
+    1,
+    0,
+    0,
+    0,
+    0
+  ).toISOString()
+  const endISO = new Date(
+    filters.year,
+    filters.month + 1,
+    0,
+    23,
+    59,
+    59,
+    999
+  ).toISOString()
 
   // Load all records for the selected level from Supabase and filter month/year client-side.
   // This avoids missing rows caused by strict timestamptz range filtering at query time.
-  const { data: records = [], isLoading: recordsLoading } = useInspectorate(level, startISO, endISO);
-  const { data: courses = [], isLoading: coursesLoading } = useCourses(level);
+  const { data: records = [], isLoading: recordsLoading } = useInspectorate(
+    level,
+    startISO,
+    endISO
+  )
+  const { data: courses = [], isLoading: coursesLoading } = useCourses(level)
   const { data: students = [], isLoading: studentsLoading } = useStudents(
     watchCourse || undefined,
     level,
     isModalOpen && Boolean(watchCourse)
-  );
+  )
 
-  const loading = recordsLoading || coursesLoading || studentsLoading;
+  const loading = recordsLoading || coursesLoading || studentsLoading
 
-  const courseOptions = getCourseOptions(courses);
+  const courseOptions = getCourseOptions(courses)
 
-  const filteredRecords = records.filter((rec: InspectorRow) => {
-    const studentCourseId = rec.student?.course_id ?? ((rec.student as unknown as { course?: { id?: string } })?.course?.id) ?? '';
-    const matchesCourse = filters.courseId === '' || studentCourseId === filters.courseId;
-    const matchesSearch = (rec.student?.full_name ?? '').toLowerCase().includes(filters.searchQuery.toLowerCase()) ||
-                         (rec.observation ?? '').toLowerCase().includes(filters.searchQuery.toLowerCase());
-    return matchesCourse && matchesSearch;
-  });
+  const filteredRecords = React.useMemo(() => records.filter((rec: InspectorRow) => {
+    const studentCourseId =
+      rec.student?.course_id ??
+      (rec.student as unknown as { course?: { id?: string } })?.course?.id ??
+      ''
+    const matchesCourse =
+      filters.courseId === '' || studentCourseId === filters.courseId
+    const matchesSearch =
+      (rec.student?.full_name ?? '')
+        .toLowerCase()
+        .includes(filters.searchQuery.toLowerCase()) ||
+      (rec.observation ?? '')
+        .toLowerCase()
+        .includes(filters.searchQuery.toLowerCase())
+    return matchesCourse && matchesSearch
+  }), [records, filters.courseId, filters.searchQuery])
 
-  const createRecord = useCreateInspectorateRecord();
+  const createRecord = useCreateInspectorateRecord()
 
   const openCreateModal = React.useCallback(() => {
     reset({
       course_id: '',
       student_id: '',
       date_time: '',
-      observation: ''
-    });
-    patchUiState({ isModalOpen: true });
-  }, [reset]);
+      observation: '',
+    })
+    patchUiState({ isModalOpen: true })
+  }, [reset])
 
   const closeCreateModal = React.useCallback(() => {
     reset({
       course_id: '',
       student_id: '',
       date_time: '',
-      observation: ''
-    });
-    patchUiState({ isModalOpen: false });
-  }, [reset]);
+      observation: '',
+    })
+    patchUiState({ isModalOpen: false })
+  }, [reset])
 
-  const onSubmit = async (data: { student_id: string; date_time: string; observation: string }) => {
-    if (!createMutationGuard(mutationLoading, () => showToast({ type: TOAST_TYPES.WARNING, message: 'Ya se está procesando un registro' }))) {
-      return;
+  const onSubmit = async (data: {
+    student_id: string
+    date_time: string
+    observation: string
+  }) => {
+    if (
+      !createMutationGuard(mutationLoading, () =>
+        showToast({
+          type: TOAST_TYPES.WARNING,
+          message: 'Ya se está procesando un registro',
+        })
+      )
+    ) {
+      return
     }
     try {
-      patchUiState({ mutationLoading: true });
-      console.log('Inspectoria.onSubmit - payload', data);
-      const res = await createRecord.mutateAsync({ student_id: data.student_id, date_time: data.date_time, observation: data.observation });
-      console.log('Inspectoria.onSubmit - mutate result', res);
-      closeCreateModal();
-      showToast({ type: TOAST_TYPES.SUCCESS, message: 'Registro de inspecteriía creado exitosamente' });
+      patchUiState({ mutationLoading: true })
+      const res = await createRecord.mutateAsync({
+        student_id: data.student_id,
+        date_time: data.date_time,
+        observation: data.observation,
+      })
+      closeCreateModal()
+      showToast({
+        type: TOAST_TYPES.SUCCESS,
+        message: 'Registro de inspecteriía creado exitosamente',
+      })
     } catch (error) {
-      console.error('Error creating record:', error);
-      const msg = error instanceof Error ? error.message : String(error);
-        showToast({ type: TOAST_TYPES.ERROR, message: `Error al crear el registro: ${msg}` });
+      console.error('Error creating record:', error)
+      const msg = error instanceof Error ? error.message : String(error)
+      showToast({
+        type: TOAST_TYPES.ERROR,
+        message: `Error al crear el registro: ${msg}`,
+      })
     } finally {
-      patchUiState({ mutationLoading: false });
+      patchUiState({ mutationLoading: false })
     }
-  };
+  }
 
   const handleViewDetail = (rec: InspectorRow) => {
-    patchUiState({ selectedRecord: rec, isDetailModalOpen: true });
-  };
+    patchUiState({ selectedRecord: rec, isDetailModalOpen: true })
+  }
 
   return (
     <div className="space-y-10">
@@ -296,28 +422,44 @@ export const Inspectoria: React.FC<InspectoriaProps> = ({ level }) => {
                 placeholder="Buscar por estudiante u observación..."
                 icon={<Search className="w-4 h-4" />}
                 value={filters.searchQuery}
-                onChange={(e) => patchUiState({ filters: { ...filters, searchQuery: e.target.value } })}
+                onChange={(e) =>
+                  patchUiState({
+                    filters: { ...filters, searchQuery: e.target.value },
+                  })
+                }
               />
             </div>
             <div className="lg:col-span-2">
               <Select
                 options={MONTHS}
                 value={filters.month}
-                onChange={(e) => patchUiState({ filters: { ...filters, month: parseInt(e.target.value) } })}
+                onChange={(e) =>
+                  patchUiState({
+                    filters: { ...filters, month: parseInt(e.target.value) },
+                  })
+                }
               />
             </div>
             <div className="lg:col-span-2">
-              <Select 
+              <Select
                 options={getYearOptions()}
                 value={filters.year}
-                onChange={(e) => patchUiState({ filters: { ...filters, year: parseInt(e.target.value) } })}
+                onChange={(e) =>
+                  patchUiState({
+                    filters: { ...filters, year: parseInt(e.target.value) },
+                  })
+                }
               />
             </div>
             <div className="lg:col-span-3">
               <Select
                 options={courseOptions}
                 value={filters.courseId}
-                onChange={(e) => patchUiState({ filters: { ...filters, courseId: e.target.value } })}
+                onChange={(e) =>
+                  patchUiState({
+                    filters: { ...filters, courseId: e.target.value },
+                  })
+                }
               />
             </div>
             {(filters.courseId || filters.searchQuery) && (
@@ -325,7 +467,11 @@ export const Inspectoria: React.FC<InspectoriaProps> = ({ level }) => {
                 <Button
                   variant="ghost"
                   size="sm"
-                  onClick={() => { patchUiState({ filters: { ...filters, courseId: '', searchQuery: '' } }); }}
+                  onClick={() => {
+                    patchUiState({
+                      filters: { ...filters, courseId: '', searchQuery: '' },
+                    })
+                  }}
                   className="font-bold text-slate-500 hover:text-indigo-600"
                 >
                   Limpiar Filtros
@@ -342,29 +488,41 @@ export const Inspectoria: React.FC<InspectoriaProps> = ({ level }) => {
         onViewDetail={handleViewDetail}
       />
 
-      <Modal 
-        isOpen={isModalOpen} 
-        onClose={closeCreateModal} 
+      <Modal
+        isOpen={isModalOpen}
+        onClose={closeCreateModal}
         title="Registrar Atención de Inspectoría"
         size="lg"
       >
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
-              <Select 
+              <Select
                 label="Curso"
-                options={[{ value: '', label: 'Seleccionar curso' }, ...(courses as Course[]).map((c: Course) => ({ value: c.id, label: c.name }))]}
+                options={[
+                  { value: '', label: 'Seleccionar curso' },
+                  ...(courses as Course[]).map((c: Course) => ({
+                    value: c.id,
+                    label: c.name,
+                  })),
+                ]}
                 {...courseField}
                 onChange={(e) => {
-                  courseField.onChange(e);
-                  setValue('student_id', '', { shouldValidate: true });
+                  courseField.onChange(e)
+                  setValue('student_id', '', { shouldValidate: true })
                 }}
               />
             </div>
             <div>
-              <Select 
+              <Select
                 label="Estudiante"
-                options={[{ value: '', label: 'Seleccionar estudiante' }, ...(students as Student[]).map((s: Student) => ({ value: s.id, label: s.full_name }))]}
+                options={[
+                  { value: '', label: 'Seleccionar estudiante' },
+                  ...(students as Student[]).map((s: Student) => ({
+                    value: s.id,
+                    label: s.full_name,
+                  })),
+                ]}
                 {...studentField}
                 disabled={!watchCourse}
               />
@@ -373,19 +531,28 @@ export const Inspectoria: React.FC<InspectoriaProps> = ({ level }) => {
           </div>
 
           <div>
-            <Input 
+            <Input
               label="Fecha y Hora"
               type="datetime-local"
-              {...register('date_time', { required: 'La fecha y hora son requeridas' })}
+              {...register('date_time', {
+                required: 'La fecha y hora son requeridas',
+              })}
             />
             <FormError error={errors.date_time} />
           </div>
 
           <div className="space-y-2">
-            <label htmlFor="inspectoria-observation" className="text-sm font-bold text-slate-700 ml-1">Observación / Detalle</label>
-            <textarea 
+            <label
+              htmlFor="inspectoria-observation"
+              className="text-sm font-bold text-slate-700 ml-1"
+            >
+              Observación / Detalle
+            </label>
+            <textarea
               id="inspectoria-observation"
-              {...register('observation', { required: 'La observación es requerida' })}
+              {...register('observation', {
+                required: 'La observación es requerida',
+              })}
               className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500/20 min-h-[120px] text-slate-700"
               placeholder="Describa la situación o motivo de la atención..."
             />
@@ -409,5 +576,5 @@ export const Inspectoria: React.FC<InspectoriaProps> = ({ level }) => {
         selectedRecord={selectedRecord}
       />
     </div>
-  );
-};
+  )
+}

@@ -8,22 +8,25 @@
  * Use this pattern in pages that need modal + list view
  */
 export type ModalUIState<T> = {
-  isOpen: boolean;
-  isDetailOpen: boolean;
-  isEditing: boolean;
-  selected: T | null;
-  mutationLoading: boolean;
-  filters: Record<string, any>;
-};
+  isOpen: boolean
+  isDetailOpen: boolean
+  isEditing: boolean
+  selected: T | null
+  mutationLoading: boolean
+  filters: Record<string, string | number | boolean>
+}
 
-export type ModalUIAction<T> = Partial<ModalUIState<T>>;
+export type ModalUIAction<T> = Partial<ModalUIState<T>>
 
 export const createModalReducer = <T>() => {
-  return (state: ModalUIState<T>, patch: ModalUIAction<T>): ModalUIState<T> => ({
+  return (
+    state: ModalUIState<T>,
+    patch: ModalUIAction<T>
+  ): ModalUIState<T> => ({
     ...state,
-    ...patch
-  });
-};
+    ...patch,
+  })
+}
 
 /**
  * Creates a reusable handler that prevents rapid/double-submission
@@ -34,22 +37,22 @@ export const createMutationGuard = (
   onAlreadyLoading?: () => void
 ): boolean => {
   if (mutationLoading) {
-    onAlreadyLoading?.();
-    return false;
+    onAlreadyLoading?.()
+    return false
   }
-  return true;
-};
+  return true
+}
 
 /**
  * Standardized error toast message based on error type
  * Helps normalize error reporting across pages
  */
-export const getErrorMessage = (error: unknown, context: string): string => {
+export const getContextualErrorMessage = (error: unknown, context: string): string => {
   if (error instanceof Error) {
-    return `Error en ${context}: ${error.message}`;
+    return `Error en ${context}: ${error.message}`
   }
   if (typeof error === 'string') {
-    return `Error en ${context}: ${error}`;
+    return `Error en ${context}: ${error}`
   }
-  return `Error en ${context}: Ocurrió un error inesperado.`;
-};
+  return `Error en ${context}: Ocurrió un error inesperado.`
+}

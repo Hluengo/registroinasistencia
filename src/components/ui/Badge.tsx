@@ -1,10 +1,10 @@
-import React from 'react';
-import { cn } from '../../utils';
+import React from 'react'
+import { cn } from '../../utils'
 
 interface BadgeProps {
-  children: React.ReactNode;
-  variant?: 'primary' | 'secondary' | 'success' | 'warning' | 'danger' | 'info';
-  className?: string;
+  children: React.ReactNode
+  variant?: 'primary' | 'secondary' | 'success' | 'warning' | 'danger' | 'info'
+  className?: string
 }
 
 const badgeVariants = {
@@ -14,16 +14,22 @@ const badgeVariants = {
   warning: 'bg-amber-50 text-amber-700 border-amber-100/50',
   danger: 'bg-rose-50 text-rose-700 border-rose-100/50',
   info: 'bg-indigo-50 text-indigo-700 border-indigo-100/50',
-} as const;
+} as const
 
-export const Badge: React.FC<BadgeProps> = ({ children, variant = 'primary', className }) => {
+export const Badge: React.FC<BadgeProps> = ({
+  children,
+  variant = 'primary',
+  className,
+}) => {
   return (
-    <span className={cn(
-      "px-2.5 py-0.5 rounded-full text-[11px] font-semibold border uppercase tracking-wider",
-      badgeVariants[variant],
-      className
-    )}>
+    <span
+      className={cn(
+        'px-2.5 py-0.5 rounded-full text-[11px] font-semibold border uppercase tracking-wider',
+        badgeVariants[variant],
+        className
+      )}
+    >
       {children}
     </span>
-  );
-};
+  )
+}

@@ -4,40 +4,40 @@ export class AppError extends Error {
     public status: number = 500,
     public code?: string
   ) {
-    super(message);
-    this.name = 'AppError';
+    super(message)
+    this.name = 'AppError'
   }
 }
 
 export const handleError = (error: unknown): string => {
-  console.error('[Service Error]:', error);
-  
+  console.error('[Service Error]:', error)
+
   if (error instanceof AppError) {
-    throw error;
+    return error.message
   }
 
   // Supabase specific errors - cast locally
-  const err = error as { code?: string; message?: string } | undefined;
+  const err = error as { code?: string; message?: string } | undefined
   if (err?.code) {
     switch (err.code) {
       case '23505':
-        throw new AppError('Registro duplicado detectado.', 400, err.code);
+        return 'Registro duplicado detectado.'
       case '23503':
-        throw new AppError('Error de referencia: el registro relacionado no existe.', 400, err.code);
+        return 'Error de referencia: el registro relacionado no existe.'
       case '42501':
-        throw new AppError('Permiso denegado en base de datos. Verifica sesión activa y GRANT/RLS en Supabase para este recurso.', 403, err.code);
+        return 'Permiso denegado en base de datos. Verifica sesión activa y GRANT/RLS en Supabase para este recurso.'
       case 'PGRST116':
-        throw new AppError('No se encontró el registro solicitado.', 404, err.code);
+        return 'No se encontró el registro solicitado.'
       default:
-        throw new AppError('Error en la base de datos: ' + (err.message || 'Error desconocido'), 500, err.code);
+        return 'Error en la base de datos: ' + (err.message || 'Error desconocido')
     }
   }
 
-  throw new AppError((err && err.message) || 'Ocurrió un error inesperado.', 500);
-};
+  return (err && err.message) || 'Ocurrió un error inesperado.'
+}
 
 export const getErrorMessage = (error: unknown): string => {
-  if (error instanceof AppError) return error.message;
-  if (error instanceof Error) return error.message;
-  return 'Error desconocido';
-};
+  if (error instanceof AppError) return error.message
+  if (error instanceof Error) return error.message
+  return 'Error desconocido'
+}

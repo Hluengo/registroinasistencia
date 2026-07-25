@@ -1,17 +1,15 @@
-import React from 'react';
-import { cn } from '../../utils';
+import React from 'react'
+import { cn } from '../../utils'
 
 interface SkeletonProps {
-  className?: string;
+  className?: string
 }
 
 const Skeleton: React.FC<SkeletonProps> = ({ className }) => {
-  return (
-    <div className={cn("animate-pulse bg-slate-200 rounded", className)} />
-  );
-};
+  return <div className={cn('animate-pulse bg-slate-200 rounded', className)} />
+}
 
-const skeletonRows = ['r1', 'r2', 'r3', 'r4', 'r5'];
+const skeletonRows = ['r1', 'r2', 'r3', 'r4', 'r5']
 
 export const TableSkeleton: React.FC = () => {
   return (
@@ -25,5 +23,5 @@ export const TableSkeleton: React.FC = () => {
         </div>
       ))}
     </div>
-  );
-};
+  )
+}

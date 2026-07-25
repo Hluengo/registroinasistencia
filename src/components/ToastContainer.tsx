@@ -1,38 +1,41 @@
-import React, { useEffect, useRef } from 'react';
-import { useToast, Toast } from '../contexts/ToastContext';
-import { ToastType } from '../constants';
+import React, { useEffect, useRef } from 'react'
+import { useToast, Toast } from '../contexts/ToastContext'
+import { ToastType } from '../constants'
 
 const toastColors: Record<ToastType, string> = {
   success: 'bg-green-50 border-green-200 text-green-800',
   error: 'bg-red-50 border-red-200 text-red-800',
   warning: 'bg-yellow-50 border-yellow-200 text-yellow-800',
   info: 'bg-blue-50 border-blue-200 text-blue-800',
-};
+}
 
 const toastIcons: Record<ToastType, string> = {
   success: '✓',
   error: '✕',
   warning: '⚠',
   info: 'ℹ',
-};
+}
 
 interface ToastItemProps {
-  toast: Toast;
-  onRemove: (id: string) => void;
+  toast: Toast
+  onRemove: (id: string) => void
 }
 
 const ToastItem: React.FC<ToastItemProps> = ({ toast, onRemove }) => {
-  const onRemoveRef = useRef(onRemove);
+  const onRemoveRef = useRef(onRemove)
 
   useEffect(() => {
-    onRemoveRef.current = onRemove;
-  }, [onRemove]);
+    onRemoveRef.current = onRemove
+  }, [onRemove])
 
   useEffect(() => {
-    if (!toast.duration) return;
-    const timer = setTimeout(() => onRemoveRef.current(toast.id), toast.duration);
-    return () => clearTimeout(timer);
-  }, [toast]);
+    if (!toast.duration) return
+    const timer = setTimeout(
+      () => onRemoveRef.current(toast.id),
+      toast.duration
+    )
+    return () => clearTimeout(timer)
+  }, [toast])
 
   return (
     <div
@@ -54,17 +57,17 @@ const ToastItem: React.FC<ToastItemProps> = ({ toast, onRemove }) => {
         ×
       </button>
     </div>
-  );
-};
+  )
+}
 
 export const ToastContainer: React.FC = () => {
-  const { toasts, removeToast } = useToast();
+  const { toasts, removeToast } = useToast()
 
   return (
     <div className="fixed top-4 right-4 z-50 max-w-sm space-y-2 pointer-events-auto">
-      {toasts.map(toast => (
+      {toasts.map((toast) => (
         <ToastItem key={toast.id} toast={toast} onRemove={removeToast} />
       ))}
     </div>
-  );
-};
+  )
+}

@@ -1,87 +1,140 @@
-import React, { useEffect, useMemo, useState } from 'react';
-import { Calendar, ChevronLeft, ChevronRight, Info, Bell, CheckCircle2, AlertCircle } from 'lucide-react';
-import { startOfMonth, endOfMonth, startOfWeek, endOfWeek, eachDayOfInterval, format, isSameMonth, isSameDay } from 'date-fns';
-import { es } from 'date-fns/locale';
-import { toDateOnlyString, getDaysUntilTest } from '../utils/date';
-import { Test, Course } from '../types';
-import { Holiday } from '../hooks/queries';
-import { useToast } from '../contexts/ToastContext';
-import { TOAST_TYPES } from '../constants';
+import React, { useEffect, useMemo, useState } from 'react'
+import {
+  Calendar,
+  ChevronLeft,
+  ChevronRight,
+  Info,
+  Bell,
+  CheckCircle2,
+  AlertCircle,
+} from 'lucide-react'
+import {
+  startOfMonth,
+  endOfMonth,
+  startOfWeek,
+  endOfWeek,
+  eachDayOfInterval,
+  format,
+  isSameMonth,
+  isSameDay,
+} from 'date-fns'
+import { es } from 'date-fns/locale'
+import { toDateOnlyString, getDaysUntilTest } from '../utils/date'
+import { Test, Course } from '../types'
+import { Holiday } from '../hooks/queries'
+import { useToast } from '../contexts/ToastContext'
+import { TOAST_TYPES } from '../constants'
 
-type Tone = 'fatal' | 'descargos' | 'reconsideracion' | 'interno' | 'gcc';
+type Tone = 'fatal' | 'descargos' | 'reconsideracion' | 'interno' | 'gcc'
 
 const toneClasses: Record<Tone, { base: string; dot: string }> = {
-  fatal: { base: 'bg-red-50 text-red-700 border-red-200 hover:bg-red-100', dot: 'bg-red-500' },
-  descargos: { base: 'bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100', dot: 'bg-amber-600' },
-  reconsideracion: { base: 'bg-violet-50 text-violet-700 border-violet-200 hover:bg-violet-100', dot: 'bg-violet-600' },
-  interno: { base: 'bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100', dot: 'bg-blue-500' },
-  gcc: { base: 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100', dot: 'bg-emerald-500' }
-};
+  fatal: {
+    base: 'bg-red-50 text-red-700 border-red-200 hover:bg-red-100',
+    dot: 'bg-red-500',
+  },
+  descargos: {
+    base: 'bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100',
+    dot: 'bg-amber-600',
+  },
+  reconsideracion: {
+    base: 'bg-violet-50 text-violet-700 border-violet-200 hover:bg-violet-100',
+    dot: 'bg-violet-600',
+  },
+  interno: {
+    base: 'bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100',
+    dot: 'bg-blue-500',
+  },
+  gcc: {
+    base: 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100',
+    dot: 'bg-emerald-500',
+  },
+}
 
 interface Props {
-  tests: CalendarEvent[];
-  holidays: Holiday[];
-  currentDate: Date;
-  selectedDate: string | null;
-  setSelectedDate: (d: string | null) => void;
-  onPrev?: () => void;
-  onNext?: () => void;
+  tests: CalendarEvent[]
+  holidays: Holiday[]
+  currentDate: Date
+  selectedDate: string | null
+  setSelectedDate: (d: string | null) => void
+  onPrev?: () => void
+  onNext?: () => void
 }
 
 type CalendarEvent = Test & {
-  tone?: Tone;
-  title?: string;
-  course?: Course | null;
-  courses?: Course | null;
-  course_name?: string;
-  courseName?: string;
-};
+  tone?: Tone
+  title?: string
+  course?: Course | null
+  courses?: Course | null
+  course_name?: string
+  courseName?: string
+}
 
-const EMPTY_EVENTS: CalendarEvent[] = [];
-const EMPTY_HOLIDAYS: Holiday[] = [];
+const EMPTY_EVENTS: CalendarEvent[] = []
+const EMPTY_HOLIDAYS: Holiday[] = []
 
-const CalendarioPlazosLegales: React.FC<Props> = ({ tests = EMPTY_EVENTS, holidays = EMPTY_HOLIDAYS, currentDate, selectedDate, setSelectedDate, onPrev, onNext }) => {
-  const [hovered, setHovered] = useState<null | { ev: CalendarEvent; rect: DOMRect }>(null);
-  const [today, setToday] = useState(() => new Date());
+const CalendarioPlazosLegales: React.FC<Props> = ({
+  tests = EMPTY_EVENTS,
+  holidays = EMPTY_HOLIDAYS,
+  currentDate,
+  selectedDate,
+  setSelectedDate,
+  onPrev,
+  onNext,
+}) => {
+  const [hovered, setHovered] = useState<null | {
+    ev: CalendarEvent
+    rect: DOMRect
+  }>(null)
+  const [today, setToday] = useState(() => new Date())
   useEffect(() => {
-    const id = setInterval(() => setToday(new Date()), 60_000);
-    return () => clearInterval(id);
-  }, []);
-  const { showToast } = useToast();
+    const id = setInterval(() => setToday(new Date()), 60_000)
+    return () => clearInterval(id)
+  }, [])
+  const { showToast } = useToast()
 
   const calendarDays = useMemo(() => {
-    const start = startOfWeek(startOfMonth(currentDate), { weekStartsOn: 1 });
-    const end = endOfWeek(endOfMonth(currentDate), { weekStartsOn: 1 });
-    return eachDayOfInterval({ start, end });
-  }, [currentDate]);
+    const start = startOfWeek(startOfMonth(currentDate), { weekStartsOn: 1 })
+    const end = endOfWeek(endOfMonth(currentDate), { weekStartsOn: 1 })
+    return eachDayOfInterval({ start, end })
+  }, [currentDate])
 
-  const eventsByDay = (dayStr: string) => tests.filter((t) => toDateOnlyString(t.date) === dayStr);
+  const eventsByDay = (dayStr: string) =>
+    tests.filter((t) => toDateOnlyString(t.date) === dayStr)
 
   return (
     <div className="flex-1">
       <div className="bg-white rounded-2xl border border-slate-100 shadow-lg overflow-visible">
-
         <div className="grid grid-cols-7 text-[11px] font-semibold text-slate-400 uppercase tracking-wide border-b border-slate-100">
-          {['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'].map((d) => (<div key={d} className="py-3 text-center">{d}</div>))}
+          {['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'].map((d) => (
+            <div key={d} className="py-3 text-center">
+              {d}
+            </div>
+          ))}
         </div>
 
         <div className="p-3">
           <div className="overflow-x-auto">
             <div className="grid grid-cols-7 gap-3 min-w-[720px]">
               {calendarDays.map((day) => {
-                const dayStr = format(day, 'yyyy-MM-dd');
-                const dayEvents = eventsByDay(dayStr);
-                const isToday = isSameDay(day, today);
-                const isWeekend = [0, 6].includes(day.getDay());
-                const holiday = (holidays || []).some((h) => h.date === dayStr);
+                const dayStr = format(day, 'yyyy-MM-dd')
+                const dayEvents = eventsByDay(dayStr)
+                const isToday = isSameDay(day, today)
+                const isWeekend = [0, 6].includes(day.getDay())
+                const holiday = (holidays || []).some((h) => h.date === dayStr)
 
                 const cellClass = [
                   'min-h-28 border rounded-md p-2 flex flex-col cursor-pointer transition-colors hover:bg-slate-50',
-                  !isSameMonth(day, currentDate) ? 'bg-slate-50/40 text-slate-300' : 'bg-white',
+                  !isSameMonth(day, currentDate)
+                    ? 'bg-slate-50/40 text-slate-300'
+                    : 'bg-white',
                   isWeekend ? 'bg-slate-100' : '',
-                  holiday ? 'bg-red-50 border-2 border-red-500 ring-1 ring-red-200' : '',
-                  isToday ? 'ring-2 ring-blue-500 ring-inset bg-blue-50/30' : ''
-                ].join(' ');
+                  holiday
+                    ? 'bg-red-50 border-2 border-red-500 ring-1 ring-red-200'
+                    : '',
+                  isToday
+                    ? 'ring-2 ring-blue-500 ring-inset bg-blue-50/30'
+                    : '',
+                ].join(' ')
 
                 return (
                   <button
@@ -92,39 +145,51 @@ const CalendarioPlazosLegales: React.FC<Props> = ({ tests = EMPTY_EVENTS, holida
                     aria-label={`Seleccionar día ${format(day, 'd')} de ${format(day, 'MMMM', { locale: es })}`}
                     onKeyDown={(e) => {
                       if (e.key === 'Enter' || e.key === ' ') {
-                        e.preventDefault();
-                        setSelectedDate(dayStr);
+                        e.preventDefault()
+                        setSelectedDate(dayStr)
                       }
                     }}
                   >
                     <div className="flex items-start justify-between">
-                      <div className="text-xs font-black">{format(day, 'd')}</div>
-                      <div className="text-[10px] text-slate-400">{isWeekend ? (day.getDay() === 6 ? 'Sáb' : 'Dom') : ''}</div>
+                      <div className="text-xs font-black">
+                        {format(day, 'd')}
+                      </div>
+                      <div className="text-[10px] text-slate-400">
+                        {isWeekend ? (day.getDay() === 6 ? 'Sáb' : 'Dom') : ''}
+                      </div>
                     </div>
 
                     <div className="mt-2 flex-1 flex flex-col gap-2 overflow-hidden">
                       {dayEvents.slice(0, 5).map((ev) => {
                         // pick tone mapping from ev.type or ev.tone; default interno
-                        const tone: Tone = (ev.tone as Tone) || 'interno';
-                        const cls = toneClasses[tone];
+                        const tone: Tone = (ev.tone as Tone) || 'interno'
+                        const cls = toneClasses[tone]
                         return (
                           <div
                             key={ev.id}
                             className={`group text-xs font-black uppercase truncate px-3 py-1 rounded-md border ${cls.base} transition-all hover:scale-105 text-left`}
-                            onMouseEnter={(e) => { const rect = e.currentTarget.getBoundingClientRect(); setHovered({ ev, rect }); }}
+                            onMouseEnter={(e) => {
+                              const rect =
+                                e.currentTarget.getBoundingClientRect()
+                              setHovered({ ev, rect })
+                            }}
                             onMouseLeave={() => setHovered(null)}
                             title={ev.description ?? ev.subject}
                           >
                             <div className="flex items-center gap-2">
-                              <span className={`w-1.5 h-5 rounded inline-block ${cls.dot}`} />
-                              <span className="truncate">{ev.subject ?? ev.title}</span>
+                              <span
+                                className={`w-1.5 h-5 rounded inline-block ${cls.dot}`}
+                              />
+                              <span className="truncate">
+                                {ev.subject ?? ev.title}
+                              </span>
                             </div>
                           </div>
-                        );
+                        )
                       })}
                     </div>
                   </button>
-                );
+                )
               })}
             </div>
           </div>
@@ -134,23 +199,33 @@ const CalendarioPlazosLegales: React.FC<Props> = ({ tests = EMPTY_EVENTS, holida
       {/* Sidebar inside component for demo consistency (keeps layout similar to mockup) */}
       <div className="mt-4 lg:mt-0" />
 
-      {hovered && (
+      {hovered &&
         (() => {
-          const { ev, rect } = hovered;
-          const maxW = 320;
-          const estH = 160;
-          const centerLeft = rect.left + rect.width / 2 - maxW / 2;
-          const left = Math.max(12, Math.min(centerLeft, window.innerWidth - maxW - 12));
+          const { ev, rect } = hovered
+          const maxW = 320
+          const estH = 160
+          const centerLeft = rect.left + rect.width / 2 - maxW / 2
+          const left = Math.max(
+            12,
+            Math.min(centerLeft, window.innerWidth - maxW - 12)
+          )
           // Use viewport coordinates (DOMRect values are viewport-relative when obtained via getBoundingClientRect)
-          let top = rect.bottom + 8;
+          let top = rect.bottom + 8
           // if not enough space below, position above
           if (top + estH > window.innerHeight) {
-            top = Math.max(8, rect.top - estH - 8);
+            top = Math.max(8, rect.top - estH - 8)
           }
-          const courseName = ev.course?.name || ev.courses?.name || ev.course_name || ev.courseName || '';
-          const daysUntil = getDaysUntilTest(ev.date);
-          const eventDay = toDateOnlyString(ev.date);
-          const reminderLabel = courseName ? `${ev.subject ?? ev.title} (${courseName})` : (ev.subject ?? ev.title ?? 'evento');
+          const courseName =
+            ev.course?.name ||
+            ev.courses?.name ||
+            ev.course_name ||
+            ev.courseName ||
+            ''
+          const daysUntil = getDaysUntilTest(ev.date)
+          const eventDay = toDateOnlyString(ev.date)
+          const reminderLabel = courseName
+            ? `${ev.subject ?? ev.title} (${courseName})`
+            : (ev.subject ?? ev.title ?? 'evento')
 
           return (
             <div
@@ -166,20 +241,33 @@ const CalendarioPlazosLegales: React.FC<Props> = ({ tests = EMPTY_EVENTS, holida
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center justify-between gap-2">
-                    <div className="text-xs font-bold text-slate-600 uppercase tracking-wide">{(ev.type || ev.tone || 'Evento').toString()}</div>
+                    <div className="text-xs font-bold text-slate-600 uppercase tracking-wide">
+                      {(ev.type || ev.tone || 'Evento').toString()}
+                    </div>
                     {daysUntil !== -Infinity && (
-                      <div className={`text-xs font-bold px-2 py-1 rounded-md whitespace-nowrap ${
-                        daysUntil < 0 ? 'bg-slate-100 text-slate-600' :
-                        daysUntil === 0 ? 'bg-yellow-100 text-yellow-700' :
-                        daysUntil <= 3 ? 'bg-red-100 text-red-700' :
-                        'bg-blue-100 text-blue-700'
-                      }`}>
-                        {daysUntil < 0 ? 'Pasada' : daysUntil === 0 ? 'Hoy' : `En ${daysUntil}d`}
+                      <div
+                        className={`text-xs font-bold px-2 py-1 rounded-md whitespace-nowrap ${
+                          daysUntil < 0
+                            ? 'bg-slate-100 text-slate-600'
+                            : daysUntil === 0
+                              ? 'bg-yellow-100 text-yellow-700'
+                              : daysUntil <= 3
+                                ? 'bg-red-100 text-red-700'
+                                : 'bg-blue-100 text-blue-700'
+                        }`}
+                      >
+                        {daysUntil < 0
+                          ? 'Pasada'
+                          : daysUntil === 0
+                            ? 'Hoy'
+                            : `En ${daysUntil}d`}
                       </div>
                     )}
                   </div>
 
-                  <div className="mt-2 text-sm font-bold text-slate-900">{ev.subject ?? ev.title}</div>
+                  <div className="mt-2 text-sm font-bold text-slate-900">
+                    {ev.subject ?? ev.title}
+                  </div>
 
                   {courseName ? (
                     <button
@@ -188,9 +276,12 @@ const CalendarioPlazosLegales: React.FC<Props> = ({ tests = EMPTY_EVENTS, holida
                       aria-label={`Agregar recordatorio para ${reminderLabel}`}
                       title="Agregar recordatorio"
                       onClick={() => {
-                        setSelectedDate(eventDay);
-                        showToast({ type: TOAST_TYPES.INFO, message: `Recordatorio agregado: ${reminderLabel}` });
-                        setHovered(null);
+                        setSelectedDate(eventDay)
+                        showToast({
+                          type: TOAST_TYPES.INFO,
+                          message: `Recordatorio agregado: ${reminderLabel}`,
+                        })
+                        setHovered(null)
                       }}
                     >
                       <Bell className="w-3.5 h-3.5 text-amber-500 flex-shrink-0" />
@@ -198,15 +289,18 @@ const CalendarioPlazosLegales: React.FC<Props> = ({ tests = EMPTY_EVENTS, holida
                     </button>
                   ) : null}
 
-                  {ev.description ? <div className="mt-2 text-xs text-slate-600 line-clamp-3">{ev.description}</div> : null}
+                  {ev.description ? (
+                    <div className="mt-2 text-xs text-slate-600 line-clamp-3">
+                      {ev.description}
+                    </div>
+                  ) : null}
                 </div>
               </div>
             </div>
-          );
-        })()
-      )}
+          )
+        })()}
     </div>
-  );
-};
+  )
+}
 
-export default CalendarioPlazosLegales;
+export default CalendarioPlazosLegales
