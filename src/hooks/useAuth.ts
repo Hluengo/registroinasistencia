@@ -1,10 +1,12 @@
 import React from 'react'
 import { Session } from '@supabase/supabase-js'
 import { supabase } from '../services/supabaseClient'
+import type { MembershipStatus } from '../types/membership'
 
 type AppRole = 'teacher' | 'staff' | 'superuser' | null
 const GET_SESSION_TIMEOUT_MS = 20000
 const ROLE_TIMEOUT_MS = 12000
+const TENANT_TIMEOUT_MS = 10000
 const INVALID_REFRESH_TOKEN_RE =
   /(invalid refresh token|refresh token not found|invalid_grant)/i
 
@@ -40,8 +42,11 @@ function isInvalidRefreshTokenError(error: unknown) {
 export function useAuth() {
   const [session, setSession] = React.useState<Session | null>(null)
   const [role, setRole] = React.useState<AppRole>(null)
+  const [tenantId, setTenantId] = React.useState<string | null>(null)
   const [loading, setLoading] = React.useState(true)
   const [authError, setAuthError] = React.useState<string | null>(null)
+  const [membershipStatus, setMembershipStatus] =
+    React.useState<MembershipStatus>('not_available')
   const mountedRef = React.useRef(true)
   const roleRefreshTimerRef = React.useRef<ReturnType<
     typeof setTimeout
@@ -57,6 +62,7 @@ export function useAuth() {
     async (userId?: string | null): Promise<AppRole> => {
       if (!userId) {
         setRole(null)
+        setTenantId(null)
         return null
       }
 
@@ -65,7 +71,7 @@ export function useAuth() {
           Promise.resolve(
             supabase
               .from('profiles')
-              .select('role')
+              .select('role, tenant_id')
               .eq('user_id', userId)
               .maybeSingle()
           ),
@@ -74,10 +80,11 @@ export function useAuth() {
 
         if (profileRes !== TIMEOUT) {
           const { data, error } = profileRes
-          const fromProfile = normalizeRole(data?.role)
-          if (!error && fromProfile) {
-            setRole(fromProfile)
-            return fromProfile
+          if (!error && data) {
+            const fromProfile = normalizeRole(data.role)
+            if (fromProfile) setRole(fromProfile)
+            setTenantId(data.tenant_id ?? null)
+            if (fromProfile) return fromProfile
           }
 
           if (error) {
@@ -250,6 +257,7 @@ export function useAuth() {
     }
     setRole(null)
     setSession(null)
+    setMembershipStatus('not_available')
   }, [])
 
   const isAuthenticated = Boolean(session?.user)
@@ -259,12 +267,15 @@ export function useAuth() {
   return {
     session,
     role,
+    appRole: role,
+    tenantId,
     loading,
     authError,
     setAuthError,
     isAuthenticated,
     isStaff,
     isSuperuser,
+    membershipStatus,
     signIn,
     signOut,
     refreshRole,
