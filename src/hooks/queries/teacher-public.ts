@@ -7,14 +7,13 @@ export const useTeacherPublicAbsences = (
   year: number,
   level?: 'BASICA' | 'MEDIA',
   courseId?: string,
-  enabled = true
+  isAuthenticated = false
 ) => {
+  const visibility = isAuthenticated ? 'full' : 'masked'
+
   return useQ<TeacherPublicAbsence[]>(
-    queryKeys.teacherPublicAbsences(month, year, level, courseId),
+    queryKeys.teacherPublicAbsences(month, year, level, courseId, visibility),
     async () => {
-      // Always send p_course_id, even when no course is selected. Supabase currently
-      // has both 3-argument and 4-argument overloads of this RPC; including this key
-      // makes PostgREST select the intended 4-argument function unambiguously.
       const params: {
         p_month: number
         p_year: number
@@ -27,12 +26,15 @@ export const useTeacherPublicAbsences = (
       }
       if (level) params.p_level = level
 
-      const { data, error } = await supabase.rpc('teacher_get_public_absences', params)
+      const rpcName = isAuthenticated
+        ? 'teacher_get_public_absences'
+        : 'teacher_get_public_absences_masked'
+      const { data, error } = await supabase.rpc(rpcName, params)
       if (error) throw error
       return (data || []) as TeacherPublicAbsence[]
     },
     {
-      enabled,
+      enabled: true,
       placeholderData: (previousData) => previousData,
       staleTime: 60_000,
       refetchOnWindowFocus: false,
