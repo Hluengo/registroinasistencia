@@ -1,4 +1,5 @@
 import React from 'react';
+import { BookOpen, CheckCircle2, LogIn, MessageSquareText, ShieldCheck, TableProperties } from 'lucide-react';
 import { MainLayout } from './layouts/MainLayout';
 import { ToastContainer } from './components/ToastContainer';
 import { Modal } from './components/ui/Modal';
@@ -30,6 +31,81 @@ const Estudiantes = React.lazy(() =>
 const Configuracion = React.lazy(() =>
   import('./pages/Configuracion').then((m) => ({ default: m.Configuracion }))
 );
+
+function WelcomeGate({ onLogin }: { onLogin: () => void }) {
+  return (
+    <div className="min-h-[calc(100vh-14rem)] flex items-center justify-center py-8">
+      <section className="w-full max-w-3xl overflow-hidden rounded-[2rem] border border-slate-200 bg-white shadow-xl shadow-slate-200/50">
+        <div className="bg-gradient-to-br from-indigo-600 via-indigo-700 to-slate-900 px-7 py-9 text-white md:px-12 md:py-12">
+          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-white/15 ring-1 ring-white/20 backdrop-blur">
+            <BookOpen className="h-8 w-8" />
+          </div>
+          <div className="mt-6 text-center">
+            <p className="text-xs font-bold uppercase tracking-[0.3em] text-indigo-200">
+              Acceso exclusivo para docentes
+            </p>
+            <h1 className="mt-3 text-3xl font-bold tracking-tight md:text-4xl">
+              Bienvenido al Registro Escolar
+            </h1>
+            <p className="mx-auto mt-4 max-w-2xl text-sm leading-6 text-indigo-100 md:text-base">
+              Esta plataforma reúne los mensajes institucionales, las inasistencias justificadas o
+              pendientes y las evaluaciones afectadas, para facilitar la información oportuna al
+              equipo docente.
+            </p>
+          </div>
+        </div>
+
+        <div className="px-7 py-8 md:px-12 md:py-10">
+          <div className="grid gap-4 md:grid-cols-3">
+            <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+              <MessageSquareText className="h-6 w-6 text-indigo-600" />
+              <h2 className="mt-3 text-sm font-bold text-slate-900">Revisa los mensajes</h2>
+              <p className="mt-1 text-xs leading-5 text-slate-500">
+                Consulta avisos generales, por nivel y por curso.
+              </p>
+            </div>
+            <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+              <TableProperties className="h-6 w-6 text-indigo-600" />
+              <h2 className="mt-3 text-sm font-bold text-slate-900">Consulta la tabla</h2>
+              <p className="mt-1 text-xs leading-5 text-slate-500">
+                Visualiza estudiantes, fechas, estados y pruebas afectadas.
+              </p>
+            </div>
+            <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+              <ShieldCheck className="h-6 w-6 text-indigo-600" />
+              <h2 className="mt-3 text-sm font-bold text-slate-900">Acceso protegido</h2>
+              <p className="mt-1 text-xs leading-5 text-slate-500">
+                La información completa se muestra solo después de iniciar sesión.
+              </p>
+            </div>
+          </div>
+
+          <div className="mt-7 rounded-2xl border border-indigo-100 bg-indigo-50/70 p-5">
+            <div className="flex items-start gap-3">
+              <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-indigo-600" />
+              <div>
+                <p className="text-sm font-bold text-slate-900">¿Cómo ingresar?</p>
+                <p className="mt-1 text-sm leading-6 text-slate-600">
+                  Presiona el botón de acceso e ingresa el correo y la contraseña institucional que
+                  fueron proporcionados al equipo docente.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div className="mt-7 flex justify-center">
+            <Button type="button" icon={LogIn} onClick={onLogin}>
+              Ingresar a la Vista Docente
+            </Button>
+          </div>
+          <p className="mt-4 text-center text-xs text-slate-400">
+            No compartas las credenciales fuera del establecimiento.
+          </p>
+        </div>
+      </section>
+    </div>
+  );
+}
 
 const AppContentInner = React.memo(function AppContentInner({
   activeTab,
@@ -110,10 +186,7 @@ function AppContent() {
     signOut,
     authError,
     setAuthError,
-    membershipStatus,
-    membershipAuthMode,
     membershipLoaded,
-    membershipLoading,
     membershipError,
     legacyFallbackUsed,
     membershipHasAccess,
@@ -136,7 +209,13 @@ function AppContent() {
     }
   }, [loading, isStaff, isSuperuser, activeTab]);
 
+  const openLogin = () => {
+    setAuthError(null);
+    patchAuthUiState({ isLoginOpen: true });
+  };
+
   const getTitle = () => {
+    if (!isAuthenticated) return 'Bienvenida';
     if (!isStaff || activeTab === 'docente_public') return 'Vista Docente';
     switch (activeTab) {
       case 'dashboard':
@@ -157,7 +236,7 @@ function AppContent() {
   };
 
   const roleLabel = !isAuthenticated
-    ? 'Docente público'
+    ? 'Acceso restringido'
     : role === 'superuser'
       ? 'Superusuario'
       : role === 'staff'
@@ -184,8 +263,8 @@ function AppContent() {
       } else {
         patchUiState({ activeTab: 'docente_public' });
         showToast({
-          type: TOAST_TYPES.INFO,
-          message: 'Sesión iniciada con rol docente. Se habilita solo la vista docente.',
+          type: TOAST_TYPES.SUCCESS,
+          message: 'Bienvenido. Se habilitó la Vista Docente con información completa.',
         });
       }
     } catch (error) {
@@ -285,39 +364,44 @@ function AppContent() {
         role={sidebarRole}
         roleLabel={roleLabel}
         userEmail={session?.user?.email}
-        onLoginClick={() => {
-          setAuthError(null);
-          patchAuthUiState({ isLoginOpen: true });
-        }}
+        onLoginClick={openLogin}
         onLogoutClick={handleLogout}
       >
         <ErrorBoundary>
-          <React.Suspense
-            fallback={<div className="text-sm font-medium text-slate-500">Cargando módulo...</div>}
-          >
-            <AppContentInner
-              activeTab={activeTab}
-              isStaff={isStaff}
-              isSuperuser={isSuperuser}
-              level={level}
-              isAuthenticated={isAuthenticated}
-            />
-          </React.Suspense>
+          {!isAuthenticated ? (
+            <WelcomeGate onLogin={openLogin} />
+          ) : (
+            <React.Suspense
+              fallback={<div className="text-sm font-medium text-slate-500">Cargando módulo...</div>}
+            >
+              <AppContentInner
+                activeTab={activeTab}
+                isStaff={isStaff}
+                isSuperuser={isSuperuser}
+                level={level}
+                isAuthenticated={isAuthenticated}
+              />
+            </React.Suspense>
+          )}
         </ErrorBoundary>
       </MainLayout>
       <Modal
         isOpen={isLoginOpen}
         onClose={() => patchAuthUiState({ isLoginOpen: false })}
-        title="Ingreso Staff"
+        title="Acceso docente y staff"
         size="sm"
       >
         <form onSubmit={handleLogin} className="space-y-4">
+          <p className="text-sm leading-6 text-slate-600">
+            Ingresa el correo y la contraseña institucional proporcionados por el establecimiento.
+          </p>
           <Input
             label="Correo"
             type="email"
             value={email}
             onChange={(e) => patchAuthUiState({ email: e.target.value })}
-            placeholder="staff@colegio.cl"
+            placeholder="correo@colegio.cl"
+            autoComplete="username"
             required
           />
           <Input
@@ -326,6 +410,7 @@ function AppContent() {
             value={password}
             onChange={(e) => patchAuthUiState({ password: e.target.value })}
             placeholder="••••••••"
+            autoComplete="current-password"
             required
           />
           {authError ? <p className="text-sm text-rose-600">{authError}</p> : null}
