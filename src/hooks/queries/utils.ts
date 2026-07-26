@@ -63,8 +63,11 @@ export const queryKeys = {
     ] as const,
   teacherPublicAbsenceDetail: (absenceId?: string) =>
     ['teacherPublicAbsenceDetail', absenceId ?? 'none'] as const,
-  teacherInstantMessages: (level?: string, courseId?: string) =>
-    ['teacherInstantMessages', level ?? 'all', courseId ?? 'all'] as const,
+  teacherInstantMessages: (
+    level?: string,
+    courseId?: string,
+    visibility: 'public' | 'staff' = 'public'
+  ) => ['teacherInstantMessages', visibility, level ?? 'all', courseId ?? 'all'] as const,
   instantMessagesManage: (level?: string) => ['instantMessagesManage', level ?? 'all'] as const,
   absences: (level?: string, start?: string, end?: string) =>
     ['absences', level ?? 'all', start ?? 'none', end ?? 'none'] as const,
