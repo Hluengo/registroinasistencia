@@ -1,21 +1,12 @@
 import React from 'react';
-import {
-  Bell,
-  Calendar,
-  ChevronLeft,
-  ChevronRight,
-  Construction,
-  Eye,
-  Megaphone,
-} from 'lucide-react';
+import { Bell, Calendar, ChevronLeft, ChevronRight, Eye, Megaphone } from 'lucide-react';
 import {
   useTeacherPublicAbsences,
   type TeacherPublicAbsence,
   useTeacherPublicAbsenceDetail,
   useTeacherInstantMessages,
-  rpcStatus,
+  useCourses,
 } from '../hooks/queries';
-import { useCourses } from '../hooks/queries';
 import { Modal } from '../components/ui/Modal';
 import { Button } from '../components/ui/Button';
 import { Badge } from '../components/ui/Badge';
@@ -45,7 +36,6 @@ export const DocentePublico: React.FC<DocentePublicoProps> = ({
   const [isMessagesCollapsed, setIsMessagesCollapsed] = React.useState(false);
   const [selected, setSelected] = React.useState<TeacherPublicAbsence | null>(null);
   const [isOpen, setIsOpen] = React.useState(false);
-  const [rpcUnavailable, setRpcUnavailable] = React.useState(false);
 
   const month = currentDate.getMonth();
   const year = currentDate.getFullYear();
@@ -53,9 +43,13 @@ export const DocentePublico: React.FC<DocentePublicoProps> = ({
     data = [],
     isLoading,
     isFetching,
+    isError: absencesUnavailable,
   } = useTeacherPublicAbsences(month, year, level, selectedCourseId || undefined);
-  const { data: selectedTests = [], isLoading: selectedTestsLoading } =
-    useTeacherPublicAbsenceDetail(selected?.absence_id);
+  const {
+    data: selectedTests = [],
+    isLoading: selectedTestsLoading,
+    isError: detailUnavailable,
+  } = useTeacherPublicAbsenceDetail(selected?.absence_id);
   const { data: courses = [], isLoading: coursesLoading } = useCourses(level, isAuthenticated);
   const activeMessagesLevel = level;
   const { data: instantMessages = [], isLoading: instantMessagesLoading } =
@@ -68,20 +62,9 @@ export const DocentePublico: React.FC<DocentePublicoProps> = ({
 
   React.useEffect(() => {
     setSelectedCourseId('');
-    const absStatus = rpcStatus.absences.status;
-    const detStatus = rpcStatus.detail.status;
-    if (
-      absStatus === 'unavailable' ||
-      absStatus === 'maintenance' ||
-      detStatus === 'unavailable' ||
-      detStatus === 'maintenance'
-    ) {
-      setRpcUnavailable(true);
-    } else {
-      setRpcUnavailable(false);
-    }
   }, [level]);
 
+  const rpcUnavailable = absencesUnavailable || detailUnavailable;
   const loading = isLoading || coursesLoading;
   const showInitialSkeleton = loading && data.length === 0;
   const courseOptions = React.useMemo(() => getCourseOptions(courses), [courses]);
@@ -143,12 +126,8 @@ export const DocentePublico: React.FC<DocentePublicoProps> = ({
         }
       />
       {rpcUnavailable ? (
-        <div className="flex items-center gap-3 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
-          <Construction className="w-5 h-5 shrink-0" />
-          <span>
-            <strong>Modo mantenimiento:</strong> La Vista Docente está siendo actualizada. Los datos
-            se mostrarán una vez que la migración de base de datos complete.
-          </span>
+        <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
+          <strong>No fue posible cargar todos los datos.</strong> Intenta nuevamente en unos minutos.
         </div>
       ) : null}
       {isFetching && data.length > 0 ? (
