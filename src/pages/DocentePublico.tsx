@@ -44,12 +44,18 @@ export const DocentePublico: React.FC<DocentePublicoProps> = ({
     isLoading,
     isFetching,
     isError: absencesUnavailable,
-  } = useTeacherPublicAbsences(month, year, level, selectedCourseId || undefined);
+  } = useTeacherPublicAbsences(
+    month,
+    year,
+    level,
+    selectedCourseId || undefined,
+    isAuthenticated
+  );
   const {
     data: selectedTests = [],
     isLoading: selectedTestsLoading,
     isError: detailUnavailable,
-  } = useTeacherPublicAbsenceDetail(selected?.absence_id);
+  } = useTeacherPublicAbsenceDetail(selected?.absence_id, isAuthenticated);
   const { data: courses = [], isLoading: coursesLoading } = useCourses(level, isAuthenticated);
   const activeMessagesLevel = level;
   const { data: instantMessages = [], isLoading: instantMessagesLoading } =
@@ -64,8 +70,8 @@ export const DocentePublico: React.FC<DocentePublicoProps> = ({
     setSelectedCourseId('');
   }, [level]);
 
-  const rpcUnavailable = absencesUnavailable || detailUnavailable;
-  const loading = isLoading || coursesLoading;
+  const rpcUnavailable = isAuthenticated && (absencesUnavailable || detailUnavailable);
+  const loading = isAuthenticated && (isLoading || coursesLoading);
   const showInitialSkeleton = loading && data.length === 0;
   const courseOptions = React.useMemo(() => getCourseOptions(courses), [courses]);
   const sortedData = React.useMemo(
