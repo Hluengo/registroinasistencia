@@ -12,15 +12,21 @@ import {
 export const useTeacherInstantMessages = (
   level?: 'BASICA' | 'MEDIA',
   courseId?: string,
-  enabled: boolean = true
+  isAuthenticated: boolean = false
 ) => {
+  const visibility = isAuthenticated ? 'staff' : 'public';
+
   return useQ<TeacherInstantMessage[]>(
-    queryKeys.teacherInstantMessages(level, courseId),
+    queryKeys.teacherInstantMessages(level, courseId, visibility),
     async () => {
-      const params: { p_level?: string; p_course_id?: string } = {};
-      if (level) params.p_level = level;
-      if (courseId) params.p_course_id = courseId;
-      const { data, error } = await supabase.rpc('teacher_get_instant_messages', params);
+      const params: { p_level: string | null; p_course_id: string | null } = {
+        p_level: level ?? null,
+        p_course_id: courseId ?? null,
+      };
+      const rpcName = isAuthenticated
+        ? 'teacher_get_instant_messages'
+        : 'teacher_get_public_instant_messages';
+      const { data, error } = await supabase.rpc(rpcName, params);
       if (error) throw error;
       return (data || []) as TeacherInstantMessage[];
     },
@@ -28,7 +34,7 @@ export const useTeacherInstantMessages = (
       staleTime: 60_000,
       refetchInterval: (query) => (query.state.status === 'error' ? false : 60_000),
       refetchIntervalInBackground: false,
-      enabled,
+      enabled: true,
     }
   );
 };
