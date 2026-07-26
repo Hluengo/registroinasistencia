@@ -1,8 +1,13 @@
-import { supabase } from '../../services/supabaseClient'
-import { useQueryClient, useMutation } from '@tanstack/react-query'
-import { QUERY_KEYS_INVALIDATE } from '../../constants'
-import { useQ, queryKeys } from './utils'
-import { TeacherInstantMessage, InstantMessageRow, InstantMessageInsertRow, InstantMessageUpdateRow } from './types'
+import { supabase } from '../../services/supabaseClient';
+import { useQueryClient, useMutation } from '@tanstack/react-query';
+import { QUERY_KEYS_INVALIDATE } from '../../constants';
+import { useQ, queryKeys } from './utils';
+import {
+  TeacherInstantMessage,
+  InstantMessageRow,
+  InstantMessageInsertRow,
+  InstantMessageUpdateRow,
+} from './types';
 
 export const useTeacherInstantMessages = (
   level?: 'BASICA' | 'MEDIA',
@@ -12,29 +17,23 @@ export const useTeacherInstantMessages = (
   return useQ<TeacherInstantMessage[]>(
     queryKeys.teacherInstantMessages(level, courseId),
     async () => {
-      const params: { p_level?: string; p_course_id?: string } = {}
-      if (level) params.p_level = level
-      if (courseId) params.p_course_id = courseId
-      const { data, error } = await supabase.rpc(
-        'teacher_get_instant_messages',
-        params
-      )
-      if (error) throw error
-      return (data || []) as TeacherInstantMessage[]
+      const params: { p_level?: string; p_course_id?: string } = {};
+      if (level) params.p_level = level;
+      if (courseId) params.p_course_id = courseId;
+      const { data, error } = await supabase.rpc('teacher_get_instant_messages', params);
+      if (error) throw error;
+      return (data || []) as TeacherInstantMessage[];
     },
     {
       staleTime: 60_000,
-      refetchInterval: 60_000,
+      refetchInterval: (query) => (query.state.status === 'error' ? false : 60_000),
       refetchIntervalInBackground: false,
       enabled,
     }
-  )
-}
+  );
+};
 
-export const useManageInstantMessages = (
-  level?: 'BASICA' | 'MEDIA',
-  enabled: boolean = true
-) => {
+export const useManageInstantMessages = (level?: 'BASICA' | 'MEDIA', enabled: boolean = true) => {
   return useQ<InstantMessageRow[]>(
     queryKeys.instantMessagesManage(level),
     async () => {
@@ -43,20 +42,20 @@ export const useManageInstantMessages = (
         .select(
           'id, title, body, level, course_id, student_id, is_active, starts_at, ends_at, created_at, updated_at, created_by'
         )
-        .order('created_at', { ascending: false })
+        .order('created_at', { ascending: false });
       if (level) {
-        query = query.or(`level.eq.${level},level.is.null`)
+        query = query.or(`level.eq.${level},level.is.null`);
       }
-      const { data, error } = await query
-      if (error) throw error
-      return (data || []) as InstantMessageRow[]
+      const { data, error } = await query;
+      if (error) throw error;
+      return (data || []) as InstantMessageRow[];
     },
     { enabled }
-  )
-}
+  );
+};
 
 export const useCreateInstantMessage = () => {
-  const qc = useQueryClient()
+  const qc = useQueryClient();
   return useMutation<
     InstantMessageRow,
     Error,
@@ -67,57 +66,47 @@ export const useCreateInstantMessage = () => {
         .from('instant_messages')
         .insert(payload)
         .select('*')
-        .single()
+        .single();
       if (error) {
-        const details = [error.message, error.details, error.hint]
-          .filter(Boolean)
-          .join(' | ')
-        throw new Error(details || 'No se pudo crear el mensaje instantáneo.')
+        const details = [error.message, error.details, error.hint].filter(Boolean).join(' | ');
+        throw new Error(details || 'No se pudo crear el mensaje instantáneo.');
       }
-      return data as InstantMessageRow
+      return data as InstantMessageRow;
     },
     onSuccess: () => {
       qc.invalidateQueries({
         queryKey: QUERY_KEYS_INVALIDATE.TEACHER_INSTANT_MESSAGES,
-      })
+      });
       qc.invalidateQueries({
         queryKey: QUERY_KEYS_INVALIDATE.INSTANT_MESSAGES_MANAGE,
-      })
+      });
     },
-  })
-}
+  });
+};
 
 export const useUpdateInstantMessage = () => {
-  const qc = useQueryClient()
-  return useMutation<
-    InstantMessageRow,
-    Error,
-    { id: string; updates: InstantMessageUpdateRow }
-  >({
+  const qc = useQueryClient();
+  return useMutation<InstantMessageRow, Error, { id: string; updates: InstantMessageUpdateRow }>({
     mutationFn: async ({ id, updates }) => {
       const { data, error } = await supabase
         .from('instant_messages')
         .update(updates)
         .eq('id', id)
         .select('*')
-        .single()
+        .single();
       if (error) {
-        const details = [error.message, error.details, error.hint]
-          .filter(Boolean)
-          .join(' | ')
-        throw new Error(
-          details || 'No se pudo actualizar el mensaje instantáneo.'
-        )
+        const details = [error.message, error.details, error.hint].filter(Boolean).join(' | ');
+        throw new Error(details || 'No se pudo actualizar el mensaje instantáneo.');
       }
-      return data as InstantMessageRow
+      return data as InstantMessageRow;
     },
     onSuccess: () => {
       qc.invalidateQueries({
         queryKey: QUERY_KEYS_INVALIDATE.TEACHER_INSTANT_MESSAGES,
-      })
+      });
       qc.invalidateQueries({
         queryKey: QUERY_KEYS_INVALIDATE.INSTANT_MESSAGES_MANAGE,
-      })
+      });
     },
-  })
-}
+  });
+};

@@ -36,15 +36,17 @@ const AppContentInner = React.memo(function AppContentInner({
   isStaff,
   isSuperuser,
   level,
+  isAuthenticated,
 }: {
   activeTab: string;
   isStaff: boolean;
   isSuperuser: boolean;
   level: 'BASICA' | 'MEDIA';
+  isAuthenticated: boolean;
 }) {
   switch (true) {
     case !isStaff || activeTab === 'docente_public':
-      return <DocentePublico level={level} isStaff={isStaff} />;
+      return <DocentePublico level={level} isStaff={isStaff} isAuthenticated={isAuthenticated} />;
     case activeTab === 'dashboard':
       return <Dashboard level={level} />;
     case activeTab === 'inasistencias':
@@ -298,6 +300,7 @@ function AppContent() {
               isStaff={isStaff}
               isSuperuser={isSuperuser}
               level={level}
+              isAuthenticated={isAuthenticated}
             />
           </React.Suspense>
         </ErrorBoundary>
