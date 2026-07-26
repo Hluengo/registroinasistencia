@@ -6,7 +6,8 @@ export const useTeacherPublicAbsences = (
   month: number,
   year: number,
   level?: 'BASICA' | 'MEDIA',
-  courseId?: string
+  courseId?: string,
+  enabled = true
 ) => {
   return useQ<TeacherPublicAbsence[]>(
     queryKeys.teacherPublicAbsences(month, year, level, courseId),
@@ -22,16 +23,14 @@ export const useTeacherPublicAbsences = (
       }
       if (level) params.p_level = level
       if (courseId) params.p_course_id = courseId
-      const { data, error } = await supabase.rpc(
-        'teacher_get_public_absences',
-        {
-          ...params,
-        }
-      )
+      const { data, error } = await supabase.rpc('teacher_get_public_absences', {
+        ...params,
+      })
       if (error) throw error
       return (data || []) as TeacherPublicAbsence[]
     },
     {
+      enabled,
       placeholderData: (previousData) => previousData,
       staleTime: 60_000,
       refetchOnWindowFocus: false,
@@ -40,22 +39,19 @@ export const useTeacherPublicAbsences = (
   )
 }
 
-export const useTeacherPublicAbsenceDetail = (absenceId?: string) => {
+export const useTeacherPublicAbsenceDetail = (absenceId?: string, enabled = true) => {
   return useQ<TeacherPublicAbsenceDetail[]>(
     queryKeys.teacherPublicAbsenceDetail(absenceId),
     async () => {
       if (!absenceId) return []
-      const { data, error } = await supabase.rpc(
-        'teacher_get_public_absence_detail',
-        {
-          p_absence_id: absenceId,
-        }
-      )
+      const { data, error } = await supabase.rpc('teacher_get_public_absence_detail', {
+        p_absence_id: absenceId,
+      })
       if (error) throw error
       return (data || []) as TeacherPublicAbsenceDetail[]
     },
     {
-      enabled: Boolean(absenceId),
+      enabled: enabled && Boolean(absenceId),
       staleTime: 60_000,
       refetchOnWindowFocus: false,
     }
