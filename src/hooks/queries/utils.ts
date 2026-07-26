@@ -46,8 +46,21 @@ export const queryKeys = {
   tests: (courseId?: string, month?: number, year?: number, level?: string) =>
     ['tests', courseId ?? 'all', month ?? -1, year ?? -1, level ?? 'all'] as const,
   holidays: (month?: number, year?: number) => ['holidays', month ?? -1, year ?? -1] as const,
-  teacherPublicAbsences: (month: number, year: number, level?: string, courseId?: string) =>
-    ['teacherPublicAbsences', month, year, level ?? 'all', courseId ?? 'all'] as const,
+  teacherPublicAbsences: (
+    month: number,
+    year: number,
+    level?: string,
+    courseId?: string,
+    visibility: 'masked' | 'full' = 'masked'
+  ) =>
+    [
+      'teacherPublicAbsences',
+      visibility,
+      month,
+      year,
+      level ?? 'all',
+      courseId ?? 'all',
+    ] as const,
   teacherPublicAbsenceDetail: (absenceId?: string) =>
     ['teacherPublicAbsenceDetail', absenceId ?? 'none'] as const,
   teacherInstantMessages: (level?: string, courseId?: string) =>
