@@ -17,3 +17,5 @@ tmp/
 .vscode/
 .idea/
 create_tenant_fn.js
+
+e2e/*-session.json
