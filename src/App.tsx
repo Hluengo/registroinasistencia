@@ -175,6 +175,10 @@ function AppContent() {
   );
   const { activeTab, isSidebarOpen, level } = uiState;
   const { isLoginOpen, email, password, loginLoading } = authUiState;
+  const [authMode, setAuthMode] = React.useState<'login' | 'request-reset' | 'update-password'>(
+    'login'
+  );
+  const [passwordConfirmation, setPasswordConfirmation] = React.useState('');
   const {
     session,
     role,
@@ -186,6 +190,9 @@ function AppContent() {
     signOut,
     authError,
     setAuthError,
+    isPasswordRecovery,
+    requestPasswordReset,
+    updatePassword,
     membershipLoaded,
     membershipError,
     legacyFallbackUsed,
@@ -193,6 +200,14 @@ function AppContent() {
   } = useAuth();
   const { showToast } = useToast();
   const queryClient = useQueryClient();
+
+  React.useEffect(() => {
+    if (isPasswordRecovery) {
+      setAuthMode('update-password');
+      patchAuthUiState({ isLoginOpen: true, password: '' });
+      setPasswordConfirmation('');
+    }
+  }, [isPasswordRecovery]);
 
   React.useEffect(() => {
     if (loading) return;
@@ -211,7 +226,9 @@ function AppContent() {
 
   const openLogin = () => {
     setAuthError(null);
-    patchAuthUiState({ isLoginOpen: true });
+    setAuthMode('login');
+    setPasswordConfirmation('');
+    patchAuthUiState({ isLoginOpen: true, password: '' });
   };
 
   const getTitle = () => {
@@ -278,6 +295,61 @@ function AppContent() {
     }
   };
 
+  const handleResetRequest = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!email.trim()) {
+      setAuthError('Ingrese su correo electrónico.');
+      return;
+    }
+    try {
+      patchAuthUiState({ loginLoading: true });
+      await requestPasswordReset(email.trim());
+      showToast({
+        type: TOAST_TYPES.SUCCESS,
+        message: 'Si la cuenta existe, recibirá un enlace para crear una contraseña nueva.',
+      });
+    } catch (error) {
+      console.error('Password reset request error', error);
+      showToast({
+        type: TOAST_TYPES.ERROR,
+        message: 'No se pudo enviar el enlace de recuperación.',
+      });
+    } finally {
+      patchAuthUiState({ loginLoading: false });
+    }
+  };
+
+  const handlePasswordUpdate = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (password.length < 6) {
+      setAuthError('La contraseña debe tener al menos 6 caracteres.');
+      return;
+    }
+    if (password !== passwordConfirmation) {
+      setAuthError('Las contraseñas no coinciden.');
+      return;
+    }
+    try {
+      patchAuthUiState({ loginLoading: true });
+      await updatePassword(password);
+      setAuthMode('login');
+      setPasswordConfirmation('');
+      patchAuthUiState({ password: '', isLoginOpen: true });
+      showToast({
+        type: TOAST_TYPES.SUCCESS,
+        message: 'Contraseña actualizada. Ya puede iniciar sesión.',
+      });
+    } catch (error) {
+      console.error('Password update error', error);
+      showToast({
+        type: TOAST_TYPES.ERROR,
+        message: 'No se pudo actualizar la contraseña.',
+      });
+    } finally {
+      patchAuthUiState({ loginLoading: false });
+    }
+  };
+
   const handleLogout = async () => {
     try {
       await signOut();
@@ -303,7 +375,7 @@ function AppContent() {
 
   const membershipMode = getMembershipMode();
 
-  if (session?.user && !membershipLoaded && membershipMode !== 'legacy') {
+  if (session?.user && !isPasswordRecovery && !membershipLoaded && membershipMode !== 'legacy') {
     return (
       <div className="min-h-screen bg-slate-50 flex items-center justify-center">
         <div className="text-center space-y-4">
@@ -319,7 +391,7 @@ function AppContent() {
     );
   }
 
-  if (session?.user && membershipLoaded && !membershipHasAccess) {
+  if (session?.user && !isPasswordRecovery && membershipLoaded && !membershipHasAccess) {
     return (
       <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
         <div className="max-w-md w-full text-center space-y-4">
@@ -387,46 +459,131 @@ function AppContent() {
       </MainLayout>
       <Modal
         isOpen={isLoginOpen}
-        onClose={() => patchAuthUiState({ isLoginOpen: false })}
-        title="Acceso docente y staff"
+        onClose={() => {
+          if (authMode !== 'update-password') {
+            patchAuthUiState({ isLoginOpen: false });
+          }
+        }}
+        title={
+          authMode === 'login'
+            ? 'Acceso docente y staff'
+            : authMode === 'request-reset'
+              ? 'Recuperar contraseña'
+              : 'Crear nueva contraseña'
+        }
         size="sm"
       >
-        <form onSubmit={handleLogin} className="space-y-4">
-          <p className="text-sm leading-6 text-slate-600">
-            Ingresa el correo y la contraseña institucional proporcionados por el establecimiento.
-          </p>
-          <Input
-            label="Correo"
-            type="email"
-            value={email}
-            onChange={(e) => patchAuthUiState({ email: e.target.value })}
-            placeholder="correo@colegio.cl"
-            autoComplete="username"
-            required
-          />
-          <Input
-            label="Contraseña"
-            type="password"
-            value={password}
-            onChange={(e) => patchAuthUiState({ password: e.target.value })}
-            placeholder="••••••••"
-            autoComplete="current-password"
-            required
-          />
-          {authError ? <p className="text-sm text-rose-600">{authError}</p> : null}
-          <div className="flex justify-end gap-2 pt-2">
-            <Button
+        {authMode === 'login' ? (
+          <form onSubmit={handleLogin} className="space-y-4">
+            <p className="text-sm leading-6 text-slate-600">
+              Ingresa el correo y la contraseña institucional proporcionados por el establecimiento.
+            </p>
+            <Input
+              label="Correo"
+              type="email"
+              value={email}
+              onChange={(e) => patchAuthUiState({ email: e.target.value })}
+              placeholder="correo@colegio.cl"
+              autoComplete="username"
+              required
+            />
+            <Input
+              label="Contraseña"
+              type="password"
+              value={password}
+              onChange={(e) => patchAuthUiState({ password: e.target.value })}
+              placeholder="••••••••"
+              autoComplete="current-password"
+              required
+            />
+            {authError ? <p className="text-sm text-rose-600">{authError}</p> : null}
+            <button
               type="button"
-              variant="ghost"
-              onClick={() => patchAuthUiState({ isLoginOpen: false })}
+              onClick={() => {
+                setAuthError(null);
+                setAuthMode('request-reset');
+              }}
+              className="text-sm font-medium text-indigo-600 hover:text-indigo-700"
             >
-              Cancelar
-            </Button>
-            <Button type="submit" loading={loginLoading}>
-              Ingresar
-            </Button>
-          </div>
-        </form>
+              ¿Olvidaste tu contraseña?
+            </button>
+            <div className="flex justify-end gap-2 pt-2">
+              <Button
+                type="button"
+                variant="ghost"
+                onClick={() => patchAuthUiState({ isLoginOpen: false })}
+              >
+                Cancelar
+              </Button>
+              <Button type="submit" loading={loginLoading}>
+                Ingresar
+              </Button>
+            </div>
+          </form>
+        ) : authMode === 'request-reset' ? (
+          <form onSubmit={handleResetRequest} className="space-y-4">
+            <p className="text-sm leading-6 text-slate-600">
+              Ingresa tu correo. Te enviaremos un enlace seguro para crear una contraseña nueva.
+            </p>
+            <Input
+              label="Correo"
+              type="email"
+              value={email}
+              onChange={(e) => patchAuthUiState({ email: e.target.value })}
+              placeholder="correo@colegio.cl"
+              autoComplete="email"
+              required
+            />
+            {authError ? <p className="text-sm text-rose-600">{authError}</p> : null}
+            <div className="flex justify-end gap-2 pt-2">
+              <Button
+                type="button"
+                variant="ghost"
+                onClick={() => {
+                  setAuthError(null);
+                  setAuthMode('login');
+                }}
+              >
+                Volver
+              </Button>
+              <Button type="submit" loading={loginLoading}>
+                Enviar enlace
+              </Button>
+            </div>
+          </form>
+        ) : (
+          <form onSubmit={handlePasswordUpdate} className="space-y-4">
+            <p className="text-sm leading-6 text-slate-600">
+              Ingresa y confirma tu nueva contraseña.
+            </p>
+            <Input
+              label="Nueva contraseña"
+              type="password"
+              value={password}
+              onChange={(e) => patchAuthUiState({ password: e.target.value })}
+              placeholder="••••••••"
+              autoComplete="new-password"
+              minLength={6}
+              required
+            />
+            <Input
+              label="Confirmar contraseña"
+              type="password"
+              value={passwordConfirmation}
+              onChange={(e) => setPasswordConfirmation(e.target.value)}
+              placeholder="••••••••"
+              autoComplete="new-password"
+              minLength={6}
+              required
+            />
+            {authError ? <p className="text-sm text-rose-600">{authError}</p> : null}
+            <div className="flex justify-end pt-2">
+              <Button type="submit" loading={loginLoading}>
+                Guardar contraseña
+              </Button>
+            </div>
+          </form>
+        )}
       </Modal>
       <ToastContainer />
     </>
