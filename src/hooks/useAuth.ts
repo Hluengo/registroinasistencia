@@ -41,6 +41,7 @@ export function useAuth() {
   const [tenantId, setTenantId] = React.useState<string | null>(null);
   const [loading, setLoading] = React.useState(true);
   const [authError, setAuthError] = React.useState<string | null>(null);
+  const [isPasswordRecovery, setIsPasswordRecovery] = React.useState(false);
   const [membershipStatus, setMembershipStatus] = React.useState<MembershipStatus>('not_available');
   const [membershipAuthMode, setMembershipAuthMode] = React.useState<MembershipAuthMode>('legacy');
   const [membership, setMembershipState] = React.useState<AppMembership | null>(null);
@@ -227,9 +228,12 @@ export function useAuth() {
 
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, nextSession) => {
+    } = supabase.auth.onAuthStateChange((event, nextSession) => {
       if (!mountedRef.current) return;
       setSession(nextSession);
+      if (event === 'PASSWORD_RECOVERY') {
+        setIsPasswordRecovery(true);
+      }
 
       if (roleRefreshTimerRef.current) clearTimeout(roleRefreshTimerRef.current);
       roleRefreshTimerRef.current = setTimeout(() => {
@@ -274,6 +278,30 @@ export function useAuth() {
     [refreshRole, loadMembership]
   );
 
+  const requestPasswordReset = React.useCallback(async (email: string) => {
+    setAuthError(null);
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: window.location.origin,
+    });
+    if (error) {
+      setAuthError(error.message);
+      throw error;
+    }
+  }, []);
+
+  const updatePassword = React.useCallback(async (password: string) => {
+    setAuthError(null);
+    const { error } = await supabase.auth.updateUser({ password });
+    if (error) {
+      setAuthError(error.message);
+      throw error;
+    }
+    setIsPasswordRecovery(false);
+    await supabase.auth.signOut({ scope: 'global' });
+    setSession(null);
+    setRole(null);
+  }, []);
+
   const signOut = React.useCallback(async () => {
     setAuthError(null);
     const { error } = await supabase.auth.signOut({ scope: 'global' });
@@ -314,6 +342,9 @@ export function useAuth() {
     loading,
     authError,
     setAuthError,
+    isPasswordRecovery,
+    requestPasswordReset,
+    updatePassword,
     isAuthenticated,
     isStaff,
     isSuperuser,
