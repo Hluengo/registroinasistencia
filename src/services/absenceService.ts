@@ -2,7 +2,7 @@ import { supabase } from './supabaseClient'
 import { Absence, AbsenceWithDetails } from '../types'
 import { Database } from '../types/db'
 import { ABSENCE_STATUS, FILE_CONFIG } from '../constants'
-import { uploadFile, validateFile } from '../utils/upload'
+import { getSignedFileUrl, uploadFile, validateFile } from '../utils/upload'
 
 export const absenceService = {
   getAbsences: async (filters?: {
@@ -82,21 +82,25 @@ export const absenceService = {
     )
 
     // Map affected tests efficiently
-    return result.map((absence: AbsenceJoined) => {
-      const courseTests = testsByCourse[absence.students.course_id ?? ''] || []
-      const affected = courseTests.filter(
-        (test) =>
-          test.date >= absence.start_date && test.date <= absence.end_date
-      )
-      // Map students back to student and courses to course for compatibility
-      const { students, ...rest } = absence
-      const { courses, ...sRest } = students
-      return {
-        ...rest,
-        student: { ...sRest, course: courses },
-        affected_tests: affected,
-      }
-    }) as AbsenceWithDetails[]
+    return Promise.all(
+      result.map(async (absence: AbsenceJoined) => {
+        const courseTests =
+          testsByCourse[absence.students.course_id ?? ''] || []
+        const affected = courseTests.filter(
+          (test) =>
+            test.date >= absence.start_date && test.date <= absence.end_date
+        )
+        // Map students back to student and courses to course for compatibility
+        const { students, ...rest } = absence
+        const { courses, ...sRest } = students
+        return {
+          ...rest,
+          document_url: await getSignedFileUrl(absence.document_url),
+          student: { ...sRest, course: courses },
+          affected_tests: affected,
+        }
+      })
+    ) as Promise<AbsenceWithDetails[]>
   },
 
   createAbsence: async (

@@ -55,6 +55,10 @@ vi.mock('../lib/supabaseClient', () => ({
         getPublicUrl: vi.fn().mockReturnValue({
           data: { publicUrl: 'https://example.com/file.pdf' },
         }),
+        createSignedUrl: vi.fn().mockResolvedValue({
+          data: { signedUrl: 'https://example.com/signed-file.pdf' },
+          error: null,
+        }),
       }),
     },
   },

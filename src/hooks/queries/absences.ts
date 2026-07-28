@@ -1,5 +1,9 @@
 import { supabase } from '../../services/supabaseClient'
-import { useQueryClient, useMutation, UseQueryResult } from '@tanstack/react-query'
+import {
+  useQueryClient,
+  useMutation,
+  UseQueryResult,
+} from '@tanstack/react-query'
 import { absenceService } from '../../services/absenceService'
 import {
   normalizeAbsenceWithDetails,
@@ -8,20 +12,21 @@ import {
 } from '../../lib/transformations'
 import { QUERY_KEYS_INVALIDATE } from '../../constants'
 import { AbsenceWithDetails, Test } from '../../types'
+import { getSignedFileUrl } from '../../utils/upload'
 import { useQ, queryKeys } from './utils'
 import { AbsenceWithStudent, AbsenceUpdateRow, PaginatedResult } from './types'
 
 export function useAbsences(
   level?: 'BASICA' | 'MEDIA',
   startDate?: string,
-  endDate?: string,
+  endDate?: string
 ): UseQueryResult<AbsenceWithDetails[]>
 export function useAbsences(
   level: 'BASICA' | 'MEDIA' | undefined,
   startDate: string | undefined,
   endDate: string | undefined,
   page: number,
-  pageSize: number,
+  pageSize: number
 ): UseQueryResult<PaginatedResult<AbsenceWithDetails[]>>
 export function useAbsences(
   level?: 'BASICA' | 'MEDIA',
@@ -71,7 +76,15 @@ export function useAbsences(
       const rows = (data || []) as unknown as AbsenceWithStudent[]
       if (rows.length === 0) {
         return isPaginated
-          ? { data: [], totalCount: 0, page, pageSize, totalPages: 0, hasNextPage: false, hasPreviousPage: false }
+          ? {
+              data: [],
+              totalCount: 0,
+              page,
+              pageSize,
+              totalPages: 0,
+              hasNextPage: false,
+              hasPreviousPage: false,
+            }
           : []
       }
 
@@ -105,16 +118,22 @@ export function useAbsences(
 
       const testsByCourse = groupTestsByCourse(tests)
 
-      const result = rows.map((absence) => {
-        const courseTests =
-          testsByCourse[absence.students.course_id ?? ''] || []
-        const affected = findAffectedTests(
-          courseTests,
-          absence.start_date,
-          absence.end_date
-        )
-        return normalizeAbsenceWithDetails(absence, affected)
-      })
+      const result = await Promise.all(
+        rows.map(async (absence) => {
+          const courseTests =
+            testsByCourse[absence.students.course_id ?? ''] || []
+          const affected = findAffectedTests(
+            courseTests,
+            absence.start_date,
+            absence.end_date
+          )
+          const normalized = normalizeAbsenceWithDetails(absence, affected)
+          return {
+            ...normalized,
+            document_url: await getSignedFileUrl(normalized.document_url),
+          }
+        })
+      )
 
       if (isPaginated) {
         const totalCount = count ?? 0

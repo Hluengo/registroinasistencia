@@ -46,6 +46,7 @@ export const FILE_CONFIG = {
   ALLOWED_EXTENSIONS: ['pdf', 'doc', 'docx', 'jpg', 'jpeg', 'png'],
   MAX_FILE_SIZE_MB: 5,
   UPLOAD_BUCKET: 'documents',
+  SIGNED_URL_TTL_SECONDS: 60 * 60,
 } as const
 
 // API retry logic

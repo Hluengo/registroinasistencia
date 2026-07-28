@@ -12,6 +12,55 @@ export interface FileValidationResult {
   error: string | null
 }
 
+const getStorageObjectPath = (
+  fileUrl: string,
+  bucket: string
+): string | null => {
+  if (!fileUrl.includes('://')) {
+    return fileUrl.startsWith('absences/') ? fileUrl : null
+  }
+
+  try {
+    const pathname = new URL(fileUrl).pathname
+    const markers = [
+      `/storage/v1/object/public/${bucket}/`,
+      `/storage/v1/object/sign/${bucket}/`,
+      `/storage/v1/object/${bucket}/`,
+    ]
+    const marker = markers.find((candidate) => pathname.includes(candidate))
+    if (!marker) return null
+
+    const path = pathname.slice(pathname.indexOf(marker) + marker.length)
+    return path ? decodeURIComponent(path) : null
+  } catch {
+    return null
+  }
+}
+
+export const getSignedFileUrl = async (
+  fileUrl: string | null,
+  bucket: string = FILE_CONFIG.UPLOAD_BUCKET
+): Promise<string | null> => {
+  if (!fileUrl) return null
+
+  const filePath = getStorageObjectPath(fileUrl, bucket)
+  if (!filePath) return fileUrl
+
+  const { data, error } = await supabase.storage
+    .from(bucket)
+    .createSignedUrl(filePath, FILE_CONFIG.SIGNED_URL_TTL_SECONDS)
+
+  if (error || !data?.signedUrl) {
+    console.warn(
+      'No se pudo crear una URL firmada para el documento',
+      error?.message
+    )
+    return fileUrl
+  }
+
+  return data.signedUrl
+}
+
 const isAllowedExtension = (ext: string): boolean => {
   return (FILE_CONFIG.ALLOWED_EXTENSIONS as readonly string[]).includes(
     ext.toLowerCase()
