@@ -3,7 +3,11 @@ import { Database } from '../types/db'
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
 const supabasePublicKey =
-  import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY ?? import.meta.env.VITE_SUPABASE_ANON_KEY
+  import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY ??
+  import.meta.env.VITE_SUPABASE_ANON_KEY
+const supabaseAuthStorageKey =
+  import.meta.env.VITE_SUPABASE_AUTH_STORAGE_KEY ??
+  'registroinasistencia-auth-token'
 
 if (!supabaseUrl || !supabasePublicKey) {
   const message =
@@ -11,4 +15,8 @@ if (!supabaseUrl || !supabasePublicKey) {
   throw new Error(message)
 }
 
-export const supabase = createClient<Database>(supabaseUrl, supabasePublicKey)
+export const supabase = createClient<Database>(supabaseUrl, supabasePublicKey, {
+  auth: {
+    storageKey: supabaseAuthStorageKey,
+  },
+})
