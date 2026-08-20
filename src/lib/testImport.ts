@@ -61,7 +61,18 @@ const dateFromValue = (value: unknown): string | null => {
     : null
 }
 
-const courseKey = (name: string) => normalize(name).replace(/_/g, '')
+const courseKey = (name: string) => {
+  const compact = normalize(name.replace(/°/g, '')).replace(/[^a-z0-9]/g, '')
+  const grade = compact.match(/^\d+/)?.[0]
+  const levelMatch = compact.match(/basic[ao]|medi[oa]/)
+  if (!grade || !levelMatch || levelMatch.index === undefined) return compact
+
+  const level = levelMatch[0].startsWith('bas') ? 'basica' : 'media'
+  const beforeLevel = compact.slice(grade.length, levelMatch.index)
+  const afterLevel = compact.slice(levelMatch.index + levelMatch[0].length)
+  const letter = `${beforeLevel}${afterLevel}`.match(/[a-z]/)?.[0] ?? ''
+  return `${grade}|${level}|${letter}`
+}
 
 export const parseTestRows = (
   matrix: unknown[][],

@@ -365,6 +365,7 @@ export const Pruebas: React.FC<PruebasProps> = ({ level }) => {
             <Button
               onClick={handleImport}
               loading={bulkCreateTestsM.isPending}
+              className="disabled:bg-slate-300 disabled:text-slate-600 disabled:opacity-100 disabled:shadow-none"
               disabled={
                 importLoading || !!importIssues.length || !importRows.length
               }

@@ -8,9 +8,9 @@ describe('parseTestRows', () => {
     const result = parseTestRows(
       [
         ['curso', 'fecha', 'asignatura', 'tipo'],
-        ['1° Básico A', '15/09/2026', 'Matemáticas', 'Control'],
+        ['7A BASICO', '15/09/2026', 'Matemáticas', 'Control'],
       ],
-      courses
+      [{ id: 'course-1', name: '7° Básico A' }] as never[]
     )
     expect(result.issues).toEqual([])
     expect(result.rows[0]).toMatchObject({
