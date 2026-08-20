@@ -10,6 +10,7 @@ export {
   // Tests
   useTests,
   useCreateTest,
+  useBulkCreateTests,
 
   // Absences
   useAbsences,

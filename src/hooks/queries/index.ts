@@ -1,8 +1,12 @@
 // Domain modules
 export { useCourses, useBulkInsertCourses } from './courses'
-export { useTests, useCreateTest } from './tests'
+export { useTests, useCreateTest, useBulkCreateTests } from './tests'
 export { useAbsences, useCreateAbsence, useUpdateAbsence } from './absences'
-export { useStudents, useStudentDetails, useBulkInsertStudents } from './students'
+export {
+  useStudents,
+  useStudentDetails,
+  useBulkInsertStudents,
+} from './students'
 export { useInspectorate, useCreateInspectorateRecord } from './inspectorate'
 export {
   useTeacherInstantMessages,
@@ -10,7 +14,10 @@ export {
   useCreateInstantMessage,
   useUpdateInstantMessage,
 } from './messages'
-export { useTeacherPublicAbsences, useTeacherPublicAbsenceDetail } from './teacher-public'
+export {
+  useTeacherPublicAbsences,
+  useTeacherPublicAbsenceDetail,
+} from './teacher-public'
 export { useHolidays } from './holidays'
 export { useSeedData } from './admin'
 

@@ -59,3 +59,21 @@ export const useCreateTest = () => {
     },
   })
 }
+
+export const useBulkCreateTests = () => {
+  const qc = useQueryClient()
+  return useMutation<
+    Awaited<ReturnType<typeof testService.bulkInsertTests>>,
+    Error,
+    TestInsertRow[]
+  >({
+    mutationFn: (tests) => testService.bulkInsertTests(tests),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: QUERY_KEYS_INVALIDATE.TESTS })
+      qc.invalidateQueries({ queryKey: QUERY_KEYS_INVALIDATE.ABSENCES })
+      qc.invalidateQueries({
+        queryKey: QUERY_KEYS_INVALIDATE.TEACHER_PUBLIC_ABSENCES,
+      })
+    },
+  })
+}

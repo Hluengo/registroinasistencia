@@ -1,11 +1,12 @@
 import React from 'react'
-import { Plus, ChevronLeft, ChevronRight, Info } from 'lucide-react'
+import { Plus, ChevronLeft, ChevronRight, Info, Upload } from 'lucide-react'
 import {
   useTests,
   useCourses,
   useHolidays,
   Holiday,
   useCreateTest,
+  useBulkCreateTests,
 } from '../hooks/queries'
 import CalendarioPlazosLegales from '../components/CalendarioPlazosLegales'
 import { useToast } from '../contexts/ToastContext'
@@ -26,6 +27,7 @@ import { createMutationGuard } from '../utils'
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
 import { formatDate } from '../utils'
+import { parseTestWorkbook, TestImportIssue } from '../lib/testImport'
 
 type TestFormValues = {
   course_id: string
@@ -48,6 +50,12 @@ interface PruebasProps {
 }
 
 export const Pruebas: React.FC<PruebasProps> = ({ level }) => {
+  const [importOpen, setImportOpen] = React.useState(false)
+  const [importLoading, setImportLoading] = React.useState(false)
+  const [importFileName, setImportFileName] = React.useState('')
+  const [importRows, setImportRows] = React.useState<TestInsert[]>([])
+  const [importIssues, setImportIssues] = React.useState<TestImportIssue[]>([])
+  const [importTotal, setImportTotal] = React.useState(0)
   const [uiState, patchUiState] = React.useReducer(
     (
       state: {
@@ -93,6 +101,7 @@ export const Pruebas: React.FC<PruebasProps> = ({ level }) => {
   const { showToast } = useToast()
 
   const createTestM = useCreateTest()
+  const bulkCreateTestsM = useBulkCreateTests()
 
   const {
     register,
@@ -147,6 +156,64 @@ export const Pruebas: React.FC<PruebasProps> = ({ level }) => {
     }
   }
 
+  const resetImport = () => {
+    setImportOpen(false)
+    setImportLoading(false)
+    setImportFileName('')
+    setImportRows([])
+    setImportIssues([])
+    setImportTotal(0)
+  }
+
+  const handleImportFile = async (
+    event: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    const file = event.target.files?.[0]
+    event.target.value = ''
+    if (!file) return
+    try {
+      setImportLoading(true)
+      const parsed = await parseTestWorkbook(file, courses)
+      setImportFileName(file.name)
+      setImportRows(parsed.rows)
+      setImportIssues(parsed.issues)
+      setImportTotal(parsed.totalRows)
+    } catch (error) {
+      setImportFileName(file.name)
+      setImportRows([])
+      setImportTotal(0)
+      setImportIssues([
+        {
+          row: 0,
+          message:
+            error instanceof Error
+              ? error.message
+              : 'No se pudo leer el archivo',
+        },
+      ])
+    } finally {
+      setImportLoading(false)
+    }
+  }
+
+  const handleImport = async () => {
+    if (importIssues.length || !importRows.length) return
+    try {
+      await bulkCreateTestsM.mutateAsync(importRows)
+      resetImport()
+      showToast({
+        type: TOAST_TYPES.SUCCESS,
+        message: `Se importaron ${importRows.length} pruebas correctamente`,
+      })
+    } catch (error) {
+      showToast({
+        type: TOAST_TYPES.ERROR,
+        message:
+          error instanceof Error ? error.message : 'Error al importar pruebas',
+      })
+    }
+  }
+
   const prevMonth = () =>
     patchUiState({ currentDate: new Date(year, month - 1, 1) })
   const nextMonth = () =>
@@ -165,6 +232,13 @@ export const Pruebas: React.FC<PruebasProps> = ({ level }) => {
         breadcrumbs={[{ label: 'Evaluaciones', active: true }]}
         action={
           <div className="flex items-center gap-3">
+            <Button
+              variant="outline"
+              onClick={() => setImportOpen(true)}
+              icon={Upload}
+            >
+              Importar Excel
+            </Button>
             <div className="flex bg-slate-100 p-1 rounded-xl border border-slate-200/50">
               <button
                 type="button"
@@ -234,6 +308,72 @@ export const Pruebas: React.FC<PruebasProps> = ({ level }) => {
           </>
         }
       />
+
+      <Modal
+        testId="modal-import-tests"
+        isOpen={importOpen}
+        onClose={resetImport}
+        title="Importar pruebas desde Excel"
+        size="lg"
+      >
+        <div className="space-y-5">
+          <p className="text-sm text-slate-600">
+            Columnas obligatorias: <code>course_name</code>, <code>date</code>,{' '}
+            <code>subject</code> y <code>type</code>. También puede usar curso,
+            fecha, asignatura y tipo.
+          </p>
+          <input
+            data-testid="import-tests-file"
+            type="file"
+            accept=".xlsx,.xls,.csv"
+            onChange={handleImportFile}
+            disabled={importLoading || bulkCreateTestsM.isPending}
+            className="block w-full text-sm"
+          />
+          {importFileName && (
+            <p className="text-sm text-slate-500">
+              Archivo: <strong>{importFileName}</strong> · {importTotal} filas
+            </p>
+          )}
+          {importIssues.length > 0 && (
+            <div className="rounded-xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-800">
+              <p className="font-bold">
+                Corrija estos errores antes de importar:
+              </p>
+              <ul className="mt-2 list-disc pl-5 space-y-1">
+                {importIssues.slice(0, 12).map((issue, index) => (
+                  <li key={`${issue.row}-${index}`}>
+                    {issue.row ? `Fila ${issue.row}: ` : ''}
+                    {issue.message}
+                  </li>
+                ))}
+              </ul>
+              {importIssues.length > 12 && (
+                <p className="mt-2">Hay más errores no mostrados.</p>
+              )}
+            </div>
+          )}
+          {!importIssues.length && importRows.length > 0 && (
+            <p className="rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-800">
+              {importRows.length} filas listas para importar.
+            </p>
+          )}
+          <div className="flex justify-end gap-3">
+            <Button variant="ghost" onClick={resetImport}>
+              Cancelar
+            </Button>
+            <Button
+              onClick={handleImport}
+              loading={bulkCreateTestsM.isPending}
+              disabled={
+                importLoading || !!importIssues.length || !importRows.length
+              }
+            >
+              Importar pruebas
+            </Button>
+          </div>
+        </div>
+      </Modal>
 
       {courses.length === 0 && !loading && (
         <div className="max-w-4xl mx-auto">

@@ -49,4 +49,41 @@ export const testService = {
     if (error) throw error
     return data
   },
+
+  bulkInsertTests: async (
+    tests: Database['public']['Tables']['tests']['Insert'][]
+  ) => {
+    const courseIds = [
+      ...new Set(
+        tests
+          .map((test) => test.course_id)
+          .filter((id): id is string => Boolean(id))
+      ),
+    ]
+    const { data: existing, error: existingError } = await supabase
+      .from('tests')
+      .select('course_id, date, subject, type')
+      .in('course_id', courseIds)
+    if (existingError) throw existingError
+
+    const existingKeys = new Set(
+      (existing ?? []).map(
+        (test) =>
+          `${test.course_id}|${test.date}|${test.subject.toLowerCase()}|${test.type.toLowerCase()}`
+      )
+    )
+    const duplicate = tests.find((test) =>
+      existingKeys.has(
+        `${test.course_id}|${test.date}|${test.subject.toLowerCase()}|${test.type.toLowerCase()}`
+      )
+    )
+    if (duplicate)
+      throw new Error(
+        `Ya existe una prueba para ${duplicate.date}: ${duplicate.subject}`
+      )
+
+    const { data, error } = await supabase.from('tests').insert(tests).select()
+    if (error) throw error
+    return data
+  },
 }
