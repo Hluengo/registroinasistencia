@@ -95,6 +95,7 @@ export const Pruebas: React.FC<PruebasProps> = ({ level }) => {
   const testsWithCourse = tests as (Test & { courses?: Course | null })[]
   const { data: holidays = [] as Holiday[] } = useHolidays(month, year)
   const { data: courses = [] as Course[] } = useCourses(level)
+  const { data: allCourses = [] as Course[] } = useCourses()
   const loading = loadingTests
 
   const queryClient = useQueryClient()
@@ -173,7 +174,7 @@ export const Pruebas: React.FC<PruebasProps> = ({ level }) => {
     if (!file) return
     try {
       setImportLoading(true)
-      const parsed = await parseTestWorkbook(file, courses)
+      const parsed = await parseTestWorkbook(file, allCourses)
       setImportFileName(file.name)
       setImportRows(parsed.rows)
       setImportIssues(parsed.issues)
