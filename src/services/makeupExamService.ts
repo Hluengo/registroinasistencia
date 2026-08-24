@@ -79,6 +79,20 @@ export const makeupExamService = {
     return data
   },
 
+  async createMany(
+    inputs: Array<
+      Omit<MakeupExamInsert, 'tenant_id' | 'created_by' | 'updated_by'>
+    >
+  ) {
+    if (inputs.length === 0) return []
+    const { data, error } = await supabase
+      .from('makeup_exams')
+      .insert(inputs)
+      .select()
+    if (error) throw error
+    return data
+  },
+
   async update(
     id: string,
     input: Omit<MakeupExamUpdate, 'tenant_id' | 'created_by' | 'updated_by'>

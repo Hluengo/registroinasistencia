@@ -51,6 +51,18 @@ export const useCreateMakeupExam = () => {
   })
 }
 
+export const useCreateMakeupExams = () => {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (
+      inputs: Array<
+        Omit<MakeupExamInsertRow, 'tenant_id' | 'created_by' | 'updated_by'>
+      >
+    ) => makeupExamService.createMany(inputs),
+    onSuccess: () => invalidateMakeupExams(queryClient),
+  })
+}
+
 export const useUpdateMakeupExam = () => {
   const queryClient = useQueryClient()
   return useMutation({

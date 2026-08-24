@@ -4,6 +4,7 @@ export { useTests, useCreateTest, useBulkCreateTests } from './tests'
 export {
   useMakeupExams,
   useCreateMakeupExam,
+  useCreateMakeupExams,
   useUpdateMakeupExam,
   useDeleteMakeupExam,
 } from './makeupExams'

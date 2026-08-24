@@ -365,6 +365,8 @@ export const PruebasAtrasadas: React.FC<PruebasAtrasadasProps> = ({
       <MakeupExamModal
         isOpen={modalOpen}
         onClose={() => setModalOpen(false)}
+        level={level}
+        courses={courses}
         students={students}
         editingExam={editingExam}
       />

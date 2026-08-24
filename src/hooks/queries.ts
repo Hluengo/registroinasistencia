@@ -15,6 +15,7 @@ export {
   // Makeup exams
   useMakeupExams,
   useCreateMakeupExam,
+  useCreateMakeupExams,
   useUpdateMakeupExam,
   useDeleteMakeupExam,
 

@@ -173,11 +173,11 @@ export const Inasistencias: React.FC<InasistenciasProps> = ({ level }) => {
     if (!selectedAbsence) return
     patchUiState({ isDetailModalOpen: false })
     setMakeupExamPrefill({
+      courseId:
+        selectedAbsence.student.course_id ?? selectedAbsence.student.course?.id,
       studentId: selectedAbsence.student.id,
       testId: test.id,
       sourceAbsenceId: selectedAbsence.id,
-      originalDate: test.date,
-      subject: test.subject,
     })
   }
 
@@ -392,6 +392,8 @@ export const Inasistencias: React.FC<InasistenciasProps> = ({ level }) => {
       <MakeupExamModal
         isOpen={Boolean(makeupExamPrefill)}
         onClose={() => setMakeupExamPrefill(null)}
+        level={level}
+        courses={coursesData}
         students={selectedAbsence ? [selectedAbsence.student] : []}
         initialValues={makeupExamPrefill ?? undefined}
       />

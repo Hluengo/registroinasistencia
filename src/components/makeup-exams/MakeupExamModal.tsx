@@ -1,6 +1,11 @@
 import React from 'react'
-import { useCreateMakeupExam, useUpdateMakeupExam } from '../../hooks/queries'
-import type { Student } from '../../types'
+import { Check } from 'lucide-react'
+import {
+  useCreateMakeupExams,
+  useTests,
+  useUpdateMakeupExam,
+} from '../../hooks/queries'
+import type { Course, Student, Test } from '../../types'
 import type {
   MakeupExamStatus,
   MakeupExamWithDetails,
@@ -9,6 +14,7 @@ import {
   MAKEUP_EXAM_STATUS_LABELS,
   MAKEUP_EXAM_STATUS_OPTIONS,
 } from '../../utils/makeupExam'
+import { buildMakeupExamInputs } from '../../utils/makeupExamForm'
 import { toDateOnlyString } from '../../utils'
 import { useToast } from '../../contexts/ToastContext'
 import { TOAST_TYPES } from '../../constants'
@@ -17,130 +23,155 @@ import { Modal } from '../ui/Modal'
 import { Select } from '../ui/Select'
 
 export type MakeupExamPrefill = {
+  courseId?: string
   studentId: string
   testId?: string
   sourceAbsenceId?: string
-  originalDate?: string
-  subject?: string
 }
 
 interface MakeupExamModalProps {
   isOpen: boolean
   onClose: () => void
+  level: 'BASICA' | 'MEDIA'
+  courses: Course[]
   students: Student[]
   editingExam?: MakeupExamWithDetails | null
   initialValues?: MakeupExamPrefill
 }
 
 type FormState = {
+  courseId: string
   studentId: string
-  originalDate: string
   scheduledDate: string
-  subject: string
   status: MakeupExamStatus
-  scheduledTime: string
-  room: string
-  proctor: string
-  grade: string
-  notes: string
+  testIds: string[]
 }
 
 const emptyForm = (initial?: MakeupExamPrefill): FormState => ({
+  courseId: initial?.courseId ?? '',
   studentId: initial?.studentId ?? '',
-  originalDate: initial?.originalDate ?? '',
   scheduledDate: toDateOnlyString(new Date()),
-  subject: initial?.subject ?? '',
   status: 'pendiente',
-  scheduledTime: '',
-  room: '',
-  proctor: '',
-  grade: '',
-  notes: '',
+  testIds: initial?.testId ? [initial.testId] : [],
 })
 
 export const MakeupExamModal: React.FC<MakeupExamModalProps> = ({
   isOpen,
   onClose,
+  level,
+  courses,
   students,
   editingExam = null,
   initialValues,
 }) => {
-  const [form, setForm] = React.useState<FormState>(emptyForm(initialValues))
+  const [form, setForm] = React.useState<FormState>(() =>
+    emptyForm(initialValues)
+  )
   const { showToast } = useToast()
-  const createMutation = useCreateMakeupExam()
+  const createMutation = useCreateMakeupExams()
   const updateMutation = useUpdateMakeupExam()
+  const { data: tests = [], isLoading: testsLoading } = useTests(
+    form.courseId || undefined,
+    undefined,
+    undefined,
+    level
+  )
+
+  const availableTests = React.useMemo(
+    () => tests.filter((test) => test.course_id === form.courseId),
+    [form.courseId, tests]
+  )
+  const filteredStudents = React.useMemo(
+    () => students.filter((student) => student.course_id === form.courseId),
+    [form.courseId, students]
+  )
+  const selectedTestIds = React.useMemo(
+    () => new Set(form.testIds),
+    [form.testIds]
+  )
+  const selectedTests = React.useMemo(
+    () => availableTests.filter((test) => selectedTestIds.has(test.id)),
+    [availableTests, selectedTestIds]
+  )
 
   React.useEffect(() => {
     if (!isOpen) return
     if (editingExam) {
       setForm({
+        courseId: editingExam.students?.course_id ?? '',
         studentId: editingExam.student_id,
-        originalDate: editingExam.original_date ?? '',
         scheduledDate: editingExam.scheduled_date,
-        subject: editingExam.subject,
         status: editingExam.status as MakeupExamStatus,
-        scheduledTime: editingExam.scheduled_time ?? '',
-        room: editingExam.room ?? '',
-        proctor: editingExam.proctor ?? '',
-        grade: editingExam.grade === null ? '' : String(editingExam.grade),
-        notes: editingExam.notes ?? '',
+        testIds: editingExam.test_id ? [editingExam.test_id] : [],
       })
     } else {
       setForm(emptyForm(initialValues))
     }
   }, [editingExam, initialValues, isOpen])
 
-  const updateForm = <K extends keyof FormState>(key: K, value: FormState[K]) =>
-    setForm((current) => ({ ...current, [key]: value }))
+  const handleCourseChange = (courseId: string) => {
+    setForm((current) => ({
+      ...current,
+      courseId,
+      studentId: '',
+      testIds: [],
+    }))
+  }
+
+  const toggleTest = (testId: string) => {
+    setForm((current) => ({
+      ...current,
+      testIds: current.testIds.includes(testId)
+        ? current.testIds.filter((id) => id !== testId)
+        : [...current.testIds, testId],
+    }))
+  }
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault()
-    if (!form.studentId || !form.subject.trim() || !form.scheduledDate) {
+    if (!form.courseId || !form.studentId || !form.scheduledDate) {
       showToast({
         type: TOAST_TYPES.WARNING,
-        message: 'Completa estudiante, asignatura y fecha.',
+        message: 'Completa curso, estudiante y fecha de recuperación.',
+      })
+      return
+    }
+    if (selectedTests.length === 0) {
+      showToast({
+        type: TOAST_TYPES.WARNING,
+        message: 'Selecciona al menos una prueba.',
       })
       return
     }
 
-    const grade = form.grade ? Number(form.grade) : null
-    if (grade !== null && (Number.isNaN(grade) || grade < 1 || grade > 7)) {
-      showToast({
-        type: TOAST_TYPES.WARNING,
-        message: 'La nota debe estar entre 1,0 y 7,0.',
-      })
-      return
-    }
-
-    const input = {
-      student_id: form.studentId,
-      original_date: form.originalDate || null,
-      scheduled_date: form.scheduledDate,
-      subject: form.subject.trim(),
+    const inputs = buildMakeupExamInputs(availableTests, {
+      studentId: form.studentId,
+      scheduledDate: form.scheduledDate,
       status: form.status,
-      scheduled_time: form.scheduledTime || null,
-      room: form.room.trim() || null,
-      proctor: form.proctor.trim() || null,
-      grade,
-      notes: form.notes.trim() || null,
-    }
+      testIds: form.testIds,
+      sourceAbsenceId: initialValues?.sourceAbsenceId,
+    })
 
     try {
       if (editingExam) {
-        await updateMutation.mutateAsync({ id: editingExam.id, input })
-      } else {
-        await createMutation.mutateAsync({
-          ...input,
-          test_id: initialValues?.testId ?? null,
-          source_absence_id: initialValues?.sourceAbsenceId ?? null,
+        const test = selectedTests[0]
+        if (!test) return
+        await updateMutation.mutateAsync({
+          id: editingExam.id,
+          input: {
+            scheduled_date: form.scheduledDate,
+            status: form.status,
+          },
         })
+      } else {
+        await createMutation.mutateAsync(inputs)
       }
       onClose()
       showToast({
         type: TOAST_TYPES.SUCCESS,
         message: editingExam
           ? 'Prueba atrasada actualizada.'
-          : 'Prueba atrasada registrada.',
+          : `${inputs.length} recuperación${inputs.length === 1 ? '' : 'es'} registrada${inputs.length === 1 ? '' : 's'}.`,
       })
     } catch (error) {
       showToast({
@@ -148,7 +179,7 @@ export const MakeupExamModal: React.FC<MakeupExamModalProps> = ({
         message:
           error instanceof Error
             ? error.message
-            : 'No se pudo guardar la prueba atrasada.',
+            : 'No se pudieron guardar las recuperaciones.',
       })
     }
   }
@@ -163,109 +194,133 @@ export const MakeupExamModal: React.FC<MakeupExamModalProps> = ({
       size="lg"
       testId="modal-makeup-exam"
     >
-      <form onSubmit={handleSubmit} className="space-y-4">
+      <form onSubmit={handleSubmit} className="space-y-5">
         <div className="grid gap-4 md:grid-cols-2">
           <Select
-            label="Estudiante"
-            value={form.studentId}
-            onChange={(event) => updateForm('studentId', event.target.value)}
-            options={students.map((student) => ({
-              value: student.id,
-              label: student.full_name,
-            }))}
-            disabled={Boolean(editingExam) || Boolean(initialValues)}
+            label="Curso"
+            data-testid="makeup-exam-course"
+            value={form.courseId}
+            onChange={(event) => handleCourseChange(event.target.value)}
+            options={[
+              { value: '', label: 'Seleccionar curso' },
+              ...courses.map((course) => ({
+                value: course.id,
+                label: course.name,
+              })),
+            ]}
+            disabled={Boolean(editingExam) || Boolean(initialValues?.courseId)}
           />
-          <label className="space-y-1 text-sm font-semibold text-slate-700">
-            Asignatura
-            <input
-              value={form.subject}
-              onChange={(event) => updateForm('subject', event.target.value)}
-              className="w-full rounded-xl border border-slate-200 px-3 py-2.5 font-normal"
-              required
-            />
-          </label>
-          <label className="space-y-1 text-sm font-semibold text-slate-700">
-            Fecha original
-            <input
-              type="date"
-              value={form.originalDate}
-              onChange={(event) =>
-                updateForm('originalDate', event.target.value)
-              }
-              className="w-full rounded-xl border border-slate-200 px-3 py-2.5 font-normal"
-            />
-          </label>
+          <Select
+            label="Estudiante"
+            data-testid="makeup-exam-student"
+            value={form.studentId}
+            onChange={(event) =>
+              setForm((current) => ({
+                ...current,
+                studentId: event.target.value,
+              }))
+            }
+            options={[
+              { value: '', label: 'Seleccionar estudiante' },
+              ...filteredStudents.map((student) => ({
+                value: student.id,
+                label: student.full_name,
+              })),
+            ]}
+            disabled={
+              !form.courseId ||
+              Boolean(editingExam) ||
+              Boolean(initialValues?.studentId)
+            }
+          />
+        </div>
+
+        <fieldset className="space-y-2" data-testid="makeup-exam-tests">
+          <legend className="text-sm font-semibold text-slate-700">
+            Pruebas a recuperar
+          </legend>
+          {!form.courseId ? (
+            <p className="rounded-xl border border-dashed border-slate-200 p-4 text-sm text-slate-500">
+              Selecciona un curso para ver sus pruebas.
+            </p>
+          ) : testsLoading ? (
+            <p className="rounded-xl border border-slate-200 p-4 text-sm text-slate-500">
+              Cargando pruebas del curso…
+            </p>
+          ) : availableTests.length === 0 ? (
+            <p className="rounded-xl border border-dashed border-slate-200 p-4 text-sm text-slate-500">
+              No hay pruebas registradas para este curso.
+            </p>
+          ) : (
+            <div className="max-h-52 space-y-2 overflow-y-auto rounded-xl border border-slate-200 p-2">
+              {availableTests.map((test: Test) => {
+                const checked = selectedTestIds.has(test.id)
+                return (
+                  <label
+                    key={test.id}
+                    className={`flex cursor-pointer items-center gap-3 rounded-lg border p-3 text-sm transition-colors ${checked ? 'border-indigo-200 bg-indigo-50' : 'border-transparent hover:bg-slate-50'}`}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={checked}
+                      onChange={() => toggleTest(test.id)}
+                      disabled={Boolean(editingExam)}
+                      aria-label={`${test.subject} ${test.date}`}
+                      className="h-4 w-4 accent-indigo-600"
+                    />
+                    <span className="min-w-0 flex-1">
+                      <span className="block font-semibold text-slate-800">
+                        {test.subject}
+                      </span>
+                      <span className="block text-xs text-slate-500">
+                        {test.type} · {test.date}
+                      </span>
+                    </span>
+                    {checked && <Check className="h-4 w-4 text-indigo-600" />}
+                  </label>
+                )
+              })}
+            </div>
+          )}
+          <p className="text-xs text-slate-500">
+            {form.testIds.length} prueba
+            {form.testIds.length === 1 ? '' : 's'} seleccionada
+            {form.testIds.length === 1 ? '' : 's'}.
+          </p>
+        </fieldset>
+
+        <div className="grid gap-4 md:grid-cols-2">
           <label className="space-y-1 text-sm font-semibold text-slate-700">
             Fecha de recuperación
             <input
               type="date"
               value={form.scheduledDate}
               onChange={(event) =>
-                updateForm('scheduledDate', event.target.value)
+                setForm((current) => ({
+                  ...current,
+                  scheduledDate: event.target.value,
+                }))
               }
               className="w-full rounded-xl border border-slate-200 px-3 py-2.5 font-normal"
               required
-            />
-          </label>
-          <label className="space-y-1 text-sm font-semibold text-slate-700">
-            Hora
-            <input
-              type="time"
-              value={form.scheduledTime}
-              onChange={(event) =>
-                updateForm('scheduledTime', event.target.value)
-              }
-              className="w-full rounded-xl border border-slate-200 px-3 py-2.5 font-normal"
             />
           </label>
           <Select
             label="Estado"
             value={form.status}
             onChange={(event) =>
-              updateForm('status', event.target.value as MakeupExamStatus)
+              setForm((current) => ({
+                ...current,
+                status: event.target.value as MakeupExamStatus,
+              }))
             }
             options={MAKEUP_EXAM_STATUS_OPTIONS.map((value) => ({
               value,
               label: MAKEUP_EXAM_STATUS_LABELS[value],
             }))}
           />
-          <label className="space-y-1 text-sm font-semibold text-slate-700">
-            Sala
-            <input
-              value={form.room}
-              onChange={(event) => updateForm('room', event.target.value)}
-              className="w-full rounded-xl border border-slate-200 px-3 py-2.5 font-normal"
-            />
-          </label>
-          <label className="space-y-1 text-sm font-semibold text-slate-700">
-            Profesor/a
-            <input
-              value={form.proctor}
-              onChange={(event) => updateForm('proctor', event.target.value)}
-              className="w-full rounded-xl border border-slate-200 px-3 py-2.5 font-normal"
-            />
-          </label>
-          <label className="space-y-1 text-sm font-semibold text-slate-700">
-            Nota
-            <input
-              type="number"
-              min="1"
-              max="7"
-              step="0.1"
-              value={form.grade}
-              onChange={(event) => updateForm('grade', event.target.value)}
-              className="w-full rounded-xl border border-slate-200 px-3 py-2.5 font-normal"
-            />
-          </label>
         </div>
-        <label className="space-y-1 text-sm font-semibold text-slate-700">
-          Observaciones
-          <textarea
-            value={form.notes}
-            onChange={(event) => updateForm('notes', event.target.value)}
-            className="min-h-24 w-full rounded-xl border border-slate-200 px-3 py-2.5 font-normal"
-          />
-        </label>
+
         <div className="flex justify-end gap-3 pt-2">
           <Button variant="ghost" onClick={onClose}>
             Cancelar

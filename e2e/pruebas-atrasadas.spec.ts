@@ -29,8 +29,27 @@ test.describe('Pruebas atrasadas', () => {
     if (await button.isEnabled()) {
       await button.click()
       await expect(page.getByTestId('modal-makeup-exam-dialog')).toBeVisible()
+      await expect(page.getByTestId('makeup-exam-course')).toBeVisible()
       await expect(page.getByLabel('Estudiante')).toBeVisible()
-      await expect(page.getByLabel('Asignatura')).toBeVisible()
+
+      const course = page.getByTestId('makeup-exam-course')
+      if ((await course.locator('option').count()) <= 1) return
+      await course.selectOption({ index: 1 })
+
+      const student = page.getByTestId('makeup-exam-student')
+      await expect(student).toBeEnabled()
+      const tests = page.locator(
+        '[data-testid="makeup-exam-tests"] input[type="checkbox"]'
+      )
+      const testCount = await tests.count()
+      if (testCount === 0) return
+      await tests.nth(0).check()
+      if (testCount > 1) await tests.nth(1).check()
+      await expect(
+        page.getByText(
+          new RegExp(`${testCount > 1 ? 2 : 1} pruebas? seleccionadas?`)
+        )
+      ).toBeVisible()
     }
   })
 })
