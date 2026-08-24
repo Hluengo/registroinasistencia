@@ -64,6 +64,7 @@ export const QUERY_KEYS_INVALIDATE = {
   STUDENTS: ['students'],
   COURSES: ['courses'],
   TESTS: ['tests'],
+  MAKEUP_EXAMS: ['makeupExams'],
   INSPECTORATE: ['inspectorate'],
   HOLIDAYS: ['holidays'],
   TEACHER_PUBLIC_ABSENCES: ['teacherPublicAbsences'],

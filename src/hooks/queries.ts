@@ -12,6 +12,12 @@ export {
   useCreateTest,
   useBulkCreateTests,
 
+  // Makeup exams
+  useMakeupExams,
+  useCreateMakeupExam,
+  useUpdateMakeupExam,
+  useDeleteMakeupExam,
+
   // Absences
   useAbsences,
   useCreateAbsence,
@@ -63,6 +69,9 @@ export type {
   TestRow,
   StudentRow,
   TestInsertRow,
+  MakeupExamRow,
+  MakeupExamInsertRow,
+  MakeupExamUpdateRow,
   AbsenceUpdateRow,
   AbsenceStatus,
   InstantMessageRow,

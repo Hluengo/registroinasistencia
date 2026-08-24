@@ -6,13 +6,13 @@ import {
   Check,
   FileText,
   Download,
+  ClipboardCheck,
 } from 'lucide-react'
 import { Modal } from '../components/ui/Modal'
 import { Button } from '../components/ui/Button'
 import { Badge } from '../components/ui/Badge'
-import { FormError } from '../components/ui/FormError'
 import { useForm } from 'react-hook-form'
-import { AbsenceWithDetails, Course } from '../types'
+import { AbsenceWithDetails, Course, Test } from '../types'
 import { formatDate } from '../utils'
 import { getAbsenceStatusLabel } from '../constants'
 import { Upload } from 'lucide-react'
@@ -28,6 +28,7 @@ interface InasistenciasDetailModalProps {
   onFileChange: (file: File | null) => void
   loading: boolean
   onUpdate: (data: { observation?: string | null }) => void
+  onCreateMakeupExam?: (test: Test) => void
 }
 
 export const InasistenciasDetailModal: React.FC<
@@ -43,13 +44,13 @@ export const InasistenciasDetailModal: React.FC<
   onFileChange,
   loading,
   onUpdate,
+  onCreateMakeupExam,
 }) => {
   const {
     register: registerEdit,
     handleSubmit: handleSubmitEdit,
     setValue: setValueEdit,
     reset: resetEdit,
-    formState: { errors: errorsEdit },
   } = useForm<{ observation?: string | null }>({ mode: 'onBlur' })
 
   const handleClose = () => {
@@ -269,6 +270,17 @@ export const InasistenciasDetailModal: React.FC<
                           <div className="text-rose-600 font-medium">
                             {test.type} - {formatDate(test.date)}
                           </div>
+                          {onCreateMakeupExam && (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              icon={ClipboardCheck}
+                              className="mt-2"
+                              onClick={() => onCreateMakeupExam(test)}
+                            >
+                              Crear recuperación
+                            </Button>
+                          )}
                         </div>
                       ))}
                     </div>

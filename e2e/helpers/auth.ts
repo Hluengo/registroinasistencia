@@ -71,7 +71,7 @@ export async function loginAsRole(page: Page, role: 'staff' | 'superuser'): Prom
   await page.getByRole('button', { name: 'Ingresar Staff' }).first().click();
   const dialog = page.getByRole('dialog');
   await expect(dialog).toBeVisible({ timeout: 5000 });
-  await dialog.getByPlaceholder('staff@colegio.cl').fill(ROLE_EMAIL[role]);
+  await dialog.getByPlaceholder(/correo@colegio\.cl|staff@colegio\.cl/).fill(ROLE_EMAIL[role]);
   await dialog.getByPlaceholder('••••••••').fill(ROLE_PASSWORD[role]);
   await dialog.getByRole('button', { name: 'Ingresar', exact: true }).click();
   await expect(page.getByRole('button', { name: /Salir|Cerrar sesión/ }).first()).toBeVisible({ timeout: 15000 });

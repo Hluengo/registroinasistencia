@@ -1,6 +1,12 @@
 // Domain modules
 export { useCourses, useBulkInsertCourses } from './courses'
 export { useTests, useCreateTest, useBulkCreateTests } from './tests'
+export {
+  useMakeupExams,
+  useCreateMakeupExam,
+  useUpdateMakeupExam,
+  useDeleteMakeupExam,
+} from './makeupExams'
 export { useAbsences, useCreateAbsence, useUpdateAbsence } from './absences'
 export {
   useStudents,

@@ -19,9 +19,9 @@ export const useTeacherInstantMessages = (
   return useQ<TeacherInstantMessage[]>(
     queryKeys.teacherInstantMessages(level, courseId, visibility),
     async () => {
-      const params: { p_level: string | null; p_course_id: string | null } = {
-        p_level: level ?? null,
-        p_course_id: courseId ?? null,
+      const params: { p_level?: string; p_course_id?: string } = {
+        ...(level ? { p_level: level } : {}),
+        ...(courseId ? { p_course_id: courseId } : {}),
       };
       const rpcName = isAuthenticated
         ? 'teacher_get_instant_messages'

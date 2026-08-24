@@ -18,11 +18,11 @@ export const useTeacherPublicAbsences = (
         p_month: number
         p_year: number
         p_level?: string
-        p_course_id: string | null
+        p_course_id?: string
       } = {
         p_month: month + 1,
         p_year: year,
-        p_course_id: courseId || null,
+        ...(courseId ? { p_course_id: courseId } : {}),
       }
       if (level) params.p_level = level
 

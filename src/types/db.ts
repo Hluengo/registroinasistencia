@@ -10,7 +10,7 @@ export type Database = {
   // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
-    PostgrestVersion: "14.1"
+    PostgrestVersion: "14.5"
   }
   public: {
     Tables: {
@@ -51,6 +51,119 @@ export type Database = {
             columns: ["student_id"]
             isOneToOne: false
             referencedRelation: "students"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      app_memberships: {
+        Row: {
+          application_code: string
+          created_at: string
+          id: string
+          is_active: boolean
+          role: string
+          tenant_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          application_code: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          role: string
+          tenant_id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          application_code?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          role?: string
+          tenant_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "app_memberships_application_code_fkey"
+            columns: ["application_code"]
+            isOneToOne: false
+            referencedRelation: "applications"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "app_memberships_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      applications: {
+        Row: {
+          code: string
+          created_at: string
+          is_active: boolean
+          name: string
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          is_active?: boolean
+          name: string
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          is_active?: boolean
+          name?: string
+        }
+        Relationships: []
+      }
+      audit_events: {
+        Row: {
+          action: string
+          actor_user_id: string
+          entity_id: string
+          entity_type: string
+          id: string
+          new_values: Json | null
+          occurred_at: string
+          previous_values: Json | null
+          tenant_id: string
+        }
+        Insert: {
+          action: string
+          actor_user_id?: string
+          entity_id: string
+          entity_type: string
+          id?: string
+          new_values?: Json | null
+          occurred_at?: string
+          previous_values?: Json | null
+          tenant_id: string
+        }
+        Update: {
+          action?: string
+          actor_user_id?: string
+          entity_id?: string
+          entity_type?: string
+          id?: string
+          new_values?: Json | null
+          occurred_at?: string
+          previous_values?: Json | null
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "audit_events_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
             referencedColumns: ["id"]
           },
         ]
@@ -115,7 +228,7 @@ export type Database = {
           fecha: string
           id: string
           participantes?: Json | null
-          tenant_id: string
+          tenant_id?: string
           tipo: string
           titulo: string
         }
@@ -158,7 +271,7 @@ export type Database = {
           id: string
           metadata: Json
           student_id: string
-          tenant_id: string | null
+          tenant_id: string
         }
         Insert: {
           carta_id: string
@@ -169,7 +282,7 @@ export type Database = {
           id?: string
           metadata?: Json
           student_id: string
-          tenant_id?: string | null
+          tenant_id: string
         }
         Update: {
           carta_id?: string
@@ -180,7 +293,7 @@ export type Database = {
           id?: string
           metadata?: Json
           student_id?: string
-          tenant_id?: string | null
+          tenant_id?: string
         }
         Relationships: [
           {
@@ -188,6 +301,20 @@ export type Database = {
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_carta_events_carta_id"
+            columns: ["carta_id"]
+            isOneToOne: false
+            referencedRelation: "cartas_disciplinarias"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_carta_events_student_id"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "students"
             referencedColumns: ["id"]
           },
         ]
@@ -205,7 +332,9 @@ export type Database = {
           id: string
           letter_type: string
           observations: string | null
+          origin: string
           regulation_basis: string
+          school_year: number
           status: string | null
           student_id: string
           student_name: string
@@ -225,12 +354,14 @@ export type Database = {
           id?: string
           letter_type: string
           observations?: string | null
+          origin?: string
           regulation_basis: string
+          school_year?: number
           status?: string | null
           student_id: string
           student_name: string
           supervisor_name?: string | null
-          tenant_id: string
+          tenant_id?: string
           updated_at?: string | null
         }
         Update: {
@@ -245,7 +376,9 @@ export type Database = {
           id?: string
           letter_type?: string
           observations?: string | null
+          origin?: string
           regulation_basis?: string
+          school_year?: number
           status?: string | null
           student_id?: string
           student_name?: string
@@ -270,6 +403,68 @@ export type Database = {
           },
         ]
       }
+      causa_documents: {
+        Row: {
+          apoderado_name: string
+          causa_id: string
+          content_snapshot: Json
+          course: string
+          created_at: string
+          created_by: string | null
+          doc_type: string
+          emission_date: string
+          emitted_by: string | null
+          id: string
+          notified_at: string | null
+          status: string
+          student_name: string
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          apoderado_name: string
+          causa_id: string
+          content_snapshot?: Json
+          course: string
+          created_at?: string
+          created_by?: string | null
+          doc_type: string
+          emission_date?: string
+          emitted_by?: string | null
+          id?: string
+          notified_at?: string | null
+          status?: string
+          student_name: string
+          tenant_id?: string
+          updated_at?: string
+        }
+        Update: {
+          apoderado_name?: string
+          causa_id?: string
+          content_snapshot?: Json
+          course?: string
+          created_at?: string
+          created_by?: string | null
+          doc_type?: string
+          emission_date?: string
+          emitted_by?: string | null
+          id?: string
+          notified_at?: string | null
+          status?: string
+          student_name?: string
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "causa_documents_causa_id_fkey"
+            columns: ["causa_id"]
+            isOneToOne: false
+            referencedRelation: "causas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       causas: {
         Row: {
           annotations_count: number | null
@@ -281,11 +476,17 @@ export type Database = {
           estudiante_curso: string
           estudiante_nombre: string
           fecha_apertura: string
+          fecha_inicio_investigacion: string | null
+          fecha_limite_24h: string | null
+          fecha_limite_cierre: string | null
+          fecha_limite_investigacion: string | null
           fecha_ultima_actualizacion: string
           id: string
           medidas_ejecutadas: Json | null
           nna_protected_name: string
           observaciones: string | null
+          plazo_24h: boolean
+          plazo_investigacion_dias: number | null
           responsable: string
           run_estudiante: string
           student_id: string | null
@@ -303,15 +504,21 @@ export type Database = {
           estudiante_curso: string
           estudiante_nombre: string
           fecha_apertura: string
+          fecha_inicio_investigacion?: string | null
+          fecha_limite_24h?: string | null
+          fecha_limite_cierre?: string | null
+          fecha_limite_investigacion?: string | null
           fecha_ultima_actualizacion: string
           id: string
           medidas_ejecutadas?: Json | null
           nna_protected_name: string
           observaciones?: string | null
+          plazo_24h?: boolean
+          plazo_investigacion_dias?: number | null
           responsable: string
           run_estudiante: string
           student_id?: string | null
-          tenant_id: string
+          tenant_id?: string
           tipo_infraccion: string
           updated_at?: string | null
         }
@@ -325,11 +532,17 @@ export type Database = {
           estudiante_curso?: string
           estudiante_nombre?: string
           fecha_apertura?: string
+          fecha_inicio_investigacion?: string | null
+          fecha_limite_24h?: string | null
+          fecha_limite_cierre?: string | null
+          fecha_limite_investigacion?: string | null
           fecha_ultima_actualizacion?: string
           id?: string
           medidas_ejecutadas?: Json | null
           nna_protected_name?: string
           observaciones?: string | null
+          plazo_24h?: boolean
+          plazo_investigacion_dias?: number | null
           responsable?: string
           run_estudiante?: string
           student_id?: string | null
@@ -383,7 +596,7 @@ export type Database = {
           observaciones?: string | null
           registrado_por?: string | null
           requerido_por: string
-          tenant_id: string
+          tenant_id?: string
         }
         Update: {
           causa_id?: string
@@ -410,6 +623,110 @@ export type Database = {
           },
           {
             foreignKeyName: "checklist_items_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      checklist_progress_entries: {
+        Row: {
+          causa_id: string
+          checklist_item_id: string
+          created_at: string
+          created_by: string | null
+          description: string
+          document_name: string | null
+          document_url: string | null
+          entry_type: string
+          id: string
+          invalidated_at: string | null
+          invalidated_by: string | null
+          invalidation_reason: string | null
+          occurred_at: string
+          tenant_id: string
+          title: string
+        }
+        Insert: {
+          causa_id: string
+          checklist_item_id: string
+          created_at?: string
+          created_by?: string | null
+          description: string
+          document_name?: string | null
+          document_url?: string | null
+          entry_type: string
+          id?: string
+          invalidated_at?: string | null
+          invalidated_by?: string | null
+          invalidation_reason?: string | null
+          occurred_at?: string
+          tenant_id?: string
+          title: string
+        }
+        Update: {
+          causa_id?: string
+          checklist_item_id?: string
+          created_at?: string
+          created_by?: string | null
+          description?: string
+          document_name?: string | null
+          document_url?: string | null
+          entry_type?: string
+          id?: string
+          invalidated_at?: string | null
+          invalidated_by?: string | null
+          invalidation_reason?: string | null
+          occurred_at?: string
+          tenant_id?: string
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "checklist_progress_entries_causa_fkey"
+            columns: ["causa_id"]
+            isOneToOne: false
+            referencedRelation: "causas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "checklist_progress_entries_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "membership_readiness"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "checklist_progress_entries_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "checklist_progress_entries_invalidated_by_fkey"
+            columns: ["invalidated_by"]
+            isOneToOne: false
+            referencedRelation: "membership_readiness"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "checklist_progress_entries_invalidated_by_fkey"
+            columns: ["invalidated_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "checklist_progress_entries_item_fkey"
+            columns: ["checklist_item_id", "causa_id"]
+            isOneToOne: false
+            referencedRelation: "checklist_items"
+            referencedColumns: ["id", "causa_id"]
+          },
+          {
+            foreignKeyName: "checklist_progress_entries_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
@@ -960,7 +1277,7 @@ export type Database = {
           id: string
           label: string
           system_prompt: string
-          tenant_id: string
+          tenant_id?: string
           updated_at?: string | null
         }
         Update: {
@@ -1003,7 +1320,7 @@ export type Database = {
           stage_name: string
           step_number: number
           student_id: string
-          tenant_id: string
+          tenant_id?: string
           transition_date?: string | null
         }
         Update: {
@@ -1077,7 +1394,7 @@ export type Database = {
           registered_by?: string | null
           severity?: string
           student_id?: string | null
-          tenant_id: string
+          tenant_id?: string
           type?: string
         }
         Update: {
@@ -1170,14 +1487,404 @@ export type Database = {
           },
         ]
       }
+      institution_documents: {
+        Row: {
+          archived_at: string | null
+          archived_by: string | null
+          category: string
+          id: string
+          mime_type: string
+          original_name: string
+          size_bytes: number
+          status: string
+          storage_path: string
+          tenant_id: string
+          title: string
+          uploaded_at: string
+          uploaded_by: string | null
+        }
+        Insert: {
+          archived_at?: string | null
+          archived_by?: string | null
+          category?: string
+          id?: string
+          mime_type: string
+          original_name: string
+          size_bytes: number
+          status?: string
+          storage_path: string
+          tenant_id: string
+          title: string
+          uploaded_at?: string
+          uploaded_by?: string | null
+        }
+        Update: {
+          archived_at?: string | null
+          archived_by?: string | null
+          category?: string
+          id?: string
+          mime_type?: string
+          original_name?: string
+          size_bytes?: number
+          status?: string
+          storage_path?: string
+          tenant_id?: string
+          title?: string
+          uploaded_at?: string
+          uploaded_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "institution_documents_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      institution_rule_versions: {
+        Row: {
+          content: string
+          created_at: string
+          created_by: string | null
+          effective_at: string | null
+          id: string
+          published_by: string | null
+          status: string
+          tenant_id: string
+          title: string
+          updated_at: string
+          version: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          created_by?: string | null
+          effective_at?: string | null
+          id?: string
+          published_by?: string | null
+          status?: string
+          tenant_id: string
+          title: string
+          updated_at?: string
+          version: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          created_by?: string | null
+          effective_at?: string | null
+          id?: string
+          published_by?: string | null
+          status?: string
+          tenant_id?: string
+          title?: string
+          updated_at?: string
+          version?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "institution_rule_versions_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      institution_settings: {
+        Row: {
+          address: string | null
+          commune: string | null
+          director_name: string | null
+          education_levels: string[]
+          institution_rut: string | null
+          institutional_email: string | null
+          logo_path: string | null
+          official_name: string
+          phone: string | null
+          proprietor: string | null
+          region: string | null
+          tenant_id: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          address?: string | null
+          commune?: string | null
+          director_name?: string | null
+          education_levels?: string[]
+          institution_rut?: string | null
+          institutional_email?: string | null
+          logo_path?: string | null
+          official_name: string
+          phone?: string | null
+          proprietor?: string | null
+          region?: string | null
+          tenant_id: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          address?: string | null
+          commune?: string | null
+          director_name?: string | null
+          education_levels?: string[]
+          institution_rut?: string | null
+          institutional_email?: string | null
+          logo_path?: string | null
+          official_name?: string
+          phone?: string | null
+          proprietor?: string | null
+          region?: string | null
+          tenant_id?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "institution_settings_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: true
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      makeup_exams: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          grade: number | null
+          id: string
+          notes: string | null
+          original_date: string | null
+          proctor: string | null
+          room: string | null
+          scheduled_date: string
+          scheduled_time: string | null
+          source_absence_id: string | null
+          status: string
+          student_id: string
+          subject: string
+          tenant_id: string
+          test_id: string | null
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          grade?: number | null
+          id?: string
+          notes?: string | null
+          original_date?: string | null
+          proctor?: string | null
+          room?: string | null
+          scheduled_date: string
+          scheduled_time?: string | null
+          source_absence_id?: string | null
+          status?: string
+          student_id: string
+          subject: string
+          tenant_id?: string
+          test_id?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          grade?: number | null
+          id?: string
+          notes?: string | null
+          original_date?: string | null
+          proctor?: string | null
+          room?: string | null
+          scheduled_date?: string
+          scheduled_time?: string | null
+          source_absence_id?: string | null
+          status?: string
+          student_id?: string
+          subject?: string
+          tenant_id?: string
+          test_id?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "makeup_exams_source_absence_id_fkey"
+            columns: ["source_absence_id"]
+            isOneToOne: false
+            referencedRelation: "absences"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "makeup_exams_source_absence_id_fkey"
+            columns: ["source_absence_id"]
+            isOneToOne: false
+            referencedRelation: "teacher_public_view"
+            referencedColumns: ["absence_id"]
+          },
+          {
+            foreignKeyName: "makeup_exams_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "students"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "makeup_exams_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "makeup_exams_test_id_fkey"
+            columns: ["test_id"]
+            isOneToOne: false
+            referencedRelation: "tests"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      membership_invitations: {
+        Row: {
+          accepted_at: string | null
+          application_code: string
+          auth_user_id: string | null
+          cancelled_at: string | null
+          created_at: string
+          email: string
+          id: string
+          invited_by: string
+          last_sent_at: string
+          role: string
+          status: string
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          accepted_at?: string | null
+          application_code?: string
+          auth_user_id?: string | null
+          cancelled_at?: string | null
+          created_at?: string
+          email: string
+          id?: string
+          invited_by: string
+          last_sent_at?: string
+          role: string
+          status?: string
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          accepted_at?: string | null
+          application_code?: string
+          auth_user_id?: string | null
+          cancelled_at?: string | null
+          created_at?: string
+          email?: string
+          id?: string
+          invited_by?: string
+          last_sent_at?: string
+          role?: string
+          status?: string
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "membership_invitations_application_code_fkey"
+            columns: ["application_code"]
+            isOneToOne: false
+            referencedRelation: "applications"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "membership_invitations_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      notifications: {
+        Row: {
+          action_url: string | null
+          created_at: string
+          description: string
+          entity_id: string | null
+          entity_type: string | null
+          expires_at: string | null
+          id: string
+          notification_key: string
+          notification_type: string
+          read_at: string | null
+          severity: string
+          tenant_id: string
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          action_url?: string | null
+          created_at?: string
+          description: string
+          entity_id?: string | null
+          entity_type?: string | null
+          expires_at?: string | null
+          id?: string
+          notification_key: string
+          notification_type: string
+          read_at?: string | null
+          severity?: string
+          tenant_id: string
+          title: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          action_url?: string | null
+          created_at?: string
+          description?: string
+          entity_id?: string | null
+          entity_type?: string | null
+          expires_at?: string | null
+          id?: string
+          notification_key?: string
+          notification_type?: string
+          read_at?: string | null
+          severity?: string
+          tenant_id?: string
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notifications_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           course_ids: string[] | null
           created_at: string
           email: string | null
           full_name: string | null
-          role: string
-          tenant_id: string
+          is_active: boolean
+          role: string | null
+          tenant_id: string | null
           updated_at: string | null
           user_id: string
         }
@@ -1186,8 +1893,9 @@ export type Database = {
           created_at?: string
           email?: string | null
           full_name?: string | null
-          role: string
-          tenant_id: string
+          is_active?: boolean
+          role?: string | null
+          tenant_id?: string | null
           updated_at?: string | null
           user_id: string
         }
@@ -1196,14 +1904,116 @@ export type Database = {
           created_at?: string
           email?: string | null
           full_name?: string | null
-          role?: string
-          tenant_id?: string
+          is_active?: boolean
+          role?: string | null
+          tenant_id?: string | null
           updated_at?: string | null
           user_id?: string
         }
         Relationships: [
           {
             foreignKeyName: "profiles_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      report_history: {
+        Row: {
+          completed_at: string | null
+          created_at: string
+          created_by: string
+          error_message: string | null
+          expires_at: string | null
+          file_name: string | null
+          filters: Json
+          id: string
+          report_type: string
+          row_count: number
+          started_at: string
+          status: string
+          tenant_id: string
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string
+          created_by?: string
+          error_message?: string | null
+          expires_at?: string | null
+          file_name?: string | null
+          filters?: Json
+          id?: string
+          report_type: string
+          row_count?: number
+          started_at?: string
+          status?: string
+          tenant_id: string
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string
+          created_by?: string
+          error_message?: string | null
+          expires_at?: string | null
+          file_name?: string | null
+          filters?: Json
+          id?: string
+          report_type?: string
+          row_count?: number
+          started_at?: string
+          status?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "report_history_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      student_history_entries: {
+        Row: {
+          created_at: string
+          created_by: string
+          description: string
+          id: string
+          student_id: string
+          tenant_id: string
+          title: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string
+          description: string
+          id?: string
+          student_id: string
+          tenant_id?: string
+          title: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          description?: string
+          id?: string
+          student_id?: string
+          tenant_id?: string
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "student_history_entries_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "students"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "student_history_entries_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
@@ -1341,6 +2151,35 @@ export type Database = {
       }
     }
     Views: {
+      membership_readiness: {
+        Row: {
+          current_role: string | null
+          membership_category: string | null
+          tenant_id: string | null
+          user_id: string | null
+        }
+        Insert: {
+          current_role?: string | null
+          membership_category?: never
+          tenant_id?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          current_role?: string | null
+          membership_category?: never
+          tenant_id?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "profiles_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       teacher_public_view: {
         Row: {
           absence_id: string | null
@@ -1358,6 +2197,34 @@ export type Database = {
     Functions: {
       app_role: { Args: never; Returns: string }
       clean_old_logs: { Args: { days_to_keep?: number }; Returns: string }
+      confirm_disciplinary_process_atomic: {
+        Args: {
+          p_analysis_version: string
+          p_annotations: Json
+          p_bucket: string
+          p_confirmed_by?: string
+          p_file_hash: string
+          p_file_name: string
+          p_file_size: number
+          p_mime_type: string
+          p_original_file_name: string
+          p_storage_path: string
+          p_stored_file_name: string
+          p_student_id: string
+          p_suggested_letter_type: string
+          p_tenant_id: string
+          p_total_informativas: number
+          p_total_negativas: number
+          p_total_positivas: number
+        }
+        Returns: {
+          inserted_informativas: number
+          inserted_negativas: number
+          inserted_positivas: number
+          process_id: string
+          process_number: string
+        }[]
+      }
       count_affected_tests: {
         Args: { p_end: string; p_start: string; p_student_id: string }
         Returns: number
@@ -1365,6 +2232,15 @@ export type Database = {
       current_app_role: { Args: never; Returns: string }
       current_role: { Args: never; Returns: string }
       current_tenant_id: { Args: never; Returns: string }
+      current_user_memberships: {
+        Args: never
+        Returns: {
+          app_is_active: boolean
+          application_code: string
+          is_active: boolean
+          role: string
+        }[]
+      }
       generate_process_number: {
         Args: { p_tenant_id: string }
         Returns: string
@@ -1384,11 +2260,49 @@ export type Database = {
           without_doc: number
         }[]
       }
+      get_annotation_course_stage_counts: {
+        Args: never
+        Returns: {
+          amonestacion_count: number
+          compromiso_count: number
+          con_carta_count: number
+          course_id: string
+          course_name: string
+          derivacion_count: number
+          total_students: number
+        }[]
+      }
       get_annotation_stage_counts: {
         Args: never
         Returns: {
-          count: number
+          archived_count: number
+          pending_count: number
+          processed_count: number
           stage: string
+          total_count: number
+        }[]
+      }
+      get_annual_annotation_trend: {
+        Args: { p_year: number }
+        Returns: {
+          month_key: string
+          negative_count: number
+          negative_high_count: number
+          other_count: number
+          other_high_count: number
+          positive_count: number
+          positive_high_count: number
+          total_count: number
+        }[]
+      }
+      get_course_carta_ranking: {
+        Args: never
+        Returns: {
+          amonestacion_count: number
+          compromiso_count: number
+          course_name: string
+          derivacion_count: number
+          total_count: number
         }[]
       }
       get_daily_active_users: {
@@ -1396,6 +2310,16 @@ export type Database = {
         Returns: {
           active_users: number
           date: string
+        }[]
+      }
+      get_dashboard_deadline_kpis: {
+        Args: never
+        Returns: {
+          as_of: string
+          critical_count: number
+          due_soon_count: number
+          due_today_count: number
+          overdue_count: number
         }[]
       }
       get_latest_analysis: {
@@ -1408,6 +2332,49 @@ export type Database = {
           positivas: number
         }[]
       }
+      get_public_dashboard_kpis: {
+        Args: never
+        Returns: {
+          active_causes: number
+          amonestacion_count: number
+          compromiso_count: number
+          critical_alerts: number
+          derivacion_count: number
+          grave_count: number
+          gravisima_count: number
+          investigation_causes: number
+          leve_count: number
+          muy_grave_count: number
+          resolved_causes: number
+          total_causes: number
+        }[]
+      }
+      get_student_activity_history: {
+        Args: { p_limit?: number; p_offset?: number }
+        Returns: {
+          active_cause_count: number
+          annotation_count: number
+          cause_count: number
+          course_id: string
+          course_level: string
+          course_name: string
+          full_name: string
+          last_activity_at: string
+          negative_annotation_count: number
+          rut: string
+          student_id: string
+          total_count: number
+        }[]
+      }
+      get_student_annotation_ranking: {
+        Args: never
+        Returns: {
+          course_name: string
+          negative_count: number
+          student_id: string
+          student_name: string
+        }[]
+      }
       get_student_annotation_summary: {
         Args: never
         Returns: {
@@ -1418,11 +2385,31 @@ export type Database = {
           disciplinary_status: string
           full_name: string
           id: string
+          informative_annotations_count: number
           last_annotation_date: string
           positive_annotations_count: number
           rut: string
           status: string
           teacher_id: string
+        }[]
+      }
+      get_student_annotation_summary_page: {
+        Args: { p_limit?: number; p_offset?: number }
+        Returns: {
+          ai_analysis: Json
+          annotations_count: number
+          course_id: string
+          course_name: string
+          disciplinary_status: string
+          full_name: string
+          id: string
+          informative_annotations_count: number
+          last_annotation_date: string
+          positive_annotations_count: number
+          rut: string
+          status: string
+          teacher_id: string
+          total_count: number
         }[]
       }
       get_suggested_letter_type: {
@@ -1433,6 +2420,16 @@ export type Database = {
           p_tenant_id: string
         }
         Returns: string
+      }
+      get_teacher_annotation_ranking: {
+        Args: never
+        Returns: {
+          informative_count: number
+          negative_count: number
+          positive_count: number
+          teacher_name: string
+          total_count: number
+        }[]
       }
       get_teacher_dashboard: {
         Args: never
@@ -1448,6 +2445,13 @@ export type Database = {
           student_name: string
         }[]
       }
+      get_tenant_user_counts: {
+        Args: never
+        Returns: {
+          tenant_id: string
+          user_count: number
+        }[]
+      }
       get_usage_stats: {
         Args: { since?: string; until?: string }
         Returns: {
@@ -1457,9 +2461,58 @@ export type Database = {
           unique_users: number
         }[]
       }
+      has_app_access: {
+        Args: { p_application_code: string; p_roles?: string[] }
+        Returns: boolean
+      }
       is_management: { Args: never; Returns: boolean }
       is_staff: { Args: never; Returns: boolean }
       is_superuser: { Args: never; Returns: boolean }
+      mark_causa_document_notified: {
+        Args: {
+          p_bitacora_entry: Json
+          p_checklist_item: Json
+          p_document_id: string
+          p_snapshot: Json
+        }
+        Returns: undefined
+      }
+      register_physical_carta: {
+        Args: {
+          p_emission_date?: string
+          p_letter_type: string
+          p_observations?: string
+          p_student_id: string
+        }
+        Returns: string
+      }
+      save_bitacora_snapshot: {
+        Args: {
+          p_causa_id: string
+          p_entries: Json
+          p_removed_entry_ids?: Json
+        }
+        Returns: undefined
+      }
+      save_checklist_snapshot: {
+        Args: { p_causa_id: string; p_items: Json; p_removed_item_ids?: Json }
+        Returns: undefined
+      }
+      set_tenant_id: { Args: { p_tenant_id: string }; Returns: undefined }
+      sync_notification: {
+        Args: {
+          p_action_url?: string
+          p_description: string
+          p_entity_id?: string
+          p_entity_type?: string
+          p_expires_at?: string
+          p_notification_key: string
+          p_notification_type: string
+          p_severity: string
+          p_title: string
+        }
+        Returns: string
+      }
       teacher_get_instant_messages: {
         Args: { p_course_id?: string; p_level?: string; p_student_id?: string }
         Returns: {
@@ -1502,6 +2555,50 @@ export type Database = {
           start_date: string
           status: string
           student_name: string
+        }[]
+      }
+      teacher_get_public_absences_masked: {
+        Args: {
+          p_course_id?: string
+          p_level?: string
+          p_month: number
+          p_year: number
+        }
+        Returns: {
+          absence_id: string
+          affected_tests_count: number
+          course_id: string
+          course_level: string
+          course_name: string
+          end_date: string
+          observation: string
+          start_date: string
+          status: string
+          student_name: string
+        }[]
+      }
+      teacher_get_public_courses: {
+        Args: { p_level?: string }
+        Returns: {
+          id: string
+          level: string
+          name: string
+          position: number
+        }[]
+      }
+      teacher_get_public_instant_messages: {
+        Args: { p_course_id?: string; p_level?: string }
+        Returns: {
+          body: string
+          course_id: string
+          created_at: string
+          ends_at: string
+          id: string
+          level: string
+          starts_at: string
+          student_id: string
+          student_name: string
+          title: string
         }[]
       }
     }

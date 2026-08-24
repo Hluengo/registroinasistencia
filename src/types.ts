@@ -6,6 +6,9 @@ export type Test = DB['public']['Tables']['tests']['Row']
 export type InspectorateRecord =
   DB['public']['Tables']['inspectorate_records']['Row']
 export type Absence = DB['public']['Tables']['absences']['Row']
+export type MakeupExam = DB['public']['Tables']['makeup_exams']['Row']
+export type MakeupExamInsert = DB['public']['Tables']['makeup_exams']['Insert']
+export type MakeupExamUpdate = DB['public']['Tables']['makeup_exams']['Update']
 
 export type AbsenceWithDetails = Absence & {
   student: Student & { course: Course }

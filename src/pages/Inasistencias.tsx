@@ -1,26 +1,26 @@
-import React, { useState, useEffect } from 'react'
-import { Plus, Search, Calendar } from 'lucide-react'
+import React, { useEffect } from 'react'
+import { Plus, Search } from 'lucide-react'
 import { useCreateAbsence, useUpdateAbsence } from '../hooks/queries'
 import { useToast } from '../contexts/ToastContext'
 import { createMutationGuard } from '../utils'
-import { AbsenceWithDetails, Course, Student } from '../types'
+import { AbsenceWithDetails } from '../types'
 import { useAbsences, useCourses, useStudents } from '../hooks/queries'
-import { formatDate, cn, toLocalDateString } from '../utils'
+import { toLocalDateString } from '../utils'
 import { Button } from '../components/ui/Button'
-import { Badge } from '../components/ui/Badge'
-import { EmptyState } from '../components/ui/EmptyState'
 import { PageHeader } from '../components/ui/PageHeader'
 import { Input } from '../components/ui/Input'
 import { Select } from '../components/ui/Select'
 import { AbsencesTable } from '../components/AbsencesTable'
 import { InasistenciasCreateModal } from './InasistenciasCreateModal'
 import { InasistenciasDetailModal } from './InasistenciasDetailModal'
+import { MakeupExamModal } from '../components/makeup-exams/MakeupExamModal'
+import type { MakeupExamPrefill } from '../components/makeup-exams/MakeupExamModal'
 import {
   MONTHS,
   getYearOptions,
   getCourseOptions,
 } from '../utils/filterOptions'
-import { TOAST_TYPES, getAbsenceStatusLabel } from '../constants'
+import { TOAST_TYPES } from '../constants'
 import { absenceValidationSchema } from '../lib/validators'
 import type { z } from 'zod'
 
@@ -84,6 +84,8 @@ export const Inasistencias: React.FC<InasistenciasProps> = ({ level }) => {
     filters,
     file,
   } = uiState
+  const [makeupExamPrefill, setMakeupExamPrefill] =
+    React.useState<MakeupExamPrefill | null>(null)
   const { showToast } = useToast()
 
   // derive start/end ISO dates from filters
@@ -106,14 +108,19 @@ export const Inasistencias: React.FC<InasistenciasProps> = ({ level }) => {
   const loading = loadingAbsences || loadingCourses || loadingStudents
 
   const filtersRef = React.useRef(filters)
-  filtersRef.current = filters
+  useEffect(() => {
+    filtersRef.current = filters
+  }, [filters])
 
   useEffect(() => {
     const handleGlobalSearch = (e: Event) => {
       const customEvent = e as CustomEvent<{ query: string }>
       if (customEvent.detail?.query) {
         patchUiState({
-          filters: { ...filtersRef.current, searchQuery: customEvent.detail.query },
+          filters: {
+            ...filtersRef.current,
+            searchQuery: customEvent.detail.query,
+          },
         })
       }
     }
@@ -149,7 +156,10 @@ export const Inasistencias: React.FC<InasistenciasProps> = ({ level }) => {
 
   const courseOptions = getCourseOptions(coursesData)
 
-  const handleViewDetail = (abs: AbsenceWithDetails | import('../components/AbsencesTable').FlatAbsenceRow) => {
+  const handleViewDetail = (
+    abs:
+      AbsenceWithDetails | import('../components/AbsencesTable').FlatAbsenceRow
+  ) => {
     patchUiState({
       selectedAbsence: abs as AbsenceWithDetails,
       isDetailModalOpen: true,
@@ -158,6 +168,18 @@ export const Inasistencias: React.FC<InasistenciasProps> = ({ level }) => {
   }
 
   const updateAbsence = useUpdateAbsence()
+
+  const handleCreateMakeupExam = (test: import('../types').Test) => {
+    if (!selectedAbsence) return
+    patchUiState({ isDetailModalOpen: false })
+    setMakeupExamPrefill({
+      studentId: selectedAbsence.student.id,
+      testId: test.id,
+      sourceAbsenceId: selectedAbsence.id,
+      originalDate: test.date,
+      subject: test.subject,
+    })
+  }
 
   const onUpdate = async (
     data: Partial<Omit<import('../types').Absence, 'id' | 'created_at'>>
@@ -364,6 +386,14 @@ export const Inasistencias: React.FC<InasistenciasProps> = ({ level }) => {
         onFileChange={(f) => patchUiState({ file: f })}
         loading={loading}
         onUpdate={onUpdate}
+        onCreateMakeupExam={handleCreateMakeupExam}
+      />
+
+      <MakeupExamModal
+        isOpen={Boolean(makeupExamPrefill)}
+        onClose={() => setMakeupExamPrefill(null)}
+        students={selectedAbsence ? [selectedAbsence.student] : []}
+        initialValues={makeupExamPrefill ?? undefined}
       />
     </div>
   )

@@ -318,21 +318,24 @@ export const Pruebas: React.FC<PruebasProps> = ({ level }) => {
         size="lg"
       >
         <div className="space-y-5">
-          <p className="text-sm text-slate-600">
+          <p className="text-sm leading-6 text-slate-700">
             Columnas obligatorias: <code>course_name</code>, <code>date</code>,{' '}
             <code>subject</code> y <code>type</code>. También puede usar curso,
             fecha, asignatura y tipo.
           </p>
-          <input
-            data-testid="import-tests-file"
-            type="file"
-            accept=".xlsx,.xls,.csv"
-            onChange={handleImportFile}
-            disabled={importLoading || bulkCreateTestsM.isPending}
-            className="block w-full text-sm"
-          />
+          <label className="block text-sm font-semibold text-slate-800">
+            Seleccionar archivo
+            <input
+              data-testid="import-tests-file"
+              type="file"
+              accept=".xlsx,.xls,.csv"
+              onChange={handleImportFile}
+              disabled={importLoading || bulkCreateTestsM.isPending}
+              className="mt-2 block w-full rounded-xl border border-slate-300 bg-white text-sm font-normal text-slate-700 file:mr-4 file:rounded-lg file:border-0 file:bg-indigo-600 file:px-4 file:py-2.5 file:font-semibold file:text-white hover:file:bg-indigo-700 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500"
+            />
+          </label>
           {importFileName && (
-            <p className="text-sm text-slate-500">
+            <p className="text-sm text-slate-700">
               Archivo: <strong>{importFileName}</strong> · {importTotal} filas
             </p>
           )}
@@ -366,7 +369,7 @@ export const Pruebas: React.FC<PruebasProps> = ({ level }) => {
             <Button
               onClick={handleImport}
               loading={bulkCreateTestsM.isPending}
-              className="disabled:bg-slate-300 disabled:text-slate-600 disabled:opacity-100 disabled:shadow-none"
+              className="disabled:bg-slate-500 disabled:text-white disabled:opacity-100 disabled:shadow-none"
               disabled={
                 importLoading || !!importIssues.length || !importRows.length
               }

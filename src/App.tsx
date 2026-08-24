@@ -22,6 +22,9 @@ const Inasistencias = React.lazy(() =>
   import('./pages/Inasistencias').then((m) => ({ default: m.Inasistencias }))
 );
 const Pruebas = React.lazy(() => import('./pages/Pruebas').then((m) => ({ default: m.Pruebas })));
+const PruebasAtrasadas = React.lazy(() =>
+  import('./pages/PruebasAtrasadas').then((m) => ({ default: m.PruebasAtrasadas }))
+);
 const Inspectoria = React.lazy(() =>
   import('./pages/Inspectoria').then((m) => ({ default: m.Inspectoria }))
 );
@@ -129,6 +132,8 @@ const AppContentInner = React.memo(function AppContentInner({
       return <Inasistencias level={level} />;
     case activeTab === 'pruebas':
       return <Pruebas level={level} />;
+    case activeTab === 'pruebas_atrasadas':
+      return <PruebasAtrasadas level={level} />;
     case activeTab === 'inspectoria':
       return <Inspectoria level={level} />;
     case activeTab === 'estudiantes':
@@ -241,6 +246,8 @@ function AppContent() {
         return 'Gestión de Inasistencias';
       case 'pruebas':
         return 'Registro de Evaluaciones';
+      case 'pruebas_atrasadas':
+        return 'Pruebas Atrasadas';
       case 'inspectoria':
         return 'Atención de Inspectoría';
       case 'estudiantes':
