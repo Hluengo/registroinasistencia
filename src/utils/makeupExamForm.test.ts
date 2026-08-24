@@ -36,4 +36,24 @@ describe('buildMakeupExamInputs', () => {
       subject: 'Matemática',
     })
   })
+
+  it('genera una fila manual sin referencia a prueba', () => {
+    const result = buildMakeupExamInputs([], {
+      studentId: 'student-1',
+      scheduledDate: '2026-08-25',
+      status: 'pendiente',
+      testIds: [],
+      manualSubject: 'Biología',
+      manualOriginalDate: '2026-08-19',
+    })
+
+    expect(result).toEqual([
+      expect.objectContaining({
+        student_id: 'student-1',
+        test_id: null,
+        original_date: '2026-08-19',
+        subject: 'Biología',
+      }),
+    ])
+  })
 })

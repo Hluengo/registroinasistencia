@@ -12,7 +12,7 @@ La funcionalidad no importa datos del ZIP ni modifica registros históricos.
 2. Abrir **Pruebas Atrasadas** y seleccionar **Nueva recuperación**.
 3. Seleccionar el curso.
 4. Verificar que el selector de estudiante solo muestre estudiantes de ese curso.
-5. Seleccionar una o más pruebas del curso.
+5. Seleccionar una o más pruebas del curso, o cambiar a **Agregar manualmente** si la prueba no está registrada.
 6. Definir la fecha de recuperación y el estado.
 7. Guardar. Se crea una fila por prueba seleccionada.
 8. Desde el detalle de una inasistencia, usar **Crear recuperación** para abrir el mismo formulario con curso, estudiante y prueba afectada preseleccionados. Se pueden agregar otras pruebas del curso.
@@ -22,6 +22,7 @@ La funcionalidad no importa datos del ZIP ni modifica registros históricos.
 - `student_id` debe pertenecer al tenant activo.
 - `test_id` debe corresponder a una prueba del curso seleccionado.
 - `original_date` y `subject` se copian desde cada prueba.
+- Una prueba manual se guarda con `test_id = null`, asignatura y fecha original ingresadas en el modal.
 - `scheduled_date` se conserva como fecha PostgreSQL `YYYY-MM-DD`.
 - `source_absence_id` se conserva cuando el flujo parte desde una inasistencia.
 - No se usan hora, sala, nota ni observaciones en el formulario.

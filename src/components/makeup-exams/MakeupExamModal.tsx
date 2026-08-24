@@ -45,6 +45,9 @@ type FormState = {
   scheduledDate: string
   status: MakeupExamStatus
   testIds: string[]
+  entryMode: 'catalog' | 'manual'
+  manualSubject: string
+  manualOriginalDate: string
 }
 
 const emptyForm = (initial?: MakeupExamPrefill): FormState => ({
@@ -53,6 +56,9 @@ const emptyForm = (initial?: MakeupExamPrefill): FormState => ({
   scheduledDate: toDateOnlyString(new Date()),
   status: 'pendiente',
   testIds: initial?.testId ? [initial.testId] : [],
+  entryMode: 'catalog',
+  manualSubject: '',
+  manualOriginalDate: '',
 })
 
 export const MakeupExamModal: React.FC<MakeupExamModalProps> = ({
@@ -103,6 +109,11 @@ export const MakeupExamModal: React.FC<MakeupExamModalProps> = ({
         scheduledDate: editingExam.scheduled_date,
         status: editingExam.status as MakeupExamStatus,
         testIds: editingExam.test_id ? [editingExam.test_id] : [],
+        entryMode: editingExam.test_id ? 'catalog' : 'manual',
+        manualSubject: editingExam.test_id ? '' : editingExam.subject,
+        manualOriginalDate: editingExam.test_id
+          ? ''
+          : (editingExam.original_date ?? ''),
       })
     } else {
       setForm(emptyForm(initialValues))
@@ -127,6 +138,14 @@ export const MakeupExamModal: React.FC<MakeupExamModalProps> = ({
     }))
   }
 
+  const handleEntryModeChange = (entryMode: FormState['entryMode']) => {
+    setForm((current) => ({
+      ...current,
+      entryMode,
+      testIds: entryMode === 'catalog' ? current.testIds : [],
+    }))
+  }
+
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault()
     if (!form.courseId || !form.studentId || !form.scheduledDate) {
@@ -136,10 +155,20 @@ export const MakeupExamModal: React.FC<MakeupExamModalProps> = ({
       })
       return
     }
-    if (selectedTests.length === 0) {
+    if (form.entryMode === 'catalog' && selectedTests.length === 0) {
       showToast({
         type: TOAST_TYPES.WARNING,
         message: 'Selecciona al menos una prueba.',
+      })
+      return
+    }
+    if (
+      form.entryMode === 'manual' &&
+      (!form.manualSubject.trim() || !form.manualOriginalDate)
+    ) {
+      showToast({
+        type: TOAST_TYPES.WARNING,
+        message: 'Completa asignatura y fecha original.',
       })
       return
     }
@@ -148,14 +177,16 @@ export const MakeupExamModal: React.FC<MakeupExamModalProps> = ({
       studentId: form.studentId,
       scheduledDate: form.scheduledDate,
       status: form.status,
-      testIds: form.testIds,
+      testIds: form.entryMode === 'catalog' ? form.testIds : [],
+      manualSubject:
+        form.entryMode === 'manual' ? form.manualSubject : undefined,
+      manualOriginalDate:
+        form.entryMode === 'manual' ? form.manualOriginalDate : undefined,
       sourceAbsenceId: initialValues?.sourceAbsenceId,
     })
 
     try {
       if (editingExam) {
-        const test = selectedTests[0]
-        if (!test) return
         await updateMutation.mutateAsync({
           id: editingExam.id,
           input: {
@@ -235,11 +266,67 @@ export const MakeupExamModal: React.FC<MakeupExamModalProps> = ({
           />
         </div>
 
+        {!editingExam && (
+          <div className="flex gap-2 rounded-xl bg-slate-50 p-1">
+            <Button
+              type="button"
+              size="sm"
+              variant={form.entryMode === 'catalog' ? 'primary' : 'ghost'}
+              onClick={() => handleEntryModeChange('catalog')}
+            >
+              Prueba registrada
+            </Button>
+            <Button
+              type="button"
+              size="sm"
+              variant={form.entryMode === 'manual' ? 'primary' : 'ghost'}
+              onClick={() => handleEntryModeChange('manual')}
+            >
+              Agregar manualmente
+            </Button>
+          </div>
+        )}
+
         <fieldset className="space-y-2" data-testid="makeup-exam-tests">
           <legend className="text-sm font-semibold text-slate-700">
             Pruebas a recuperar
           </legend>
-          {!form.courseId ? (
+          {form.entryMode === 'manual' ? (
+            <div className="grid gap-4 rounded-xl border border-indigo-100 bg-indigo-50/40 p-4 md:grid-cols-2">
+              <label className="space-y-1 text-sm font-semibold text-slate-700">
+                Asignatura
+                <input
+                  data-testid="makeup-exam-manual-subject"
+                  value={form.manualSubject}
+                  onChange={(event) =>
+                    setForm((current) => ({
+                      ...current,
+                      manualSubject: event.target.value,
+                    }))
+                  }
+                  placeholder="Ej. Matemática"
+                  className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 font-normal"
+                  required
+                />
+              </label>
+              <label className="space-y-1 text-sm font-semibold text-slate-700">
+                Fecha original
+                <input
+                  data-testid="makeup-exam-manual-original-date"
+                  type="date"
+                  value={form.manualOriginalDate}
+                  onChange={(event) =>
+                    setForm((current) => ({
+                      ...current,
+                      manualOriginalDate: event.target.value,
+                    }))
+                  }
+                  className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 font-normal"
+                  required
+                />
+              </label>
+            </div>
+          ) : !form.courseId ? (
             <p className="rounded-xl border border-dashed border-slate-200 p-4 text-sm text-slate-500">
               Selecciona un curso para ver sus pruebas.
             </p>
@@ -282,11 +369,13 @@ export const MakeupExamModal: React.FC<MakeupExamModalProps> = ({
               })}
             </div>
           )}
-          <p className="text-xs text-slate-500">
-            {form.testIds.length} prueba
-            {form.testIds.length === 1 ? '' : 's'} seleccionada
-            {form.testIds.length === 1 ? '' : 's'}.
-          </p>
+          {form.entryMode === 'catalog' && (
+            <p className="text-xs text-slate-500">
+              {form.testIds.length} prueba
+              {form.testIds.length === 1 ? '' : 's'} seleccionada
+              {form.testIds.length === 1 ? '' : 's'}.
+            </p>
+          )}
         </fieldset>
 
         <div className="grid gap-4 md:grid-cols-2">
