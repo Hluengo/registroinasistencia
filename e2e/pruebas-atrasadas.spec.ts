@@ -38,18 +38,25 @@ test.describe('Pruebas atrasadas', () => {
 
       const student = page.getByTestId('makeup-exam-student')
       await expect(student).toBeEnabled()
-      await page.getByRole('button', { name: 'Agregar manualmente' }).click()
-      await expect(page.getByTestId('makeup-exam-manual-subject')).toBeVisible()
-      await expect(
-        page.getByTestId('makeup-exam-manual-original-date')
-      ).toBeVisible()
-      await page.getByRole('button', { name: 'Prueba registrada' }).click()
       const tests = page.locator(
         '[data-testid="makeup-exam-tests"] input[type="checkbox"]'
       )
       const testCount = await tests.count()
+      if (testCount > 0) {
+        await tests.nth(0).check()
+        await expect(
+          page.getByTestId('makeup-exam-selected-tests')
+        ).toBeVisible()
+      }
+      await page.getByRole('button', { name: 'Agregar manualmente' }).click()
+      await expect(page.getByTestId('makeup-exam-manual-subject')).toBeVisible()
+      if (testCount > 0) {
+        await expect(
+          page.getByTestId('makeup-exam-selected-tests')
+        ).toBeVisible()
+      }
+      await page.getByRole('button', { name: 'Prueba registrada' }).click()
       if (testCount === 0) return
-      await tests.nth(0).check()
       if (testCount > 1) await tests.nth(1).check()
       await expect(
         page.getByText(

@@ -142,7 +142,6 @@ export const MakeupExamModal: React.FC<MakeupExamModalProps> = ({
     setForm((current) => ({
       ...current,
       entryMode,
-      testIds: entryMode === 'catalog' ? current.testIds : [],
     }))
   }
 
@@ -155,17 +154,26 @@ export const MakeupExamModal: React.FC<MakeupExamModalProps> = ({
       })
       return
     }
-    if (form.entryMode === 'catalog' && selectedTests.length === 0) {
+    const manualSubject = form.manualSubject.trim()
+    const hasManualEntry = Boolean(manualSubject && form.manualOriginalDate)
+    const hasPartialManualEntry = Boolean(
+      manualSubject || form.manualOriginalDate
+    )
+    if (hasPartialManualEntry && !hasManualEntry) {
       showToast({
         type: TOAST_TYPES.WARNING,
-        message: 'Selecciona al menos una prueba.',
+        message: 'Completa asignatura y fecha original.',
       })
       return
     }
-    if (
-      form.entryMode === 'manual' &&
-      (!form.manualSubject.trim() || !form.manualOriginalDate)
-    ) {
+    if (!editingExam && selectedTests.length === 0 && !hasManualEntry) {
+      showToast({
+        type: TOAST_TYPES.WARNING,
+        message: 'Selecciona una prueba o completa los datos manuales.',
+      })
+      return
+    }
+    if (editingExam && !editingExam.test_id && !hasManualEntry) {
       showToast({
         type: TOAST_TYPES.WARNING,
         message: 'Completa asignatura y fecha original.',
@@ -177,11 +185,13 @@ export const MakeupExamModal: React.FC<MakeupExamModalProps> = ({
       studentId: form.studentId,
       scheduledDate: form.scheduledDate,
       status: form.status,
-      testIds: form.entryMode === 'catalog' ? form.testIds : [],
-      manualSubject:
-        form.entryMode === 'manual' ? form.manualSubject : undefined,
-      manualOriginalDate:
-        form.entryMode === 'manual' ? form.manualOriginalDate : undefined,
+      testIds: form.testIds,
+      manualEntries: [
+        {
+          subject: form.manualSubject,
+          originalDate: form.manualOriginalDate,
+        },
+      ],
       sourceAbsenceId: initialValues?.sourceAbsenceId,
     })
 
@@ -192,6 +202,12 @@ export const MakeupExamModal: React.FC<MakeupExamModalProps> = ({
           input: {
             scheduled_date: form.scheduledDate,
             status: form.status,
+            ...(editingExam.test_id
+              ? {}
+              : {
+                  subject: manualSubject,
+                  original_date: form.manualOriginalDate,
+                }),
           },
         })
       } else {
@@ -375,6 +391,41 @@ export const MakeupExamModal: React.FC<MakeupExamModalProps> = ({
               {form.testIds.length === 1 ? '' : 's'} seleccionada
               {form.testIds.length === 1 ? '' : 's'}.
             </p>
+          )}
+          {selectedTests.length > 0 && (
+            <div
+              className="space-y-2 rounded-xl border border-indigo-100 bg-indigo-50/50 p-3"
+              data-testid="makeup-exam-selected-tests"
+            >
+              <p className="text-xs font-semibold uppercase tracking-wide text-indigo-700">
+                Pruebas registradas seleccionadas
+              </p>
+              {selectedTests.map((test) => (
+                <div
+                  key={test.id}
+                  className="flex items-center justify-between gap-3 rounded-lg bg-white px-3 py-2 text-sm"
+                >
+                  <span>
+                    <span className="block font-semibold text-slate-800">
+                      {test.subject}
+                    </span>
+                    <span className="block text-xs text-slate-500">
+                      {test.type} · {test.date}
+                    </span>
+                  </span>
+                  {!editingExam && (
+                    <button
+                      type="button"
+                      onClick={() => toggleTest(test.id)}
+                      className="text-xs font-semibold text-rose-600 hover:text-rose-700"
+                      aria-label={`Quitar ${test.subject}`}
+                    >
+                      Quitar
+                    </button>
+                  )}
+                </div>
+              ))}
+            </div>
           )}
         </fieldset>
 

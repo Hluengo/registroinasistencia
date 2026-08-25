@@ -6,8 +6,10 @@ export type MakeupExamSelection = {
   scheduledDate: string
   status: MakeupExamStatus
   testIds: string[]
-  manualSubject?: string
-  manualOriginalDate?: string
+  manualEntries?: Array<{
+    subject: string
+    originalDate: string
+  }>
   sourceAbsenceId?: string | null
 }
 
@@ -33,20 +35,19 @@ export const buildMakeupExamInputs = (
     })
   }
 
-  if (selectedInputs.length > 0) return selectedInputs
-
-  const subject = selection.manualSubject?.trim()
-  if (!subject) return []
-
-  return [
-    {
+  for (const manualEntry of selection.manualEntries ?? []) {
+    const subject = manualEntry.subject.trim()
+    if (!subject) continue
+    selectedInputs.push({
       student_id: selection.studentId,
       test_id: null,
       source_absence_id: selection.sourceAbsenceId ?? null,
-      original_date: selection.manualOriginalDate || null,
+      original_date: manualEntry.originalDate || null,
       scheduled_date: selection.scheduledDate,
       subject,
       status: selection.status,
-    },
-  ]
+    })
+  }
+
+  return selectedInputs
 }
