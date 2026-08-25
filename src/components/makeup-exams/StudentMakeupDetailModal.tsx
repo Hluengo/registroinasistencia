@@ -1,8 +1,12 @@
 import React from 'react'
 import { Printer } from 'lucide-react'
-import type { MakeupExamWithDetails } from '../../services/makeupExamService'
+import type {
+  MakeupExamStatus,
+  MakeupExamWithDetails,
+} from '../../services/makeupExamService'
 import {
   MAKEUP_EXAM_STATUS_LABELS,
+  MAKEUP_EXAM_STATUS_OPTIONS,
   summarizeMakeupExams,
 } from '../../utils/makeupExam'
 import { buildMakeupCitationDocument } from '../../utils/makeupExamPrint'
@@ -15,13 +19,26 @@ interface StudentMakeupDetailModalProps {
   isOpen: boolean
   onClose: () => void
   exams: MakeupExamWithDetails[]
+  isLoading: boolean
+  student: MakeupExamWithDetails['students']
+  onStatusChange: (
+    exam: MakeupExamWithDetails,
+    status: MakeupExamStatus
+  ) => void | Promise<void>
 }
 
 export const StudentMakeupDetailModal: React.FC<
   StudentMakeupDetailModalProps
-> = ({ isOpen, onClose, exams }) => {
+> = ({
+  isOpen,
+  onClose,
+  exams,
+  isLoading,
+  student: selectedStudent,
+  onStatusChange,
+}) => {
   const { showToast } = useToast()
-  const student = exams[0]?.students
+  const student = exams[0]?.students ?? selectedStudent
   const stats = summarizeMakeupExams(exams)
 
   const printCitation = () => {
@@ -91,35 +108,65 @@ export const StudentMakeupDetailModal: React.FC<
               <thead className="bg-slate-50 text-xs uppercase text-slate-500">
                 <tr>
                   <th className="px-4 py-3">Asignatura</th>
-                  <th className="px-4 py-3">Fecha original</th>
-                  <th className="px-4 py-3">Recuperación</th>
+                  <th className="px-4 py-3">Fecha de evaluación</th>
                   <th className="px-4 py-3">Estado</th>
                   <th className="px-4 py-3">Sala</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
-                {exams.map((exam) => (
-                  <tr key={exam.id}>
-                    <td className="px-4 py-3 font-semibold text-slate-800">
-                      {exam.subject}
-                    </td>
-                    <td className="px-4 py-3 text-slate-600">
-                      {exam.original_date ?? '-'}
-                    </td>
-                    <td className="px-4 py-3 text-slate-600">
-                      {exam.scheduled_date}
-                      {exam.scheduled_time ? ` · ${exam.scheduled_time}` : ''}
-                    </td>
-                    <td className="px-4 py-3 text-slate-600">
-                      {MAKEUP_EXAM_STATUS_LABELS[
-                        exam.status as keyof typeof MAKEUP_EXAM_STATUS_LABELS
-                      ] ?? exam.status}
-                    </td>
-                    <td className="px-4 py-3 text-slate-600">
-                      {exam.room ?? '-'}
+                {isLoading ? (
+                  <tr>
+                    <td
+                      colSpan={4}
+                      className="px-4 py-6 text-center text-slate-500"
+                    >
+                      Cargando pruebas del estudiante…
                     </td>
                   </tr>
-                ))}
+                ) : exams.length === 0 ? (
+                  <tr>
+                    <td
+                      colSpan={4}
+                      className="px-4 py-6 text-center text-slate-500"
+                    >
+                      No hay pruebas atrasadas registradas.
+                    </td>
+                  </tr>
+                ) : (
+                  exams.map((exam) => (
+                    <tr key={exam.id}>
+                      <td className="px-4 py-3 font-semibold text-slate-800">
+                        {exam.subject}
+                      </td>
+                      <td className="px-4 py-3 text-slate-600">
+                        {exam.scheduled_date}
+                        {exam.scheduled_time ? ` · ${exam.scheduled_time}` : ''}
+                      </td>
+                      <td className="px-4 py-3">
+                        <select
+                          aria-label={`Estado de ${exam.subject}`}
+                          value={exam.status}
+                          onChange={(event) =>
+                            onStatusChange(
+                              exam,
+                              event.target.value as MakeupExamStatus
+                            )
+                          }
+                          className="rounded-lg border border-slate-200 bg-white px-2 py-1 text-xs"
+                        >
+                          {MAKEUP_EXAM_STATUS_OPTIONS.map((value) => (
+                            <option key={value} value={value}>
+                              {MAKEUP_EXAM_STATUS_LABELS[value]}
+                            </option>
+                          ))}
+                        </select>
+                      </td>
+                      <td className="px-4 py-3 text-slate-600">
+                        {exam.room ?? '-'}
+                      </td>
+                    </tr>
+                  ))
+                )}
               </tbody>
             </table>
           </div>

@@ -18,12 +18,18 @@ describe('utils/error-handler', () => {
 
   it('handleError maps known DB codes', () => {
     expect(handleError({ code: '23505' })).toBe('Registro duplicado detectado.')
-    expect(handleError({ code: '23503' })).toBe('Error de referencia: el registro relacionado no existe.')
-    expect(handleError({ code: 'PGRST116' })).toBe('No se encontró el registro solicitado.')
+    expect(handleError({ code: '23503' })).toBe(
+      'Error de referencia: el registro relacionado no existe.'
+    )
+    expect(handleError({ code: 'PGRST116' })).toBe(
+      'No se encontró el registro solicitado.'
+    )
   })
 
   it('handleError maps unknown DB code to generic DB message including original message', () => {
-    expect(handleError({ code: '99999', message: 'detalle' })).toBe('Error en la base de datos: detalle')
+    expect(handleError({ code: '99999', message: 'detalle' })).toBe(
+      'Error en la base de datos: detalle'
+    )
   })
 
   it('handleError with plain object message uses that message', () => {

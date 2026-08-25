@@ -1,5 +1,9 @@
 import { supabase } from '../../services/supabaseClient'
-import { useQueryClient, useMutation, UseQueryResult } from '@tanstack/react-query'
+import {
+  useQueryClient,
+  useMutation,
+  UseQueryResult,
+} from '@tanstack/react-query'
 import { inspectorateService } from '../../services/inspectorateService'
 import { normalizeInspectorateRows } from '../../lib/transformations'
 import { QUERY_KEYS_INVALIDATE } from '../../constants'

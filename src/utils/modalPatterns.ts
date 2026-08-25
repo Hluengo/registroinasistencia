@@ -47,7 +47,10 @@ export const createMutationGuard = (
  * Standardized error toast message based on error type
  * Helps normalize error reporting across pages
  */
-export const getContextualErrorMessage = (error: unknown, context: string): string => {
+export const getContextualErrorMessage = (
+  error: unknown,
+  context: string
+): string => {
   if (error instanceof Error) {
     return `Error en ${context}: ${error.message}`
   }

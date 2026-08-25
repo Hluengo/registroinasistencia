@@ -35,7 +35,9 @@ interface AbsencesTableProps {
   emptyDescription?: string
 }
 
-function isFlatRow(row: AbsenceWithDetails | FlatAbsenceRow): row is FlatAbsenceRow {
+function isFlatRow(
+  row: AbsenceWithDetails | FlatAbsenceRow
+): row is FlatAbsenceRow {
   return 'absence_id' in row || 'student_name' in row
 }
 
@@ -68,12 +70,16 @@ function getStatus(row: AbsenceWithDetails | FlatAbsenceRow): string {
   return row.status || 'PENDIENTE'
 }
 
-function getAffectedTestsCount(row: AbsenceWithDetails | FlatAbsenceRow): number {
+function getAffectedTestsCount(
+  row: AbsenceWithDetails | FlatAbsenceRow
+): number {
   if (isFlatRow(row)) return row.affected_tests_count
   return row.affected_tests?.length || 0
 }
 
-function getDocumentUrl(row: AbsenceWithDetails | FlatAbsenceRow): string | null {
+function getDocumentUrl(
+  row: AbsenceWithDetails | FlatAbsenceRow
+): string | null {
   if (isFlatRow(row)) return row.document_url || null
   return row.document_url || null
 }
@@ -99,7 +105,9 @@ export const AbsencesTable: React.FC<AbsencesTableProps> = ({
     const status = getStatus(absence)
     const affectedTests = getAffectedTestsCount(absence)
     const docUrl = getDocumentUrl(absence)
-    const startDate = isFlatRow(absence) ? absence.start_date : absence.start_date
+    const startDate = isFlatRow(absence)
+      ? absence.start_date
+      : absence.start_date
     const endDate = isFlatRow(absence) ? absence.end_date : absence.end_date
     const isExpanded = expandedRows?.has(key)
 

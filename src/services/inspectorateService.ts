@@ -55,7 +55,17 @@ export const inspectorateService = {
   },
 
   createInspectorateRecord: async (
-    record: Omit<InspectorateRecord, 'id' | 'created_at' | 'tenant_id' | 'type' | 'severity' | 'created_by' | 'pdf_file_path' | 'registered_by'>
+    record: Omit<
+      InspectorateRecord,
+      | 'id'
+      | 'created_at'
+      | 'tenant_id'
+      | 'type'
+      | 'severity'
+      | 'created_by'
+      | 'pdf_file_path'
+      | 'registered_by'
+    >
   ) => {
     const { data, error } = await supabase
       .from('inspectorate_records')

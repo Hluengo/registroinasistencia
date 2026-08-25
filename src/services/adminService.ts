@@ -6,23 +6,29 @@ export const adminService = {
   seedData: async () => {
     try {
       // 1. Create Courses
-      const coursesInsert: Omit<Database['public']['Tables']['courses']['Insert'], 'tenant_id'>[] =
-        [
-          { name: '1° Básico A', level: 'BASICA' },
-          { name: '2° Básico B', level: 'BASICA' },
-          { name: '1° Medio A', level: 'MEDIA' },
-          { name: '2° Medio B', level: 'MEDIA' },
-        ]
+      const coursesInsert: Omit<
+        Database['public']['Tables']['courses']['Insert'],
+        'tenant_id'
+      >[] = [
+        { name: '1° Básico A', level: 'BASICA' },
+        { name: '2° Básico B', level: 'BASICA' },
+        { name: '1° Medio A', level: 'MEDIA' },
+        { name: '2° Medio B', level: 'MEDIA' },
+      ]
 
       const { data: courses, error: cErr } = await supabase
         .from('courses')
-        .insert(coursesInsert as Database['public']['Tables']['courses']['Insert'][])
+        .insert(
+          coursesInsert as Database['public']['Tables']['courses']['Insert'][]
+        )
         .select()
       if (cErr) throw cErr
 
       // 2. Create Students
-      const studentsData: Omit<Database['public']['Tables']['students']['Insert'], 'tenant_id' | 'ai_analysis'>[] =
-        []
+      const studentsData: Omit<
+        Database['public']['Tables']['students']['Insert'],
+        'tenant_id' | 'ai_analysis'
+      >[] = []
       for (const course of courses as Database['public']['Tables']['courses']['Row'][]) {
         studentsData.push(
           {
@@ -44,7 +50,9 @@ export const adminService = {
       }
       const { data: students, error: sErr } = await supabase
         .from('students')
-        .insert(studentsData as Database['public']['Tables']['students']['Insert'][])
+        .insert(
+          studentsData as Database['public']['Tables']['students']['Insert'][]
+        )
         .select()
       if (sErr) throw sErr
 

@@ -1,39 +1,50 @@
-import React from 'react';
-import { BookOpen, CheckCircle2, LogIn, MessageSquareText, ShieldCheck, TableProperties } from 'lucide-react';
-import { MainLayout } from './layouts/MainLayout';
-import { ToastContainer } from './components/ToastContainer';
-import { Modal } from './components/ui/Modal';
-import { Input } from './components/ui/Input';
-import { Button } from './components/ui/Button';
-import { useAuth } from './hooks/useAuth';
-import { useToast } from './contexts/ToastContext';
-import { useQueryClient } from '@tanstack/react-query';
-import { TOAST_TYPES } from './constants';
-import { ErrorBoundary } from './components/ErrorBoundary';
-import { getMembershipMode } from './services/membershipService';
+import React from 'react'
+import {
+  BookOpen,
+  CheckCircle2,
+  LogIn,
+  MessageSquareText,
+  ShieldCheck,
+  TableProperties,
+} from 'lucide-react'
+import { MainLayout } from './layouts/MainLayout'
+import { ToastContainer } from './components/ToastContainer'
+import { Modal } from './components/ui/Modal'
+import { Input } from './components/ui/Input'
+import { Button } from './components/ui/Button'
+import { useAuth } from './hooks/useAuth'
+import { useToast } from './contexts/ToastContext'
+import { useQueryClient } from '@tanstack/react-query'
+import { TOAST_TYPES } from './constants'
+import { ErrorBoundary } from './components/ErrorBoundary'
+import { getMembershipMode } from './services/membershipService'
 
 const Dashboard = React.lazy(() =>
   import('./pages/Dashboard').then((m) => ({ default: m.Dashboard }))
-);
+)
 const DocentePublico = React.lazy(() =>
   import('./pages/DocentePublico').then((m) => ({ default: m.DocentePublico }))
-);
+)
 const Inasistencias = React.lazy(() =>
   import('./pages/Inasistencias').then((m) => ({ default: m.Inasistencias }))
-);
-const Pruebas = React.lazy(() => import('./pages/Pruebas').then((m) => ({ default: m.Pruebas })));
+)
+const Pruebas = React.lazy(() =>
+  import('./pages/Pruebas').then((m) => ({ default: m.Pruebas }))
+)
 const PruebasAtrasadas = React.lazy(() =>
-  import('./pages/PruebasAtrasadas').then((m) => ({ default: m.PruebasAtrasadas }))
-);
+  import('./pages/PruebasAtrasadas').then((m) => ({
+    default: m.PruebasAtrasadas,
+  }))
+)
 const Inspectoria = React.lazy(() =>
   import('./pages/Inspectoria').then((m) => ({ default: m.Inspectoria }))
-);
+)
 const Estudiantes = React.lazy(() =>
   import('./pages/Estudiantes').then((m) => ({ default: m.Estudiantes }))
-);
+)
 const Configuracion = React.lazy(() =>
   import('./pages/Configuracion').then((m) => ({ default: m.Configuracion }))
-);
+)
 
 function WelcomeGate({ onLogin }: { onLogin: () => void }) {
   return (
@@ -51,9 +62,10 @@ function WelcomeGate({ onLogin }: { onLogin: () => void }) {
               Bienvenido al Registro Escolar
             </h1>
             <p className="mx-auto mt-4 max-w-2xl text-sm leading-6 text-indigo-100 md:text-base">
-              Esta plataforma reúne los mensajes institucionales, las inasistencias justificadas o
-              pendientes y las evaluaciones afectadas, para facilitar la información oportuna al
-              equipo docente.
+              Esta plataforma reúne los mensajes institucionales, las
+              inasistencias justificadas o pendientes y las evaluaciones
+              afectadas, para facilitar la información oportuna al equipo
+              docente.
             </p>
           </div>
         </div>
@@ -62,23 +74,30 @@ function WelcomeGate({ onLogin }: { onLogin: () => void }) {
           <div className="grid gap-4 md:grid-cols-3">
             <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
               <MessageSquareText className="h-6 w-6 text-indigo-600" />
-              <h2 className="mt-3 text-sm font-bold text-slate-900">Revisa los mensajes</h2>
+              <h2 className="mt-3 text-sm font-bold text-slate-900">
+                Revisa los mensajes
+              </h2>
               <p className="mt-1 text-xs leading-5 text-slate-500">
                 Consulta avisos generales, por nivel y por curso.
               </p>
             </div>
             <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
               <TableProperties className="h-6 w-6 text-indigo-600" />
-              <h2 className="mt-3 text-sm font-bold text-slate-900">Consulta la tabla</h2>
+              <h2 className="mt-3 text-sm font-bold text-slate-900">
+                Consulta la tabla
+              </h2>
               <p className="mt-1 text-xs leading-5 text-slate-500">
                 Visualiza estudiantes, fechas, estados y pruebas afectadas.
               </p>
             </div>
             <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
               <ShieldCheck className="h-6 w-6 text-indigo-600" />
-              <h2 className="mt-3 text-sm font-bold text-slate-900">Acceso protegido</h2>
+              <h2 className="mt-3 text-sm font-bold text-slate-900">
+                Acceso protegido
+              </h2>
               <p className="mt-1 text-xs leading-5 text-slate-500">
-                La información completa se muestra solo después de iniciar sesión.
+                La información completa se muestra solo después de iniciar
+                sesión.
               </p>
             </div>
           </div>
@@ -87,10 +106,13 @@ function WelcomeGate({ onLogin }: { onLogin: () => void }) {
             <div className="flex items-start gap-3">
               <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-indigo-600" />
               <div>
-                <p className="text-sm font-bold text-slate-900">¿Cómo ingresar?</p>
+                <p className="text-sm font-bold text-slate-900">
+                  ¿Cómo ingresar?
+                </p>
                 <p className="mt-1 text-sm leading-6 text-slate-600">
-                  Presiona el botón de acceso e ingresa el correo y la contraseña institucional que
-                  fueron proporcionados al equipo docente.
+                  Presiona el botón de acceso e ingresa el correo y la
+                  contraseña institucional que fueron proporcionados al equipo
+                  docente.
                 </p>
               </div>
             </div>
@@ -107,7 +129,7 @@ function WelcomeGate({ onLogin }: { onLogin: () => void }) {
         </div>
       </section>
     </div>
-  );
+  )
 }
 
 const AppContentInner = React.memo(function AppContentInner({
@@ -117,73 +139,79 @@ const AppContentInner = React.memo(function AppContentInner({
   level,
   isAuthenticated,
 }: {
-  activeTab: string;
-  isStaff: boolean;
-  isSuperuser: boolean;
-  level: 'BASICA' | 'MEDIA';
-  isAuthenticated: boolean;
+  activeTab: string
+  isStaff: boolean
+  isSuperuser: boolean
+  level: 'BASICA' | 'MEDIA'
+  isAuthenticated: boolean
 }) {
   switch (true) {
     case !isStaff || activeTab === 'docente_public':
-      return <DocentePublico level={level} isStaff={isStaff} isAuthenticated={isAuthenticated} />;
+      return (
+        <DocentePublico
+          level={level}
+          isStaff={isStaff}
+          isAuthenticated={isAuthenticated}
+        />
+      )
     case activeTab === 'dashboard':
-      return <Dashboard level={level} />;
+      return <Dashboard level={level} />
     case activeTab === 'inasistencias':
-      return <Inasistencias level={level} />;
+      return <Inasistencias level={level} />
     case activeTab === 'pruebas':
-      return <Pruebas level={level} />;
+      return <Pruebas level={level} />
     case activeTab === 'pruebas_atrasadas':
-      return <PruebasAtrasadas level={level} />;
+      return <PruebasAtrasadas level={level} />
     case activeTab === 'inspectoria':
-      return <Inspectoria level={level} />;
+      return <Inspectoria level={level} />
     case activeTab === 'estudiantes':
-      return <Estudiantes level={level} />;
+      return <Estudiantes level={level} />
     case activeTab === 'configuracion':
-      return isSuperuser ? <Configuracion /> : <Dashboard level={level} />;
+      return isSuperuser ? <Configuracion /> : <Dashboard level={level} />
     default:
-      return <Dashboard level={level} />;
+      return <Dashboard level={level} />
   }
-});
+})
 
 function AppContent() {
   const [uiState, patchUiState] = React.useReducer(
     (
       state: {
-        activeTab: string;
-        isSidebarOpen: boolean;
-        level: 'BASICA' | 'MEDIA';
+        activeTab: string
+        isSidebarOpen: boolean
+        level: 'BASICA' | 'MEDIA'
       },
       patch: Partial<{
-        activeTab: string;
-        isSidebarOpen: boolean;
-        level: 'BASICA' | 'MEDIA';
+        activeTab: string
+        isSidebarOpen: boolean
+        level: 'BASICA' | 'MEDIA'
       }>
     ) => ({ ...state, ...patch }),
     { activeTab: 'dashboard', isSidebarOpen: false, level: 'BASICA' }
-  );
+  )
   const [authUiState, patchAuthUiState] = React.useReducer(
     (
       state: {
-        isLoginOpen: boolean;
-        email: string;
-        password: string;
-        loginLoading: boolean;
+        isLoginOpen: boolean
+        email: string
+        password: string
+        loginLoading: boolean
       },
       patch: Partial<{
-        isLoginOpen: boolean;
-        email: string;
-        password: string;
-        loginLoading: boolean;
+        isLoginOpen: boolean
+        email: string
+        password: string
+        loginLoading: boolean
       }>
     ) => ({ ...state, ...patch }),
     { isLoginOpen: false, email: '', password: '', loginLoading: false }
-  );
-  const { activeTab, isSidebarOpen, level } = uiState;
-  const { isLoginOpen, email, password, loginLoading } = authUiState;
-  const [authMode, setAuthMode] = React.useState<'login' | 'request-reset' | 'update-password'>(
-    'login'
-  );
-  const [passwordConfirmation, setPasswordConfirmation] = React.useState('');
+  )
+  const { activeTab, isSidebarOpen, level } = uiState
+  const { isLoginOpen, email, password, loginLoading } = authUiState
+  const [authMode, setAuthMode] = React.useState<
+    'login' | 'request-reset' | 'update-password'
+  >('login')
+  const [passwordConfirmation, setPasswordConfirmation] = React.useState('')
   const {
     session,
     role,
@@ -202,62 +230,62 @@ function AppContent() {
     membershipError,
     legacyFallbackUsed,
     membershipHasAccess,
-  } = useAuth();
-  const { showToast } = useToast();
-  const queryClient = useQueryClient();
+  } = useAuth()
+  const { showToast } = useToast()
+  const queryClient = useQueryClient()
 
   React.useEffect(() => {
     if (isPasswordRecovery) {
-      setAuthMode('update-password');
-      patchAuthUiState({ isLoginOpen: true, password: '' });
-      setPasswordConfirmation('');
+      setAuthMode('update-password')
+      patchAuthUiState({ isLoginOpen: true, password: '' })
+      setPasswordConfirmation('')
     }
-  }, [isPasswordRecovery]);
+  }, [isPasswordRecovery])
 
   React.useEffect(() => {
-    if (loading) return;
+    if (loading) return
 
-    let nextActiveTab = activeTab;
+    let nextActiveTab = activeTab
     if (!isStaff) {
-      nextActiveTab = 'docente_public';
+      nextActiveTab = 'docente_public'
     } else if (!isSuperuser && activeTab === 'configuracion') {
-      nextActiveTab = 'dashboard';
+      nextActiveTab = 'dashboard'
     }
 
     if (nextActiveTab !== activeTab) {
-      patchUiState({ activeTab: nextActiveTab });
+      patchUiState({ activeTab: nextActiveTab })
     }
-  }, [loading, isStaff, isSuperuser, activeTab]);
+  }, [loading, isStaff, isSuperuser, activeTab])
 
   const openLogin = () => {
-    setAuthError(null);
-    setAuthMode('login');
-    setPasswordConfirmation('');
-    patchAuthUiState({ isLoginOpen: true, password: '' });
-  };
+    setAuthError(null)
+    setAuthMode('login')
+    setPasswordConfirmation('')
+    patchAuthUiState({ isLoginOpen: true, password: '' })
+  }
 
   const getTitle = () => {
-    if (!isAuthenticated) return 'Bienvenida';
-    if (!isStaff || activeTab === 'docente_public') return 'Vista Docente';
+    if (!isAuthenticated) return 'Bienvenida'
+    if (!isStaff || activeTab === 'docente_public') return 'Vista Docente'
     switch (activeTab) {
       case 'dashboard':
-        return 'Dashboard Docente';
+        return 'Dashboard Docente'
       case 'inasistencias':
-        return 'Gestión de Inasistencias';
+        return 'Gestión de Inasistencias'
       case 'pruebas':
-        return 'Registro de Evaluaciones';
+        return 'Registro de Evaluaciones'
       case 'pruebas_atrasadas':
-        return 'Pruebas Atrasadas';
+        return 'Pruebas Atrasadas'
       case 'inspectoria':
-        return 'Atención de Inspectoría';
+        return 'Atención de Inspectoría'
       case 'estudiantes':
-        return 'Fichas de Estudiantes';
+        return 'Fichas de Estudiantes'
       case 'configuracion':
-        return 'Configuración';
+        return 'Configuración'
       default:
-        return 'Dashboard';
+        return 'Dashboard'
     }
-  };
+  }
 
   const roleLabel = !isAuthenticated
     ? 'Acceso restringido'
@@ -265,129 +293,138 @@ function AppContent() {
       ? 'Superusuario'
       : role === 'staff'
         ? 'Staff'
-        : 'Docente';
+        : 'Docente'
   const sidebarRole = !isAuthenticated
     ? ('public' as const)
     : isSuperuser
       ? ('superuser' as const)
-      : ('staff' as const);
+      : ('staff' as const)
 
   const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
+    e.preventDefault()
     try {
-      patchAuthUiState({ loginLoading: true });
-      const signedRole = await signIn(email.trim(), password);
-      patchAuthUiState({ isLoginOpen: false, email: '', password: '' });
+      patchAuthUiState({ loginLoading: true })
+      const signedRole = await signIn(email.trim(), password)
+      patchAuthUiState({ isLoginOpen: false, email: '', password: '' })
       if (signedRole === 'staff' || signedRole === 'superuser') {
-        patchUiState({ activeTab: 'dashboard' });
+        patchUiState({ activeTab: 'dashboard' })
         showToast({
           type: TOAST_TYPES.SUCCESS,
           message: `Sesión iniciada como ${signedRole === 'superuser' ? 'superusuario' : 'staff'}.`,
-        });
+        })
       } else {
-        patchUiState({ activeTab: 'docente_public' });
+        patchUiState({ activeTab: 'docente_public' })
         showToast({
           type: TOAST_TYPES.SUCCESS,
-          message: 'Bienvenido. Se habilitó la Vista Docente con información completa.',
-        });
+          message:
+            'Bienvenido. Se habilitó la Vista Docente con información completa.',
+        })
       }
     } catch (error) {
-      console.error('Login error', error);
+      console.error('Login error', error)
       showToast({
         type: TOAST_TYPES.ERROR,
         message: 'No se pudo iniciar sesión. Verifica tus credenciales.',
-      });
+      })
     } finally {
-      patchAuthUiState({ loginLoading: false });
+      patchAuthUiState({ loginLoading: false })
     }
-  };
+  }
 
   const handleResetRequest = async (e: React.FormEvent) => {
-    e.preventDefault();
+    e.preventDefault()
     if (!email.trim()) {
-      setAuthError('Ingrese su correo electrónico.');
-      return;
+      setAuthError('Ingrese su correo electrónico.')
+      return
     }
     try {
-      patchAuthUiState({ loginLoading: true });
-      await requestPasswordReset(email.trim());
+      patchAuthUiState({ loginLoading: true })
+      await requestPasswordReset(email.trim())
       showToast({
         type: TOAST_TYPES.SUCCESS,
-        message: 'Si la cuenta existe, recibirá un enlace para crear una contraseña nueva.',
-      });
+        message:
+          'Si la cuenta existe, recibirá un enlace para crear una contraseña nueva.',
+      })
     } catch (error) {
-      console.error('Password reset request error', error);
+      console.error('Password reset request error', error)
       showToast({
         type: TOAST_TYPES.ERROR,
         message: 'No se pudo enviar el enlace de recuperación.',
-      });
+      })
     } finally {
-      patchAuthUiState({ loginLoading: false });
+      patchAuthUiState({ loginLoading: false })
     }
-  };
+  }
 
   const handlePasswordUpdate = async (e: React.FormEvent) => {
-    e.preventDefault();
+    e.preventDefault()
     if (password.length < 6) {
-      setAuthError('La contraseña debe tener al menos 6 caracteres.');
-      return;
+      setAuthError('La contraseña debe tener al menos 6 caracteres.')
+      return
     }
     if (password !== passwordConfirmation) {
-      setAuthError('Las contraseñas no coinciden.');
-      return;
+      setAuthError('Las contraseñas no coinciden.')
+      return
     }
     try {
-      patchAuthUiState({ loginLoading: true });
-      await updatePassword(password);
-      setAuthMode('login');
-      setPasswordConfirmation('');
-      patchAuthUiState({ password: '', isLoginOpen: true });
+      patchAuthUiState({ loginLoading: true })
+      await updatePassword(password)
+      setAuthMode('login')
+      setPasswordConfirmation('')
+      patchAuthUiState({ password: '', isLoginOpen: true })
       showToast({
         type: TOAST_TYPES.SUCCESS,
         message: 'Contraseña actualizada. Ya puede iniciar sesión.',
-      });
+      })
     } catch (error) {
-      console.error('Password update error', error);
+      console.error('Password update error', error)
       showToast({
         type: TOAST_TYPES.ERROR,
         message: 'No se pudo actualizar la contraseña.',
-      });
+      })
     } finally {
-      patchAuthUiState({ loginLoading: false });
+      patchAuthUiState({ loginLoading: false })
     }
-  };
+  }
 
   const handleLogout = async () => {
     try {
-      await signOut();
-      queryClient.clear();
-      patchUiState({ activeTab: 'docente_public' });
-      showToast({ type: TOAST_TYPES.SUCCESS, message: 'Sesión cerrada.' });
+      await signOut()
+      queryClient.clear()
+      patchUiState({ activeTab: 'docente_public' })
+      showToast({ type: TOAST_TYPES.SUCCESS, message: 'Sesión cerrada.' })
     } catch (error) {
-      console.error('Logout error', error);
+      console.error('Logout error', error)
       showToast({
         type: TOAST_TYPES.ERROR,
         message: 'No se pudo cerrar sesión.',
-      });
+      })
     }
-  };
+  }
 
   if (loading) {
     return (
       <div className="min-h-screen bg-slate-50 flex items-center justify-center">
         <p className="text-sm font-medium text-slate-500">Cargando sesión...</p>
       </div>
-    );
+    )
   }
 
-  const membershipMode = getMembershipMode();
+  const membershipMode = getMembershipMode()
 
-  if (session?.user && !isPasswordRecovery && !membershipLoaded && membershipMode !== 'legacy') {
+  if (
+    session?.user &&
+    !isPasswordRecovery &&
+    !membershipLoaded &&
+    membershipMode !== 'legacy'
+  ) {
     return (
       <div className="min-h-screen bg-slate-50 flex items-center justify-center">
         <div className="text-center space-y-4">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto" />
-          <p className="text-sm font-medium text-slate-500">Verificando membresía...</p>
+          <p className="text-sm font-medium text-slate-500">
+            Verificando membresía...
+          </p>
           {membershipMode === 'transition' && legacyFallbackUsed && (
             <p className="text-xs text-amber-600">
               Modo transición — usando credenciales heredadas como respaldo.
@@ -395,20 +432,29 @@ function AppContent() {
           )}
         </div>
       </div>
-    );
+    )
   }
 
-  if (session?.user && !isPasswordRecovery && membershipLoaded && !membershipHasAccess) {
+  if (
+    session?.user &&
+    !isPasswordRecovery &&
+    membershipLoaded &&
+    !membershipHasAccess
+  ) {
     return (
       <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
         <div className="max-w-md w-full text-center space-y-4">
-          <div className="text-rose-600 text-sm font-medium">No tiene acceso a esta aplicación</div>
+          <div className="text-rose-600 text-sm font-medium">
+            No tiene acceso a esta aplicación
+          </div>
           <p className="text-slate-600 text-sm">
-            {membershipError ?? 'Su cuenta no tiene una membresía activa para esta aplicación.'}
+            {membershipError ??
+              'Su cuenta no tiene una membresía activa para esta aplicación.'}
           </p>
           {membershipMode === 'enforced' && (
             <p className="text-amber-600 text-xs">
-              Modo restringido — solo usuarios con membresía activa pueden acceder.
+              Modo restringido — solo usuarios con membresía activa pueden
+              acceder.
             </p>
           )}
           <div className="flex gap-2 justify-center pt-2">
@@ -427,7 +473,7 @@ function AppContent() {
           </div>
         </div>
       </div>
-    );
+    )
   }
 
   return (
@@ -451,7 +497,11 @@ function AppContent() {
             <WelcomeGate onLogin={openLogin} />
           ) : (
             <React.Suspense
-              fallback={<div className="text-sm font-medium text-slate-500">Cargando módulo...</div>}
+              fallback={
+                <div className="text-sm font-medium text-slate-500">
+                  Cargando módulo...
+                </div>
+              }
             >
               <AppContentInner
                 activeTab={activeTab}
@@ -468,7 +518,7 @@ function AppContent() {
         isOpen={isLoginOpen}
         onClose={() => {
           if (authMode !== 'update-password') {
-            patchAuthUiState({ isLoginOpen: false });
+            patchAuthUiState({ isLoginOpen: false })
           }
         }}
         title={
@@ -483,7 +533,8 @@ function AppContent() {
         {authMode === 'login' ? (
           <form onSubmit={handleLogin} className="space-y-4">
             <p className="text-sm leading-6 text-slate-600">
-              Ingresa el correo y la contraseña institucional proporcionados por el establecimiento.
+              Ingresa el correo y la contraseña institucional proporcionados por
+              el establecimiento.
             </p>
             <Input
               label="Correo"
@@ -503,12 +554,14 @@ function AppContent() {
               autoComplete="current-password"
               required
             />
-            {authError ? <p className="text-sm text-rose-600">{authError}</p> : null}
+            {authError ? (
+              <p className="text-sm text-rose-600">{authError}</p>
+            ) : null}
             <button
               type="button"
               onClick={() => {
-                setAuthError(null);
-                setAuthMode('request-reset');
+                setAuthError(null)
+                setAuthMode('request-reset')
               }}
               className="text-sm font-medium text-indigo-600 hover:text-indigo-700"
             >
@@ -530,7 +583,8 @@ function AppContent() {
         ) : authMode === 'request-reset' ? (
           <form onSubmit={handleResetRequest} className="space-y-4">
             <p className="text-sm leading-6 text-slate-600">
-              Ingresa tu correo. Te enviaremos un enlace seguro para crear una contraseña nueva.
+              Ingresa tu correo. Te enviaremos un enlace seguro para crear una
+              contraseña nueva.
             </p>
             <Input
               label="Correo"
@@ -541,14 +595,16 @@ function AppContent() {
               autoComplete="email"
               required
             />
-            {authError ? <p className="text-sm text-rose-600">{authError}</p> : null}
+            {authError ? (
+              <p className="text-sm text-rose-600">{authError}</p>
+            ) : null}
             <div className="flex justify-end gap-2 pt-2">
               <Button
                 type="button"
                 variant="ghost"
                 onClick={() => {
-                  setAuthError(null);
-                  setAuthMode('login');
+                  setAuthError(null)
+                  setAuthMode('login')
                 }}
               >
                 Volver
@@ -583,7 +639,9 @@ function AppContent() {
               minLength={6}
               required
             />
-            {authError ? <p className="text-sm text-rose-600">{authError}</p> : null}
+            {authError ? (
+              <p className="text-sm text-rose-600">{authError}</p>
+            ) : null}
             <div className="flex justify-end pt-2">
               <Button type="submit" loading={loginLoading}>
                 Guardar contraseña
@@ -594,7 +652,7 @@ function AppContent() {
       </Modal>
       <ToastContainer />
     </>
-  );
+  )
 }
 
-export default AppContent;
+export default AppContent

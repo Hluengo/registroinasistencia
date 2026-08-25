@@ -43,14 +43,20 @@ export const useTeacherPublicAbsences = (
   )
 }
 
-export const useTeacherPublicAbsenceDetail = (absenceId?: string, enabled = true) => {
+export const useTeacherPublicAbsenceDetail = (
+  absenceId?: string,
+  enabled = true
+) => {
   return useQ<TeacherPublicAbsenceDetail[]>(
     queryKeys.teacherPublicAbsenceDetail(absenceId),
     async () => {
       if (!absenceId) return []
-      const { data, error } = await supabase.rpc('teacher_get_public_absence_detail', {
-        p_absence_id: absenceId,
-      })
+      const { data, error } = await supabase.rpc(
+        'teacher_get_public_absence_detail',
+        {
+          p_absence_id: absenceId,
+        }
+      )
       if (error) throw error
       return (data || []) as TeacherPublicAbsenceDetail[]
     },

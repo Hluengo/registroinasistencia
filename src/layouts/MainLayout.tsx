@@ -55,7 +55,9 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
         <main className="flex-1 lg:ml-72 min-h-screen flex flex-col relative overflow-y-auto">
           <Topbar />
           <div className="flex-1 p-6 md:p-10 lg:p-12">
-            <div className="max-w-screen-2xl mx-auto space-y-10">{children}</div>
+            <div className="max-w-screen-2xl mx-auto space-y-10">
+              {children}
+            </div>
           </div>
           <footer className="px-6 md:px-10 lg:px-12 py-10 border-t border-slate-200/60 bg-white/50 backdrop-blur-sm text-center">
             <p className="text-[10px] md:text-xs text-slate-400 font-bold uppercase tracking-[0.2em]">

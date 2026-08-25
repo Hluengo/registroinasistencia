@@ -29,7 +29,9 @@ export const handleError = (error: unknown): string => {
       case 'PGRST116':
         return 'No se encontró el registro solicitado.'
       default:
-        return 'Error en la base de datos: ' + (err.message || 'Error desconocido')
+        return (
+          'Error en la base de datos: ' + (err.message || 'Error desconocido')
+        )
     }
   }
 

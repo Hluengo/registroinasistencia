@@ -62,17 +62,21 @@ export const Estudiantes: React.FC<EstudiantesProps> = ({ level }) => {
   const students = studentsFromQuery as Student[]
   const courses = coursesFromQuery as Course[]
 
-  const filteredStudents = React.useMemo(() => students.filter((student) => {
-    const studentCourseId = student.course_id || ''
-    const matchesCourse =
-      selectedCourse === '' || studentCourseId === selectedCourse
-    const name = student.full_name || ''
-    const rut = student.rut || ''
-    const matchesSearch =
-      name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      rut.toLowerCase().includes(searchQuery.toLowerCase())
-    return matchesCourse && matchesSearch
-  }), [students, selectedCourse, searchQuery])
+  const filteredStudents = React.useMemo(
+    () =>
+      students.filter((student) => {
+        const studentCourseId = student.course_id || ''
+        const matchesCourse =
+          selectedCourse === '' || studentCourseId === selectedCourse
+        const name = student.full_name || ''
+        const rut = student.rut || ''
+        const matchesSearch =
+          name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          rut.toLowerCase().includes(searchQuery.toLowerCase())
+        return matchesCourse && matchesSearch
+      }),
+    [students, selectedCourse, searchQuery]
+  )
 
   const handleViewDetails = (student: Student) => {
     patchUiState({ selectedStudent: student, isModalOpen: true })
@@ -233,7 +237,11 @@ export const Estudiantes: React.FC<EstudiantesProps> = ({ level }) => {
             </div>
           </div>
 
-          <div className="flex border-b border-slate-100" role="tablist" aria-label="Detalles del estudiante">
+          <div
+            className="flex border-b border-slate-100"
+            role="tablist"
+            aria-label="Detalles del estudiante"
+          >
             <button
               type="button"
               role="tab"
@@ -271,8 +279,14 @@ export const Estudiantes: React.FC<EstudiantesProps> = ({ level }) => {
           <div
             className="min-h-[300px] py-2"
             role="tabpanel"
-            id={activeTab === 'absences' ? 'tabpanel-absences' : 'tabpanel-records'}
-            aria-labelledby={activeTab === 'absences' ? 'tab-absences' : 'tab-records'}
+            id={
+              activeTab === 'absences'
+                ? 'tabpanel-absences'
+                : 'tabpanel-records'
+            }
+            aria-labelledby={
+              activeTab === 'absences' ? 'tab-absences' : 'tab-records'
+            }
           >
             {studentDetailsLoading ? (
               <div className="px-6 py-12">

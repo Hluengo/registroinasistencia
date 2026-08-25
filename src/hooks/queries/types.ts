@@ -1,10 +1,5 @@
 import { AbsenceWithDetails, Student, Course } from '../../types'
-import {
-  Tables,
-  TablesInsert,
-  TablesUpdate,
-  Enums,
-} from '../../types/db'
+import { Tables, TablesInsert, TablesUpdate, Enums } from '../../types/db'
 import { Holiday as NormalizedHoliday } from '../../lib/transformations'
 
 export type CourseRow = Tables<'courses'>

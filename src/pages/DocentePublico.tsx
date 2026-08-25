@@ -1,28 +1,39 @@
-import React from 'react';
-import { Bell, Calendar, ChevronLeft, ChevronRight, Eye, Megaphone } from 'lucide-react';
+import React from 'react'
+import {
+  Bell,
+  Calendar,
+  ChevronLeft,
+  ChevronRight,
+  Eye,
+  Megaphone,
+} from 'lucide-react'
 import {
   useTeacherPublicAbsences,
   type TeacherPublicAbsence,
   useTeacherPublicAbsenceDetail,
   useTeacherInstantMessages,
   useCourses,
-} from '../hooks/queries';
-import { Modal } from '../components/ui/Modal';
-import { Button } from '../components/ui/Button';
-import { Badge } from '../components/ui/Badge';
-import { EmptyState } from '../components/ui/EmptyState';
-import { PageHeader } from '../components/ui/PageHeader';
-import { Select } from '../components/ui/Select';
-import { TableSkeleton } from '../components/ui/Skeleton';
-import { formatDate } from '../utils';
-import { MONTHS, getYearOptions, getCourseOptions } from '../utils/filterOptions';
-import { getAbsenceStatusLabel } from '../constants';
-import { StaffInstantMessagesManager } from '../components/staff-messages';
+} from '../hooks/queries'
+import { Modal } from '../components/ui/Modal'
+import { Button } from '../components/ui/Button'
+import { Badge } from '../components/ui/Badge'
+import { EmptyState } from '../components/ui/EmptyState'
+import { PageHeader } from '../components/ui/PageHeader'
+import { Select } from '../components/ui/Select'
+import { TableSkeleton } from '../components/ui/Skeleton'
+import { formatDate } from '../utils'
+import {
+  MONTHS,
+  getYearOptions,
+  getCourseOptions,
+} from '../utils/filterOptions'
+import { getAbsenceStatusLabel } from '../constants'
+import { StaffInstantMessagesManager } from '../components/staff-messages'
 
 interface DocentePublicoProps {
-  level: 'BASICA' | 'MEDIA';
-  isStaff: boolean;
-  isAuthenticated?: boolean;
+  level: 'BASICA' | 'MEDIA'
+  isStaff: boolean
+  isAuthenticated?: boolean
 }
 
 export const DocentePublico: React.FC<DocentePublicoProps> = ({
@@ -30,15 +41,17 @@ export const DocentePublico: React.FC<DocentePublicoProps> = ({
   isStaff,
   isAuthenticated = false,
 }) => {
-  const [currentDate, setCurrentDate] = React.useState(new Date());
-  const [selectedCourseId, setSelectedCourseId] = React.useState('');
-  const [isStaffManagerOpen, setIsStaffManagerOpen] = React.useState(false);
-  const [isMessagesCollapsed, setIsMessagesCollapsed] = React.useState(false);
-  const [selected, setSelected] = React.useState<TeacherPublicAbsence | null>(null);
-  const [isOpen, setIsOpen] = React.useState(false);
+  const [currentDate, setCurrentDate] = React.useState(new Date())
+  const [selectedCourseId, setSelectedCourseId] = React.useState('')
+  const [isStaffManagerOpen, setIsStaffManagerOpen] = React.useState(false)
+  const [isMessagesCollapsed, setIsMessagesCollapsed] = React.useState(false)
+  const [selected, setSelected] = React.useState<TeacherPublicAbsence | null>(
+    null
+  )
+  const [isOpen, setIsOpen] = React.useState(false)
 
-  const month = currentDate.getMonth();
-  const year = currentDate.getFullYear();
+  const month = currentDate.getMonth()
+  const year = currentDate.getFullYear()
   const {
     data = [],
     isLoading,
@@ -50,39 +63,50 @@ export const DocentePublico: React.FC<DocentePublicoProps> = ({
     level,
     selectedCourseId || undefined,
     isAuthenticated
-  );
+  )
   const {
     data: selectedTests = [],
     isLoading: selectedTestsLoading,
     isError: detailUnavailable,
-  } = useTeacherPublicAbsenceDetail(selected?.absence_id, isAuthenticated);
-  const { data: courses = [], isLoading: coursesLoading } = useCourses(level, isAuthenticated);
-  const activeMessagesLevel = level;
+  } = useTeacherPublicAbsenceDetail(selected?.absence_id, isAuthenticated)
+  const { data: courses = [], isLoading: coursesLoading } = useCourses(
+    level,
+    isAuthenticated
+  )
+  const activeMessagesLevel = level
   const { data: instantMessages = [], isLoading: instantMessagesLoading } =
-    useTeacherInstantMessages(activeMessagesLevel, selectedCourseId || undefined, isAuthenticated);
+    useTeacherInstantMessages(
+      activeMessagesLevel,
+      selectedCourseId || undefined,
+      isAuthenticated
+    )
   const { data: allActiveMessages = [] } = useTeacherInstantMessages(
     undefined,
     undefined,
     !isStaff && isAuthenticated
-  );
+  )
 
   React.useEffect(() => {
-    setSelectedCourseId('');
-  }, [level]);
+    setSelectedCourseId('')
+  }, [level])
 
-  const rpcUnavailable = isAuthenticated && (absencesUnavailable || detailUnavailable);
-  const loading = isAuthenticated && (isLoading || coursesLoading);
-  const showInitialSkeleton = loading && data.length === 0;
-  const courseOptions = React.useMemo(() => getCourseOptions(courses), [courses]);
+  const rpcUnavailable =
+    isAuthenticated && (absencesUnavailable || detailUnavailable)
+  const loading = isAuthenticated && (isLoading || coursesLoading)
+  const showInitialSkeleton = loading && data.length === 0
+  const courseOptions = React.useMemo(
+    () => getCourseOptions(courses),
+    [courses]
+  )
   const sortedData = React.useMemo(
     () =>
       [...data].sort((left, right) => {
-        const leftDate = new Date(left.start_date).getTime();
-        const rightDate = new Date(right.start_date).getTime();
-        return rightDate - leftDate;
+        const leftDate = new Date(left.start_date).getTime()
+        const rightDate = new Date(right.start_date).getTime()
+        return rightDate - leftDate
       }),
     [data]
-  );
+  )
 
   return (
     <div className="space-y-10">
@@ -113,13 +137,17 @@ export const DocentePublico: React.FC<DocentePublicoProps> = ({
             <Select
               options={MONTHS}
               value={month}
-              onChange={(e) => setCurrentDate(new Date(year, Number(e.target.value), 1))}
+              onChange={(e) =>
+                setCurrentDate(new Date(year, Number(e.target.value), 1))
+              }
               className="md:w-44"
             />
             <Select
               options={getYearOptions()}
               value={year}
-              onChange={(e) => setCurrentDate(new Date(Number(e.target.value), month, 1))}
+              onChange={(e) =>
+                setCurrentDate(new Date(Number(e.target.value), month, 1))
+              }
               className="md:w-36"
             />
             <Select
@@ -133,11 +161,14 @@ export const DocentePublico: React.FC<DocentePublicoProps> = ({
       />
       {rpcUnavailable ? (
         <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
-          <strong>No fue posible cargar todos los datos.</strong> Intenta nuevamente en unos minutos.
+          <strong>No fue posible cargar todos los datos.</strong> Intenta
+          nuevamente en unos minutos.
         </div>
       ) : null}
       {isFetching && data.length > 0 ? (
-        <p className="text-xs font-medium text-slate-400 -mt-6">Actualizando resultados...</p>
+        <p className="text-xs font-medium text-slate-400 -mt-6">
+          Actualizando resultados...
+        </p>
       ) : null}
       <div className="card border border-indigo-100 bg-gradient-to-br from-indigo-50 to-white rounded-3xl p-5 md:p-6">
         <div className="flex items-start justify-between gap-4">
@@ -145,7 +176,9 @@ export const DocentePublico: React.FC<DocentePublicoProps> = ({
             <p className="text-xs font-bold text-indigo-500 uppercase tracking-[0.2em]">
               Comunicados
             </p>
-            <h3 className="text-lg font-bold text-slate-900 mt-1">Mensajes instantáneos</h3>
+            <h3 className="text-lg font-bold text-slate-900 mt-1">
+              Mensajes instantáneos
+            </h3>
             <p className="text-sm text-slate-500 mt-1">
               {isStaff
                 ? 'Vista previa staff: muestra todos los comunicados activos.'
@@ -156,7 +189,9 @@ export const DocentePublico: React.FC<DocentePublicoProps> = ({
             type="button"
             onClick={() => setIsMessagesCollapsed((prev) => !prev)}
             className="inline-flex items-center gap-2 rounded-xl border border-indigo-200 bg-white px-3 py-2 text-indigo-600 hover:bg-indigo-50 transition-colors"
-            aria-label={isMessagesCollapsed ? 'Expandir mensajes' : 'Colapsar mensajes'}
+            aria-label={
+              isMessagesCollapsed ? 'Expandir mensajes' : 'Colapsar mensajes'
+            }
           >
             <Bell className="w-4 h-4" />
             <span className="inline-flex items-center justify-center min-w-5 h-5 rounded-full bg-indigo-600 text-white text-[11px] font-bold px-1.5">
@@ -176,8 +211,8 @@ export const DocentePublico: React.FC<DocentePublicoProps> = ({
                 Sin comunicados activos en este momento.
                 {!isStaff && allActiveMessages.length > 0 ? (
                   <span className="block mt-1 text-xs text-slate-400">
-                    Hay comunicados activos en otro nivel. Cambia BÁSICA/MEDIA desde el selector
-                    lateral.
+                    Hay comunicados activos en otro nivel. Cambia BÁSICA/MEDIA
+                    desde el selector lateral.
                   </span>
                 ) : null}
               </div>
@@ -191,12 +226,18 @@ export const DocentePublico: React.FC<DocentePublicoProps> = ({
                     <Megaphone className="w-3.5 h-3.5" />
                     Aviso activo
                   </div>
-                  <h4 className="text-slate-900 font-bold mt-1">{message.title}</h4>
-                  <p className="text-sm text-slate-600 mt-2 whitespace-pre-line">{message.body}</p>
+                  <h4 className="text-slate-900 font-bold mt-1">
+                    {message.title}
+                  </h4>
+                  <p className="text-sm text-slate-600 mt-2 whitespace-pre-line">
+                    {message.body}
+                  </p>
                   <p className="text-[11px] text-slate-400 mt-3">
                     {message.level ? `Nivel ${message.level} • ` : ''}
                     Publicado: {formatDate(message.created_at)}
-                    {message.ends_at ? ` • Vigente hasta ${formatDate(message.ends_at)}` : ''}
+                    {message.ends_at
+                      ? ` • Vigente hasta ${formatDate(message.ends_at)}`
+                      : ''}
                   </p>
                 </div>
               ))
@@ -222,7 +263,8 @@ export const DocentePublico: React.FC<DocentePublicoProps> = ({
                 Gestor de mensajes instantáneos
               </h3>
               <p className="text-sm text-slate-600 mt-1">
-                Crea avisos generales, por nivel o por curso para la vista docente.
+                Crea avisos generales, por nivel o por curso para la vista
+                docente.
               </p>
             </div>
             <Button
@@ -283,19 +325,29 @@ export const DocentePublico: React.FC<DocentePublicoProps> = ({
                   </tr>
                 ) : (
                   sortedData.map((row) => (
-                    <tr key={row.absence_id} className="hover:bg-slate-50/80 transition-colors">
-                      <td className="px-6 py-5 font-bold text-slate-900">{row.student_name}</td>
+                    <tr
+                      key={row.absence_id}
+                      className="hover:bg-slate-50/80 transition-colors"
+                    >
+                      <td className="px-6 py-5 font-bold text-slate-900">
+                        {row.student_name}
+                      </td>
                       <td className="px-6 py-5 text-sm font-semibold text-slate-600">
                         {row.course_name}
                       </td>
                       <td className="px-6 py-5">
                         <div className="flex items-center gap-2 text-sm font-medium text-slate-500">
                           <Calendar className="w-3.5 h-3.5 opacity-60" />
-                          {formatDate(row.start_date)} - {formatDate(row.end_date)}
+                          {formatDate(row.start_date)} -{' '}
+                          {formatDate(row.end_date)}
                         </div>
                       </td>
                       <td className="px-6 py-5">
-                        <Badge variant={row.status === 'JUSTIFICADA' ? 'success' : 'warning'}>
+                        <Badge
+                          variant={
+                            row.status === 'JUSTIFICADA' ? 'success' : 'warning'
+                          }
+                        >
                           {getAbsenceStatusLabel(row.status || 'PENDIENTE')}
                         </Badge>
                       </td>
@@ -308,8 +360,8 @@ export const DocentePublico: React.FC<DocentePublicoProps> = ({
                           size="sm"
                           icon={Eye}
                           onClick={() => {
-                            setSelected(row);
-                            setIsOpen(true);
+                            setSelected(row)
+                            setIsOpen(true)
                           }}
                         >
                           Ver
@@ -338,15 +390,19 @@ export const DocentePublico: React.FC<DocentePublicoProps> = ({
                 {selected.student_name}
               </p>
               <p>
-                <span className="font-bold text-slate-700">Curso:</span> {selected.course_name}
+                <span className="font-bold text-slate-700">Curso:</span>{' '}
+                {selected.course_name}
               </p>
               <p>
                 <span className="font-bold text-slate-700">Fechas:</span>{' '}
-                {formatDate(selected.start_date)} - {formatDate(selected.end_date)}
+                {formatDate(selected.start_date)} -{' '}
+                {formatDate(selected.end_date)}
               </p>
             </div>
             <div>
-              <p className="text-xs font-bold text-slate-400 uppercase mb-2">Observación</p>
+              <p className="text-xs font-bold text-slate-400 uppercase mb-2">
+                Observación
+              </p>
               <div className="p-4 bg-white border border-slate-200 rounded-xl text-slate-700 text-sm">
                 {selected.observation || 'Sin observación registrada.'}
               </div>
@@ -364,7 +420,9 @@ export const DocentePublico: React.FC<DocentePublicoProps> = ({
                       key={test.id}
                       className="bg-rose-50 p-3 rounded-lg border border-rose-100 text-sm"
                     >
-                      <div className="font-bold text-slate-800">{test.subject}</div>
+                      <div className="font-bold text-slate-800">
+                        {test.subject}
+                      </div>
                       <div className="text-rose-600 font-medium">
                         {test.type} - {formatDate(test.date)}
                       </div>
@@ -372,12 +430,14 @@ export const DocentePublico: React.FC<DocentePublicoProps> = ({
                   ))}
                 </div>
               ) : (
-                <p className="text-sm text-slate-400">No hay pruebas afectadas.</p>
+                <p className="text-sm text-slate-400">
+                  No hay pruebas afectadas.
+                </p>
               )}
             </div>
           </div>
         )}
       </Modal>
     </div>
-  );
-};
+  )
+}

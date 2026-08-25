@@ -32,13 +32,8 @@ interface LayoutProviderProps extends LayoutContextValue {
   children: React.ReactNode
 }
 
-export function LayoutProvider({
-  children,
-  ...value
-}: LayoutProviderProps) {
+export function LayoutProvider({ children, ...value }: LayoutProviderProps) {
   return (
-    <LayoutContext.Provider value={value}>
-      {children}
-    </LayoutContext.Provider>
+    <LayoutContext.Provider value={value}>{children}</LayoutContext.Provider>
   )
 }

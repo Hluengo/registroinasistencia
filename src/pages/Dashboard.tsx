@@ -40,125 +40,123 @@ interface DashboardDetailModalProps {
   courses: Course[]
 }
 
-const DashboardDetailModal: React.FC<DashboardDetailModalProps> = React.memo(({
-  isOpen,
-  onClose,
-  selectedAbsence,
-  courses,
-}) => {
-  return (
-    <Modal
-      isOpen={isOpen}
-      onClose={onClose}
-      title="Detalle de Inasistencia"
-      size="lg"
-    >
-      {selectedAbsence && (
-        <div className="space-y-6">
-          <div className="flex items-center gap-4 p-4 bg-slate-50 rounded-2xl border border-slate-100">
-            <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center text-blue-600 font-bold text-lg shadow-sm border border-slate-100">
-              {selectedAbsence.student.full_name.charAt(0)}
-            </div>
-            <div>
-              <h3 className="font-bold text-slate-900">
-                {selectedAbsence.student.full_name}
-              </h3>
-              <p className="text-slate-500 text-sm font-medium uppercase tracking-wider">
-                {courses.find((c) => c.id === selectedAbsence.student.course_id)
-                  ?.name || 'N/A'}{' '}
-                • RUT: {selectedAbsence.student.rut || 'N/A'}
-              </p>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="p-4 bg-slate-50 rounded-xl border border-slate-100">
-              <div className="text-xs font-bold text-slate-400 uppercase mb-1 flex items-center gap-1">
-                <Calendar className="w-3 h-3" /> Periodo
+const DashboardDetailModal: React.FC<DashboardDetailModalProps> = React.memo(
+  ({ isOpen, onClose, selectedAbsence, courses }) => {
+    return (
+      <Modal
+        isOpen={isOpen}
+        onClose={onClose}
+        title="Detalle de Inasistencia"
+        size="lg"
+      >
+        {selectedAbsence && (
+          <div className="space-y-6">
+            <div className="flex items-center gap-4 p-4 bg-slate-50 rounded-2xl border border-slate-100">
+              <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center text-blue-600 font-bold text-lg shadow-sm border border-slate-100">
+                {selectedAbsence.student.full_name.charAt(0)}
               </div>
-              <div className="text-sm font-bold text-slate-700">
-                {formatDate(selectedAbsence.start_date)} al{' '}
-                {formatDate(selectedAbsence.end_date)}
+              <div>
+                <h3 className="font-bold text-slate-900">
+                  {selectedAbsence.student.full_name}
+                </h3>
+                <p className="text-slate-500 text-sm font-medium uppercase tracking-wider">
+                  {courses.find(
+                    (c) => c.id === selectedAbsence.student.course_id
+                  )?.name || 'N/A'}{' '}
+                  • RUT: {selectedAbsence.student.rut || 'N/A'}
+                </p>
               </div>
             </div>
-            <div className="p-4 bg-slate-50 rounded-xl border border-slate-100">
-              <div className="text-xs font-bold text-slate-400 uppercase mb-1 flex items-center gap-1">
-                <AlertCircle className="w-3 h-3" /> Estado
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="p-4 bg-slate-50 rounded-xl border border-slate-100">
+                <div className="text-xs font-bold text-slate-400 uppercase mb-1 flex items-center gap-1">
+                  <Calendar className="w-3 h-3" /> Periodo
+                </div>
+                <div className="text-sm font-bold text-slate-700">
+                  {formatDate(selectedAbsence.start_date)} al{' '}
+                  {formatDate(selectedAbsence.end_date)}
+                </div>
               </div>
-              <Badge
-                variant={
-                  selectedAbsence.status === 'JUSTIFICADA'
-                    ? 'success'
-                    : 'warning'
-                }
-                className="mt-1"
-              >
-                {getAbsenceStatusLabel(selectedAbsence.status || 'PENDIENTE')}
-              </Badge>
+              <div className="p-4 bg-slate-50 rounded-xl border border-slate-100">
+                <div className="text-xs font-bold text-slate-400 uppercase mb-1 flex items-center gap-1">
+                  <AlertCircle className="w-3 h-3" /> Estado
+                </div>
+                <Badge
+                  variant={
+                    selectedAbsence.status === 'JUSTIFICADA'
+                      ? 'success'
+                      : 'warning'
+                  }
+                  className="mt-1"
+                >
+                  {getAbsenceStatusLabel(selectedAbsence.status || 'PENDIENTE')}
+                </Badge>
+              </div>
             </div>
-          </div>
 
-          <div className="space-y-2">
-            <p className="text-xs font-bold text-slate-400 uppercase">
-              Observación
-            </p>
-            <div className="p-4 bg-white border border-slate-200 rounded-xl text-slate-700 text-sm leading-relaxed italic">
-              {selectedAbsence.observation || 'Sin observación registrada.'}
-            </div>
-          </div>
-
-          {selectedAbsence.document_url && (
             <div className="space-y-2">
               <p className="text-xs font-bold text-slate-400 uppercase">
-                Documento Adjunto
+                Observación
               </p>
-              <a
-                href={selectedAbsence.document_url}
-                target="_blank"
-                rel="noreferrer"
-                className="flex items-center gap-3 p-4 bg-blue-50 border border-blue-100 rounded-xl text-blue-700 hover:bg-blue-100 transition-colors"
-              >
-                <FileText className="w-5 h-5" />
-                <span className="font-bold text-sm">
-                  Ver Certificado / Justificativo
-                </span>
-                <Download className="w-4 h-4 ml-auto" />
-              </a>
+              <div className="p-4 bg-white border border-slate-200 rounded-xl text-slate-700 text-sm leading-relaxed italic">
+                {selectedAbsence.observation || 'Sin observación registrada.'}
+              </div>
             </div>
-          )}
 
-          {selectedAbsence.affected_tests &&
-            selectedAbsence.affected_tests.length > 0 && (
-              <div className="space-y-3">
+            {selectedAbsence.document_url && (
+              <div className="space-y-2">
                 <p className="text-xs font-bold text-slate-400 uppercase">
-                  Pruebas Afectadas ({selectedAbsence.affected_tests.length})
+                  Documento Adjunto
                 </p>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  {selectedAbsence.affected_tests.map((test: Test) => (
-                    <div
-                      key={test.id}
-                      className="bg-rose-50 p-3 rounded-lg border border-rose-100 text-sm"
-                    >
-                      <div className="font-bold text-slate-800">
-                        {test.subject}
-                      </div>
-                      <div className="text-rose-600 font-medium">
-                        {test.type} - {formatDate(test.date)}
-                      </div>
-                    </div>
-                  ))}
-                </div>
+                <a
+                  href={selectedAbsence.document_url}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="flex items-center gap-3 p-4 bg-blue-50 border border-blue-100 rounded-xl text-blue-700 hover:bg-blue-100 transition-colors"
+                >
+                  <FileText className="w-5 h-5" />
+                  <span className="font-bold text-sm">
+                    Ver Certificado / Justificativo
+                  </span>
+                  <Download className="w-4 h-4 ml-auto" />
+                </a>
               </div>
             )}
 
-          <div className="flex justify-end pt-4">
-            <Button onClick={onClose}>Cerrar</Button>
+            {selectedAbsence.affected_tests &&
+              selectedAbsence.affected_tests.length > 0 && (
+                <div className="space-y-3">
+                  <p className="text-xs font-bold text-slate-400 uppercase">
+                    Pruebas Afectadas ({selectedAbsence.affected_tests.length})
+                  </p>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    {selectedAbsence.affected_tests.map((test: Test) => (
+                      <div
+                        key={test.id}
+                        className="bg-rose-50 p-3 rounded-lg border border-rose-100 text-sm"
+                      >
+                        <div className="font-bold text-slate-800">
+                          {test.subject}
+                        </div>
+                        <div className="text-rose-600 font-medium">
+                          {test.type} - {formatDate(test.date)}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+            <div className="flex justify-end pt-4">
+              <Button onClick={onClose}>Cerrar</Button>
+            </div>
           </div>
-        </div>
-      )}
-    </Modal>
-  )
-})
+        )}
+      </Modal>
+    )
+  }
+)
 
 export const Dashboard: React.FC<DashboardProps> = ({ level }) => {
   // use query results directly; avoid mirroring query data in local state
@@ -239,18 +237,22 @@ export const Dashboard: React.FC<DashboardProps> = ({ level }) => {
     [filteredAbsences]
   )
 
-  const stats = React.useMemo(() => ({
-    total: absences.length,
-    justified: absences.filter(
-      (a: AbsenceWithDetails) => a.status === 'JUSTIFICADA'
-    ).length,
-    pending: absences.filter(
-      (a: AbsenceWithDetails) => a.status === 'PENDIENTE'
-    ).length,
-    withTests: absences.filter(
-      (a: AbsenceWithDetails) => a.affected_tests && a.affected_tests.length > 0
-    ).length,
-  }), [absences])
+  const stats = React.useMemo(
+    () => ({
+      total: absences.length,
+      justified: absences.filter(
+        (a: AbsenceWithDetails) => a.status === 'JUSTIFICADA'
+      ).length,
+      pending: absences.filter(
+        (a: AbsenceWithDetails) => a.status === 'PENDIENTE'
+      ).length,
+      withTests: absences.filter(
+        (a: AbsenceWithDetails) =>
+          a.affected_tests && a.affected_tests.length > 0
+      ).length,
+    }),
+    [absences]
+  )
 
   const toggleRow = (id: string) => {
     const newSet = new Set(expandedRows)

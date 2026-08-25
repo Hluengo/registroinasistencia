@@ -78,10 +78,15 @@ export const PruebasAtrasadas: React.FC<PruebasAtrasadasProps> = ({
   const { data: courses = [] } = useCourses(level)
   const { data: students = [] } = useStudents(undefined, level)
   const updateMutation = useUpdateMakeupExam()
-  const { data: studentExams = [] } = useMakeupExams({
-    level,
-    studentId: selectedStudentId ?? undefined,
-  })
+  const { data: studentExams = [], isLoading: isStudentExamsLoading } =
+    useMakeupExams({
+      level,
+      studentId: selectedStudentId ?? undefined,
+    })
+  const selectedExam = React.useMemo(
+    () => exams.find((exam) => exam.student_id === selectedStudentId),
+    [exams, selectedStudentId]
+  )
 
   const filteredExams = React.useMemo(() => {
     const query = search.trim().toLowerCase()
@@ -348,6 +353,13 @@ export const PruebasAtrasadas: React.FC<PruebasAtrasadasProps> = ({
                       <Button
                         variant="ghost"
                         size="sm"
+                        onClick={() => setSelectedStudentId(exam.student_id)}
+                      >
+                        Ver pruebas
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
                         icon={Pencil}
                         onClick={() => openEdit(exam)}
                       >
@@ -375,6 +387,9 @@ export const PruebasAtrasadas: React.FC<PruebasAtrasadasProps> = ({
         isOpen={Boolean(selectedStudentId)}
         onClose={() => setSelectedStudentId(null)}
         exams={studentExams}
+        isLoading={isStudentExamsLoading}
+        student={selectedExam?.students ?? null}
+        onStatusChange={handleStatusChange}
       />
     </div>
   )

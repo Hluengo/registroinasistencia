@@ -1,6 +1,10 @@
 import React from 'react'
 import { supabase } from '../../services/supabaseClient'
-import { useQueryClient, useMutation, UseQueryResult } from '@tanstack/react-query'
+import {
+  useQueryClient,
+  useMutation,
+  UseQueryResult,
+} from '@tanstack/react-query'
 import { studentService } from '../../services/studentService'
 import { QUERY_KEYS_INVALIDATE } from '../../constants'
 import { useQ, queryKeys } from './utils'
@@ -72,7 +76,8 @@ export const useStudentDetails = (
       if (recRes.error) throw recRes.error
 
       return {
-        absences: absData as import('../../types/db').Database['public']['Tables']['absences']['Row'][],
+        absences:
+          absData as import('../../types/db').Database['public']['Tables']['absences']['Row'][],
         records:
           recData as import('../../types/db').Database['public']['Tables']['inspectorate_records']['Row'][],
       }

@@ -322,22 +322,27 @@ export const Inspectoria: React.FC<InspectoriaProps> = ({ level }) => {
 
   const courseOptions = getCourseOptions(courses)
 
-  const filteredRecords = React.useMemo(() => records.filter((rec: InspectorRow) => {
-    const studentCourseId =
-      rec.student?.course_id ??
-      (rec.student as unknown as { course?: { id?: string } })?.course?.id ??
-      ''
-    const matchesCourse =
-      filters.courseId === '' || studentCourseId === filters.courseId
-    const matchesSearch =
-      (rec.student?.full_name ?? '')
-        .toLowerCase()
-        .includes(filters.searchQuery.toLowerCase()) ||
-      (rec.observation ?? '')
-        .toLowerCase()
-        .includes(filters.searchQuery.toLowerCase())
-    return matchesCourse && matchesSearch
-  }), [records, filters.courseId, filters.searchQuery])
+  const filteredRecords = React.useMemo(
+    () =>
+      records.filter((rec: InspectorRow) => {
+        const studentCourseId =
+          rec.student?.course_id ??
+          (rec.student as unknown as { course?: { id?: string } })?.course
+            ?.id ??
+          ''
+        const matchesCourse =
+          filters.courseId === '' || studentCourseId === filters.courseId
+        const matchesSearch =
+          (rec.student?.full_name ?? '')
+            .toLowerCase()
+            .includes(filters.searchQuery.toLowerCase()) ||
+          (rec.observation ?? '')
+            .toLowerCase()
+            .includes(filters.searchQuery.toLowerCase())
+        return matchesCourse && matchesSearch
+      }),
+    [records, filters.courseId, filters.searchQuery]
+  )
 
   const createRecord = useCreateInspectorateRecord()
 

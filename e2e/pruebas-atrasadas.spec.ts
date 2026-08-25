@@ -21,6 +21,20 @@ test.describe('Pruebas atrasadas', () => {
     ).toBeVisible()
   })
 
+  test('abre el detalle del estudiante desde la tabla', async ({ page }) => {
+    await page.getByRole('button', { name: 'Tabla' }).click()
+    const row = page.locator('tbody tr').first()
+    if ((await row.count()) === 0) return
+
+    const studentName = await row.locator('td').first().innerText()
+    await row.getByRole('button', { name: studentName, exact: true }).click()
+
+    const modal = page.getByTestId('modal-makeup-student-detail-dialog')
+    await expect(modal).toBeVisible()
+    await expect(modal.getByText(studentName, { exact: true })).toBeVisible()
+    await expect(modal.getByRole('combobox').first()).toBeVisible()
+  })
+
   test('abre el formulario de recuperación cuando hay estudiantes', async ({
     page,
   }) => {

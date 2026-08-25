@@ -1,10 +1,4 @@
-import {
-  Absence,
-  AbsenceWithDetails,
-  Student,
-  Course,
-  Test,
-} from '../types'
+import { Absence, AbsenceWithDetails, Student, Course, Test } from '../types'
 import { Json, Database } from '../types/db'
 import { parseDateOnly, toDateOnlyString } from '../utils/date'
 
