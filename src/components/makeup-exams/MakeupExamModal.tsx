@@ -49,14 +49,14 @@ type FormState = {
   manualEntries: Array<{
     id: string
     subject: string
-    originalDate: string
+    scheduledDate: string
   }>
 }
 
 const emptyManualEntry = () => ({
   id: crypto.randomUUID(),
   subject: '',
-  originalDate: '',
+  scheduledDate: toDateOnlyString(new Date()),
 })
 
 const emptyForm = (initial?: MakeupExamPrefill): FormState => ({
@@ -124,7 +124,7 @@ export const MakeupExamModal: React.FC<MakeupExamModalProps> = ({
               {
                 id: editingExam.id,
                 subject: editingExam.subject,
-                originalDate: editingExam.original_date ?? '',
+                scheduledDate: editingExam.scheduled_date,
               },
             ],
       })
@@ -160,7 +160,7 @@ export const MakeupExamModal: React.FC<MakeupExamModalProps> = ({
 
   const updateManualEntry = (
     index: number,
-    field: 'subject' | 'originalDate',
+    field: 'subject' | 'scheduledDate',
     value: string
   ) => {
     setForm((current) => ({
@@ -189,29 +189,37 @@ export const MakeupExamModal: React.FC<MakeupExamModalProps> = ({
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault()
-    if (!form.courseId || !form.studentId || !form.scheduledDate) {
+    if (!form.courseId || !form.studentId) {
       showToast({
         type: TOAST_TYPES.WARNING,
-        message: 'Completa curso, estudiante y fecha de recuperación.',
+        message: 'Completa curso y estudiante.',
       })
       return
     }
     const manualEntries = form.manualEntries.map((entry) => ({
       subject: entry.subject.trim(),
-      originalDate: entry.originalDate,
+      scheduledDate: entry.scheduledDate,
     }))
     const hasManualEntry = manualEntries.some(
-      (entry) => entry.subject && entry.originalDate
+      (entry) => entry.subject && entry.scheduledDate
     )
     const hasPartialManualEntry = manualEntries.some(
       (entry) =>
-        Boolean(entry.subject || entry.originalDate) &&
-        !(entry.subject && entry.originalDate)
+        Boolean(entry.subject || entry.scheduledDate) &&
+        !(entry.subject && entry.scheduledDate)
     )
     if (hasPartialManualEntry) {
       showToast({
         type: TOAST_TYPES.WARNING,
-        message: 'Completa asignatura y fecha original.',
+        message: 'Completa asignatura y fecha de evaluación.',
+      })
+      return
+    }
+    if (selectedTests.length > 0 && !form.scheduledDate) {
+      showToast({
+        type: TOAST_TYPES.WARNING,
+        message:
+          'Completa la fecha de recuperación de las pruebas registradas.',
       })
       return
     }
@@ -225,7 +233,7 @@ export const MakeupExamModal: React.FC<MakeupExamModalProps> = ({
     if (editingExam && !editingExam.test_id && !hasManualEntry) {
       showToast({
         type: TOAST_TYPES.WARNING,
-        message: 'Completa asignatura y fecha original.',
+        message: 'Completa asignatura y fecha de evaluación.',
       })
       return
     }
@@ -244,13 +252,15 @@ export const MakeupExamModal: React.FC<MakeupExamModalProps> = ({
         await updateMutation.mutateAsync({
           id: editingExam.id,
           input: {
-            scheduled_date: form.scheduledDate,
+            scheduled_date: editingExam.test_id
+              ? form.scheduledDate
+              : (manualEntries[0]?.scheduledDate ?? form.scheduledDate),
             status: form.status,
             ...(editingExam.test_id
               ? {}
               : {
                   subject: manualEntries[0]?.subject ?? '',
-                  original_date: manualEntries[0]?.originalDate ?? '',
+                  original_date: null,
                 }),
           },
         })
@@ -392,19 +402,19 @@ export const MakeupExamModal: React.FC<MakeupExamModalProps> = ({
                     />
                   </label>
                   <label className="space-y-1 text-sm font-semibold text-slate-700">
-                    Fecha original
+                    Fecha de evaluación
                     <input
                       data-testid={
                         index === 0
-                          ? 'makeup-exam-manual-original-date'
-                          : `makeup-exam-manual-original-date-${index}`
+                          ? 'makeup-exam-manual-scheduled-date'
+                          : `makeup-exam-manual-scheduled-date-${index}`
                       }
                       type="date"
-                      value={entry.originalDate}
+                      value={entry.scheduledDate}
                       onChange={(event) =>
                         updateManualEntry(
                           index,
-                          'originalDate',
+                          'scheduledDate',
                           event.target.value
                         )
                       }
@@ -512,22 +522,26 @@ export const MakeupExamModal: React.FC<MakeupExamModalProps> = ({
           )}
         </fieldset>
 
-        <div className="grid gap-4 md:grid-cols-2">
-          <label className="space-y-1 text-sm font-semibold text-slate-700">
-            Fecha de recuperación
-            <input
-              type="date"
-              value={form.scheduledDate}
-              onChange={(event) =>
-                setForm((current) => ({
-                  ...current,
-                  scheduledDate: event.target.value,
-                }))
-              }
-              className="w-full rounded-xl border border-slate-200 px-3 py-2.5 font-normal"
-              required
-            />
-          </label>
+        <div
+          className={`grid gap-4 ${selectedTests.length > 0 ? 'md:grid-cols-2' : ''}`}
+        >
+          {selectedTests.length > 0 && (
+            <label className="space-y-1 text-sm font-semibold text-slate-700">
+              Fecha de recuperación
+              <input
+                type="date"
+                value={form.scheduledDate}
+                onChange={(event) =>
+                  setForm((current) => ({
+                    ...current,
+                    scheduledDate: event.target.value,
+                  }))
+                }
+                className="w-full rounded-xl border border-slate-200 px-3 py-2.5 font-normal"
+                required
+              />
+            </label>
+          )}
           <Select
             label="Estado"
             value={form.status}

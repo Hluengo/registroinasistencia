@@ -43,14 +43,15 @@ describe('buildMakeupExamInputs', () => {
       scheduledDate: '2026-08-25',
       status: 'pendiente',
       testIds: [],
-      manualEntries: [{ subject: 'Biología', originalDate: '2026-08-19' }],
+      manualEntries: [{ subject: 'Biología', scheduledDate: '2026-08-28' }],
     })
 
     expect(result).toEqual([
       expect.objectContaining({
         student_id: 'student-1',
         test_id: null,
-        original_date: '2026-08-19',
+        original_date: null,
+        scheduled_date: '2026-08-28',
         subject: 'Biología',
       }),
     ])
@@ -63,8 +64,8 @@ describe('buildMakeupExamInputs', () => {
       status: 'pendiente',
       testIds: ['test-1'],
       manualEntries: [
-        { subject: 'Biología', originalDate: '2026-08-19' },
-        { subject: 'Física', originalDate: '2026-08-18' },
+        { subject: 'Biología', scheduledDate: '2026-08-28' },
+        { subject: 'Física', scheduledDate: '2026-08-29' },
       ],
     })
 
@@ -72,6 +73,10 @@ describe('buildMakeupExamInputs', () => {
     expect(result.slice(1).map((item) => item.subject)).toEqual([
       'Biología',
       'Física',
+    ])
+    expect(result.slice(1).map((item) => item.scheduled_date)).toEqual([
+      '2026-08-28',
+      '2026-08-29',
     ])
   })
 })

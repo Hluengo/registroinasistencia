@@ -8,7 +8,7 @@ export type MakeupExamSelection = {
   testIds: string[]
   manualEntries?: Array<{
     subject: string
-    originalDate: string
+    scheduledDate: string
   }>
   sourceAbsenceId?: string | null
 }
@@ -42,8 +42,8 @@ export const buildMakeupExamInputs = (
       student_id: selection.studentId,
       test_id: null,
       source_absence_id: selection.sourceAbsenceId ?? null,
-      original_date: manualEntry.originalDate || null,
-      scheduled_date: selection.scheduledDate,
+      original_date: null,
+      scheduled_date: manualEntry.scheduledDate,
       subject,
       status: selection.status,
     })

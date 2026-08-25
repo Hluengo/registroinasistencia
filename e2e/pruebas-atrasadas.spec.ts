@@ -56,12 +56,12 @@ test.describe('Pruebas atrasadas', () => {
       ).toBeVisible()
       await page.getByTestId('makeup-exam-manual-subject').fill('Biología')
       await page
-        .getByTestId('makeup-exam-manual-original-date')
-        .fill('2026-08-19')
+        .getByTestId('makeup-exam-manual-scheduled-date')
+        .fill('2026-08-28')
       await page.getByTestId('makeup-exam-manual-subject-1').fill('Física')
       await page
-        .getByTestId('makeup-exam-manual-original-date-1')
-        .fill('2026-08-18')
+        .getByTestId('makeup-exam-manual-scheduled-date-1')
+        .fill('2026-08-29')
       if (testCount > 0) {
         await expect(
           page.getByTestId('makeup-exam-selected-tests')
