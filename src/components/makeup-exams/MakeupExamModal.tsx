@@ -46,9 +46,18 @@ type FormState = {
   status: MakeupExamStatus
   testIds: string[]
   entryMode: 'catalog' | 'manual'
-  manualSubject: string
-  manualOriginalDate: string
+  manualEntries: Array<{
+    id: string
+    subject: string
+    originalDate: string
+  }>
 }
+
+const emptyManualEntry = () => ({
+  id: crypto.randomUUID(),
+  subject: '',
+  originalDate: '',
+})
 
 const emptyForm = (initial?: MakeupExamPrefill): FormState => ({
   courseId: initial?.courseId ?? '',
@@ -57,8 +66,7 @@ const emptyForm = (initial?: MakeupExamPrefill): FormState => ({
   status: 'pendiente',
   testIds: initial?.testId ? [initial.testId] : [],
   entryMode: 'catalog',
-  manualSubject: '',
-  manualOriginalDate: '',
+  manualEntries: [emptyManualEntry()],
 })
 
 export const MakeupExamModal: React.FC<MakeupExamModalProps> = ({
@@ -110,10 +118,15 @@ export const MakeupExamModal: React.FC<MakeupExamModalProps> = ({
         status: editingExam.status as MakeupExamStatus,
         testIds: editingExam.test_id ? [editingExam.test_id] : [],
         entryMode: editingExam.test_id ? 'catalog' : 'manual',
-        manualSubject: editingExam.test_id ? '' : editingExam.subject,
-        manualOriginalDate: editingExam.test_id
-          ? ''
-          : (editingExam.original_date ?? ''),
+        manualEntries: editingExam.test_id
+          ? []
+          : [
+              {
+                id: editingExam.id,
+                subject: editingExam.subject,
+                originalDate: editingExam.original_date ?? '',
+              },
+            ],
       })
     } else {
       setForm(emptyForm(initialValues))
@@ -145,6 +158,35 @@ export const MakeupExamModal: React.FC<MakeupExamModalProps> = ({
     }))
   }
 
+  const updateManualEntry = (
+    index: number,
+    field: 'subject' | 'originalDate',
+    value: string
+  ) => {
+    setForm((current) => ({
+      ...current,
+      manualEntries: current.manualEntries.map((entry, entryIndex) =>
+        entryIndex === index ? { ...entry, [field]: value } : entry
+      ),
+    }))
+  }
+
+  const addManualEntry = () => {
+    setForm((current) => ({
+      ...current,
+      manualEntries: [...current.manualEntries, emptyManualEntry()],
+    }))
+  }
+
+  const removeManualEntry = (index: number) => {
+    setForm((current) => ({
+      ...current,
+      manualEntries: current.manualEntries.filter(
+        (_, entryIndex) => entryIndex !== index
+      ),
+    }))
+  }
+
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault()
     if (!form.courseId || !form.studentId || !form.scheduledDate) {
@@ -154,12 +196,19 @@ export const MakeupExamModal: React.FC<MakeupExamModalProps> = ({
       })
       return
     }
-    const manualSubject = form.manualSubject.trim()
-    const hasManualEntry = Boolean(manualSubject && form.manualOriginalDate)
-    const hasPartialManualEntry = Boolean(
-      manualSubject || form.manualOriginalDate
+    const manualEntries = form.manualEntries.map((entry) => ({
+      subject: entry.subject.trim(),
+      originalDate: entry.originalDate,
+    }))
+    const hasManualEntry = manualEntries.some(
+      (entry) => entry.subject && entry.originalDate
     )
-    if (hasPartialManualEntry && !hasManualEntry) {
+    const hasPartialManualEntry = manualEntries.some(
+      (entry) =>
+        Boolean(entry.subject || entry.originalDate) &&
+        !(entry.subject && entry.originalDate)
+    )
+    if (hasPartialManualEntry) {
       showToast({
         type: TOAST_TYPES.WARNING,
         message: 'Completa asignatura y fecha original.',
@@ -186,12 +235,7 @@ export const MakeupExamModal: React.FC<MakeupExamModalProps> = ({
       scheduledDate: form.scheduledDate,
       status: form.status,
       testIds: form.testIds,
-      manualEntries: [
-        {
-          subject: form.manualSubject,
-          originalDate: form.manualOriginalDate,
-        },
-      ],
+      manualEntries,
       sourceAbsenceId: initialValues?.sourceAbsenceId,
     })
 
@@ -205,8 +249,8 @@ export const MakeupExamModal: React.FC<MakeupExamModalProps> = ({
             ...(editingExam.test_id
               ? {}
               : {
-                  subject: manualSubject,
-                  original_date: form.manualOriginalDate,
+                  subject: manualEntries[0]?.subject ?? '',
+                  original_date: manualEntries[0]?.originalDate ?? '',
                 }),
           },
         })
@@ -308,39 +352,78 @@ export const MakeupExamModal: React.FC<MakeupExamModalProps> = ({
             Pruebas a recuperar
           </legend>
           {form.entryMode === 'manual' ? (
-            <div className="grid gap-4 rounded-xl border border-indigo-100 bg-indigo-50/40 p-4 md:grid-cols-2">
-              <label className="space-y-1 text-sm font-semibold text-slate-700">
-                Asignatura
-                <input
-                  data-testid="makeup-exam-manual-subject"
-                  value={form.manualSubject}
-                  onChange={(event) =>
-                    setForm((current) => ({
-                      ...current,
-                      manualSubject: event.target.value,
-                    }))
-                  }
-                  placeholder="Ej. Matemática"
-                  className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 font-normal"
-                  required
-                />
-              </label>
-              <label className="space-y-1 text-sm font-semibold text-slate-700">
-                Fecha original
-                <input
-                  data-testid="makeup-exam-manual-original-date"
-                  type="date"
-                  value={form.manualOriginalDate}
-                  onChange={(event) =>
-                    setForm((current) => ({
-                      ...current,
-                      manualOriginalDate: event.target.value,
-                    }))
-                  }
-                  className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 font-normal"
-                  required
-                />
-              </label>
+            <div className="space-y-3 rounded-xl border border-indigo-100 bg-indigo-50/40 p-4">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <p className="text-sm font-semibold text-slate-700">
+                  Agrega una o más pruebas manuales
+                </p>
+                {!editingExam && (
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="ghost"
+                    onClick={addManualEntry}
+                    data-testid="makeup-exam-manual-add"
+                  >
+                    + Agregar otra prueba
+                  </Button>
+                )}
+              </div>
+              {form.manualEntries.map((entry, index) => (
+                <div
+                  key={entry.id}
+                  className="grid gap-4 rounded-lg border border-indigo-100 bg-white p-3 md:grid-cols-[1fr_1fr_auto] md:items-end"
+                >
+                  <label className="space-y-1 text-sm font-semibold text-slate-700">
+                    Asignatura
+                    <input
+                      data-testid={
+                        index === 0
+                          ? 'makeup-exam-manual-subject'
+                          : `makeup-exam-manual-subject-${index}`
+                      }
+                      value={entry.subject}
+                      onChange={(event) =>
+                        updateManualEntry(index, 'subject', event.target.value)
+                      }
+                      placeholder="Ej. Matemática"
+                      className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 font-normal"
+                      required
+                    />
+                  </label>
+                  <label className="space-y-1 text-sm font-semibold text-slate-700">
+                    Fecha original
+                    <input
+                      data-testid={
+                        index === 0
+                          ? 'makeup-exam-manual-original-date'
+                          : `makeup-exam-manual-original-date-${index}`
+                      }
+                      type="date"
+                      value={entry.originalDate}
+                      onChange={(event) =>
+                        updateManualEntry(
+                          index,
+                          'originalDate',
+                          event.target.value
+                        )
+                      }
+                      className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 font-normal"
+                      required
+                    />
+                  </label>
+                  {!editingExam && form.manualEntries.length > 1 && (
+                    <button
+                      type="button"
+                      onClick={() => removeManualEntry(index)}
+                      className="rounded-lg px-2 py-2 text-xs font-semibold text-rose-600 hover:bg-rose-50"
+                      aria-label={`Quitar prueba manual ${index + 1}`}
+                    >
+                      Quitar
+                    </button>
+                  )}
+                </div>
+              ))}
             </div>
           ) : !form.courseId ? (
             <p className="rounded-xl border border-dashed border-slate-200 p-4 text-sm text-slate-500">

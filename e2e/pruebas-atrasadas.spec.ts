@@ -50,6 +50,18 @@ test.describe('Pruebas atrasadas', () => {
       }
       await page.getByRole('button', { name: 'Agregar manualmente' }).click()
       await expect(page.getByTestId('makeup-exam-manual-subject')).toBeVisible()
+      await page.getByTestId('makeup-exam-manual-add').click()
+      await expect(
+        page.getByTestId('makeup-exam-manual-subject-1')
+      ).toBeVisible()
+      await page.getByTestId('makeup-exam-manual-subject').fill('Biología')
+      await page
+        .getByTestId('makeup-exam-manual-original-date')
+        .fill('2026-08-19')
+      await page.getByTestId('makeup-exam-manual-subject-1').fill('Física')
+      await page
+        .getByTestId('makeup-exam-manual-original-date-1')
+        .fill('2026-08-18')
       if (testCount > 0) {
         await expect(
           page.getByTestId('makeup-exam-selected-tests')
