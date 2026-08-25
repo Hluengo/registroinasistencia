@@ -24,6 +24,7 @@ describe('buildMakeupExamInputs', () => {
       scheduledDate: '2026-08-25',
       status: 'pendiente',
       testIds: ['test-1', 'test-2'],
+      testNotes: { 'test-1': 'Coordinar con UTP' },
       sourceAbsenceId: 'absence-1',
     })
 
@@ -34,6 +35,7 @@ describe('buildMakeupExamInputs', () => {
       source_absence_id: 'absence-1',
       original_date: '2026-08-20',
       subject: 'Matemática',
+      notes: 'Coordinar con UTP',
     })
   })
 
@@ -43,7 +45,13 @@ describe('buildMakeupExamInputs', () => {
       scheduledDate: '2026-08-25',
       status: 'pendiente',
       testIds: [],
-      manualEntries: [{ subject: 'Biología', scheduledDate: '2026-08-28' }],
+      manualEntries: [
+        {
+          subject: 'Biología',
+          scheduledDate: '2026-08-28',
+          notes: 'Avisar al apoderado',
+        },
+      ],
     })
 
     expect(result).toEqual([
@@ -53,6 +61,7 @@ describe('buildMakeupExamInputs', () => {
         original_date: null,
         scheduled_date: '2026-08-28',
         subject: 'Biología',
+        notes: 'Avisar al apoderado',
       }),
     ])
   })
@@ -64,8 +73,8 @@ describe('buildMakeupExamInputs', () => {
       status: 'pendiente',
       testIds: ['test-1'],
       manualEntries: [
-        { subject: 'Biología', scheduledDate: '2026-08-28' },
-        { subject: 'Física', scheduledDate: '2026-08-29' },
+        { subject: 'Biología', scheduledDate: '2026-08-28', notes: '' },
+        { subject: 'Física', scheduledDate: '2026-08-29', notes: '' },
       ],
     })
 

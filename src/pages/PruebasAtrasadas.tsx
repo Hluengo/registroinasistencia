@@ -354,6 +354,11 @@ export const PruebasAtrasadas: React.FC<PruebasAtrasadasProps> = ({
                                     'dd-MM-yyyy'
                                   )}
                                 </p>
+                                {exam.notes && (
+                                  <p className="mt-1 text-xs italic text-slate-500">
+                                    Observación: {exam.notes}
+                                  </p>
+                                )}
                               </div>
                               <div className="flex items-center gap-2">
                                 <select

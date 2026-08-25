@@ -9,7 +9,9 @@ export type MakeupExamSelection = {
   manualEntries?: Array<{
     subject: string
     scheduledDate: string
+    notes: string
   }>
+  testNotes?: Record<string, string>
   sourceAbsenceId?: string | null
 }
 
@@ -32,6 +34,7 @@ export const buildMakeupExamInputs = (
       scheduled_date: selection.scheduledDate,
       subject: test.subject,
       status: selection.status,
+      notes: selection.testNotes?.[test.id]?.trim() || null,
     })
   }
 
@@ -46,6 +49,7 @@ export const buildMakeupExamInputs = (
       scheduled_date: manualEntry.scheduledDate,
       subject,
       status: selection.status,
+      notes: manualEntry.notes.trim() || null,
     })
   }
 

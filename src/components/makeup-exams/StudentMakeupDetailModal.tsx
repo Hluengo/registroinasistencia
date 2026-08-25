@@ -1,5 +1,6 @@
 import React from 'react'
 import { Printer } from 'lucide-react'
+import { format, parseISO } from 'date-fns'
 import type {
   MakeupExamStatus,
   MakeupExamWithDetails,
@@ -109,8 +110,8 @@ export const StudentMakeupDetailModal: React.FC<
                 <tr>
                   <th className="px-4 py-3">Asignatura</th>
                   <th className="px-4 py-3">Fecha de evaluación</th>
+                  <th className="px-4 py-3">Observación</th>
                   <th className="px-4 py-3">Estado</th>
-                  <th className="px-4 py-3">Sala</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
@@ -139,8 +140,11 @@ export const StudentMakeupDetailModal: React.FC<
                         {exam.subject}
                       </td>
                       <td className="px-4 py-3 text-slate-600">
-                        {exam.scheduled_date}
+                        {format(parseISO(exam.scheduled_date), 'dd-MM-yyyy')}
                         {exam.scheduled_time ? ` · ${exam.scheduled_time}` : ''}
+                      </td>
+                      <td className="px-4 py-3 text-slate-600">
+                        {exam.notes ?? '-'}
                       </td>
                       <td className="px-4 py-3">
                         <select
@@ -160,9 +164,6 @@ export const StudentMakeupDetailModal: React.FC<
                             </option>
                           ))}
                         </select>
-                      </td>
-                      <td className="px-4 py-3 text-slate-600">
-                        {exam.room ?? '-'}
                       </td>
                     </tr>
                   ))

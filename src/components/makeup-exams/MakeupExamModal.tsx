@@ -50,13 +50,16 @@ type FormState = {
     id: string
     subject: string
     scheduledDate: string
+    notes: string
   }>
+  testNotes: Record<string, string>
 }
 
 const emptyManualEntry = () => ({
   id: crypto.randomUUID(),
   subject: '',
   scheduledDate: toDateOnlyString(new Date()),
+  notes: '',
 })
 
 const emptyForm = (initial?: MakeupExamPrefill): FormState => ({
@@ -67,6 +70,7 @@ const emptyForm = (initial?: MakeupExamPrefill): FormState => ({
   testIds: initial?.testId ? [initial.testId] : [],
   entryMode: 'catalog',
   manualEntries: [emptyManualEntry()],
+  testNotes: {},
 })
 
 export const MakeupExamModal: React.FC<MakeupExamModalProps> = ({
@@ -117,6 +121,9 @@ export const MakeupExamModal: React.FC<MakeupExamModalProps> = ({
         scheduledDate: editingExam.scheduled_date,
         status: editingExam.status as MakeupExamStatus,
         testIds: editingExam.test_id ? [editingExam.test_id] : [],
+        testNotes: editingExam.test_id
+          ? { [editingExam.test_id]: editingExam.notes ?? '' }
+          : {},
         entryMode: editingExam.test_id ? 'catalog' : 'manual',
         manualEntries: editingExam.test_id
           ? []
@@ -125,6 +132,7 @@ export const MakeupExamModal: React.FC<MakeupExamModalProps> = ({
                 id: editingExam.id,
                 subject: editingExam.subject,
                 scheduledDate: editingExam.scheduled_date,
+                notes: editingExam.notes ?? '',
               },
             ],
       })
@@ -139,6 +147,7 @@ export const MakeupExamModal: React.FC<MakeupExamModalProps> = ({
       courseId,
       studentId: '',
       testIds: [],
+      testNotes: {},
     }))
   }
 
@@ -158,9 +167,16 @@ export const MakeupExamModal: React.FC<MakeupExamModalProps> = ({
     }))
   }
 
+  const updateTestNote = (testId: string, notes: string) => {
+    setForm((current) => ({
+      ...current,
+      testNotes: { ...current.testNotes, [testId]: notes },
+    }))
+  }
+
   const updateManualEntry = (
     index: number,
-    field: 'subject' | 'scheduledDate',
+    field: 'subject' | 'scheduledDate' | 'notes',
     value: string
   ) => {
     setForm((current) => ({
@@ -199,6 +215,7 @@ export const MakeupExamModal: React.FC<MakeupExamModalProps> = ({
     const manualEntries = form.manualEntries.map((entry) => ({
       subject: entry.subject.trim(),
       scheduledDate: entry.scheduledDate,
+      notes: entry.notes,
     }))
     const hasManualEntry = manualEntries.some(
       (entry) => entry.subject && entry.scheduledDate
@@ -244,6 +261,7 @@ export const MakeupExamModal: React.FC<MakeupExamModalProps> = ({
       status: form.status,
       testIds: form.testIds,
       manualEntries,
+      testNotes: form.testNotes,
       sourceAbsenceId: initialValues?.sourceAbsenceId,
     })
 
@@ -256,6 +274,9 @@ export const MakeupExamModal: React.FC<MakeupExamModalProps> = ({
               ? form.scheduledDate
               : (manualEntries[0]?.scheduledDate ?? form.scheduledDate),
             status: form.status,
+            notes: editingExam.test_id
+              ? form.testNotes[editingExam.test_id] || null
+              : manualEntries[0]?.notes.trim() || null,
             ...(editingExam.test_id
               ? {}
               : {
@@ -382,7 +403,7 @@ export const MakeupExamModal: React.FC<MakeupExamModalProps> = ({
               {form.manualEntries.map((entry, index) => (
                 <div
                   key={entry.id}
-                  className="grid gap-4 rounded-lg border border-indigo-100 bg-white p-3 md:grid-cols-[1fr_1fr_auto] md:items-end"
+                  className="grid gap-4 rounded-lg border border-indigo-100 bg-white p-3 md:grid-cols-[1fr_1fr_1.4fr_auto] md:items-end"
                 >
                   <label className="space-y-1 text-sm font-semibold text-slate-700">
                     Asignatura
@@ -420,6 +441,23 @@ export const MakeupExamModal: React.FC<MakeupExamModalProps> = ({
                       }
                       className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 font-normal"
                       required
+                    />
+                  </label>
+                  <label className="space-y-1 text-sm font-semibold text-slate-700">
+                    Observación
+                    <textarea
+                      data-testid={
+                        index === 0
+                          ? 'makeup-exam-manual-notes'
+                          : `makeup-exam-manual-notes-${index}`
+                      }
+                      value={entry.notes}
+                      onChange={(event) =>
+                        updateManualEntry(index, 'notes', event.target.value)
+                      }
+                      placeholder="Ej. Coordinar con UTP"
+                      rows={1}
+                      className="w-full resize-none rounded-xl border border-slate-200 bg-white px-3 py-2.5 font-normal"
                     />
                   </label>
                   {!editingExam && form.manualEntries.length > 1 && (
@@ -496,16 +534,29 @@ export const MakeupExamModal: React.FC<MakeupExamModalProps> = ({
               {selectedTests.map((test) => (
                 <div
                   key={test.id}
-                  className="flex items-center justify-between gap-3 rounded-lg bg-white px-3 py-2 text-sm"
+                  className="grid gap-3 rounded-lg bg-white px-3 py-2 text-sm md:grid-cols-[1fr_1.4fr_auto] md:items-center"
                 >
-                  <span>
-                    <span className="block font-semibold text-slate-800">
+                  <div>
+                    <p className="font-semibold text-slate-800">
                       {test.subject}
-                    </span>
-                    <span className="block text-xs text-slate-500">
+                    </p>
+                    <p className="text-xs text-slate-500">
                       {test.type} · {test.date}
-                    </span>
-                  </span>
+                    </p>
+                  </div>
+                  <label className="space-y-1 text-xs font-semibold text-slate-600">
+                    Observación
+                    <textarea
+                      aria-label={`Observación de ${test.subject}`}
+                      value={form.testNotes[test.id] ?? ''}
+                      onChange={(event) =>
+                        updateTestNote(test.id, event.target.value)
+                      }
+                      placeholder="Agregar observación"
+                      rows={1}
+                      className="w-full resize-none rounded-lg border border-slate-200 px-2 py-1.5 font-normal"
+                    />
+                  </label>
                   {!editingExam && (
                     <button
                       type="button"

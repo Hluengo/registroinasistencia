@@ -72,10 +72,16 @@ test.describe('Pruebas atrasadas', () => {
       await page
         .getByTestId('makeup-exam-manual-scheduled-date')
         .fill('2026-08-28')
+      await page
+        .getByTestId('makeup-exam-manual-notes')
+        .fill('Coordinar con UTP')
       await page.getByTestId('makeup-exam-manual-subject-1').fill('Física')
       await page
         .getByTestId('makeup-exam-manual-scheduled-date-1')
         .fill('2026-08-29')
+      await page
+        .getByTestId('makeup-exam-manual-notes-1')
+        .fill('Avisar al apoderado')
       if (testCount > 0) {
         await expect(
           page.getByTestId('makeup-exam-selected-tests')
