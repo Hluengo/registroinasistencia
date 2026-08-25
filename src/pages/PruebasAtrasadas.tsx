@@ -110,6 +110,22 @@ export const PruebasAtrasadas: React.FC<PruebasAtrasadasProps> = ({
     })
     return Array.from(groups.entries()).sort(([a], [b]) => a.localeCompare(b))
   }, [filteredExams])
+  const groupedStudents = React.useMemo(() => {
+    const groups = new Map<string, MakeupExamWithDetails[]>()
+    filteredExams.forEach((exam) => {
+      const group = groups.get(exam.student_id) ?? []
+      group.push(exam)
+      groups.set(exam.student_id, group)
+    })
+    return Array.from(groups, ([studentId, studentExams]) => ({
+      studentId,
+      exams: studentExams,
+    })).sort((a, b) =>
+      (a.exams[0]?.students?.full_name ?? '').localeCompare(
+        b.exams[0]?.students?.full_name ?? ''
+      )
+    )
+  }, [filteredExams])
 
   const openCreate = () => {
     setEditingExam(null)
@@ -189,7 +205,7 @@ export const PruebasAtrasadas: React.FC<PruebasAtrasadasProps> = ({
 
       <div className="card space-y-4 p-5">
         <div className="flex flex-col gap-3 xl:flex-row xl:items-center">
-          <label className="relative flex-1">
+          <label className="relative min-w-0 flex-1 basis-0 xl:min-w-[360px]">
             <span className="sr-only">Buscar estudiante o asignatura</span>
             <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
             <input
@@ -300,74 +316,93 @@ export const PruebasAtrasadas: React.FC<PruebasAtrasadasProps> = ({
       ) : (
         <div className="card overflow-hidden">
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[900px] text-left text-sm">
+            <table className="w-full min-w-[760px] text-left text-sm">
               <thead className="bg-slate-50 text-xs uppercase tracking-wider text-slate-500">
                 <tr>
                   <th className="px-5 py-4">Estudiante</th>
                   <th className="px-5 py-4">Curso</th>
-                  <th className="px-5 py-4">Asignatura</th>
-                  <th className="px-5 py-4">Fecha</th>
-                  <th className="px-5 py-4">Estado</th>
+                  <th className="px-5 py-4">Pruebas a recuperar</th>
                   <th className="px-5 py-4 text-right">Acciones</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
-                {filteredExams.map((exam) => (
-                  <tr key={exam.id} className="hover:bg-slate-50/70">
-                    <td className="px-5 py-4 font-semibold text-slate-800">
-                      <button
-                        type="button"
-                        className="text-left font-semibold text-indigo-700 hover:underline"
-                        onClick={() => setSelectedStudentId(exam.student_id)}
-                      >
-                        {exam.students?.full_name}
-                      </button>
-                    </td>
-                    <td className="px-5 py-4 text-slate-600">
-                      {exam.students?.courses?.name ?? '-'}
-                    </td>
-                    <td className="px-5 py-4 text-slate-600">{exam.subject}</td>
-                    <td className="px-5 py-4 text-slate-600">
-                      {exam.scheduled_date}
-                    </td>
-                    <td className="px-5 py-4">
-                      <select
-                        aria-label={`Estado de ${exam.subject}`}
-                        value={exam.status}
-                        onChange={(event) =>
-                          handleStatusChange(
-                            exam,
-                            event.target.value as MakeupExamStatus
-                          )
-                        }
-                        className="rounded-lg border border-slate-200 bg-white px-2 py-1 text-xs"
-                      >
-                        {MAKEUP_EXAM_STATUS_OPTIONS.map((value) => (
-                          <option key={value} value={value}>
-                            {MAKEUP_EXAM_STATUS_LABELS[value]}
-                          </option>
-                        ))}
-                      </select>
-                    </td>
-                    <td className="px-5 py-4 text-right">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => setSelectedStudentId(exam.student_id)}
-                      >
-                        Ver pruebas
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        icon={Pencil}
-                        onClick={() => openEdit(exam)}
-                      >
-                        Editar
-                      </Button>
-                    </td>
-                  </tr>
-                ))}
+                {groupedStudents.map((group) => {
+                  const student = group.exams[0]?.students
+                  return (
+                    <tr key={group.studentId} className="hover:bg-slate-50/70">
+                      <td className="px-5 py-4 align-top">
+                        <button
+                          type="button"
+                          className="text-left font-semibold text-indigo-700 hover:underline"
+                          onClick={() => setSelectedStudentId(group.studentId)}
+                        >
+                          {student?.full_name ?? 'Estudiante sin nombre'}
+                        </button>
+                      </td>
+                      <td className="px-5 py-4 align-top text-slate-600">
+                        {student?.courses?.name ?? '-'}
+                      </td>
+                      <td className="px-5 py-4">
+                        <div className="space-y-2">
+                          {group.exams.map((exam) => (
+                            <div
+                              key={exam.id}
+                              className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-slate-100 bg-slate-50/70 px-3 py-2"
+                            >
+                              <div>
+                                <p className="font-semibold text-slate-800">
+                                  {exam.subject}
+                                </p>
+                                <p className="text-xs text-slate-500">
+                                  Evaluación:{' '}
+                                  {format(
+                                    parseISO(exam.scheduled_date),
+                                    'dd-MM-yyyy'
+                                  )}
+                                </p>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <select
+                                  aria-label={`Estado de ${exam.subject} para ${student?.full_name ?? 'estudiante'}`}
+                                  value={exam.status}
+                                  onChange={(event) =>
+                                    handleStatusChange(
+                                      exam,
+                                      event.target.value as MakeupExamStatus
+                                    )
+                                  }
+                                  className="rounded-lg border border-slate-200 bg-white px-2 py-1 text-xs"
+                                >
+                                  {MAKEUP_EXAM_STATUS_OPTIONS.map((value) => (
+                                    <option key={value} value={value}>
+                                      {MAKEUP_EXAM_STATUS_LABELS[value]}
+                                    </option>
+                                  ))}
+                                </select>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  icon={Pencil}
+                                  aria-label={`Editar ${exam.subject}`}
+                                  onClick={() => openEdit(exam)}
+                                />
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </td>
+                      <td className="px-5 py-4 align-top text-right">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setSelectedStudentId(group.studentId)}
+                        >
+                          Ver pruebas
+                        </Button>
+                      </td>
+                    </tr>
+                  )
+                })}
               </tbody>
             </table>
           </div>
