@@ -27,7 +27,7 @@ test.describe('Pruebas atrasadas', () => {
     if ((await row.count()) === 0) return
 
     const studentName = await row.locator('td').first().innerText()
-    await row.getByRole('button', { name: studentName, exact: true }).click()
+    await row.getByRole('button', { name: 'Ver pruebas' }).click()
 
     const modal = page.getByTestId('modal-makeup-student-detail-dialog')
     await expect(modal).toBeVisible()

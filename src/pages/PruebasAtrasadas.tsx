@@ -330,14 +330,8 @@ export const PruebasAtrasadas: React.FC<PruebasAtrasadasProps> = ({
                   const student = group.exams[0]?.students
                   return (
                     <tr key={group.studentId} className="hover:bg-slate-50/70">
-                      <td className="px-5 py-4 align-top">
-                        <button
-                          type="button"
-                          className="text-left font-semibold text-indigo-700 hover:underline"
-                          onClick={() => setSelectedStudentId(group.studentId)}
-                        >
-                          {student?.full_name ?? 'Estudiante sin nombre'}
-                        </button>
+                      <td className="px-5 py-4 align-top font-semibold text-slate-800">
+                        {student?.full_name ?? 'Estudiante sin nombre'}
                       </td>
                       <td className="px-5 py-4 align-top text-slate-600">
                         {student?.courses?.name ?? '-'}
@@ -384,6 +378,7 @@ export const PruebasAtrasadas: React.FC<PruebasAtrasadasProps> = ({
                                   size="icon"
                                   icon={Pencil}
                                   aria-label={`Editar ${exam.subject}`}
+                                  title={`Editar ${exam.subject}`}
                                   onClick={() => openEdit(exam)}
                                 />
                               </div>
