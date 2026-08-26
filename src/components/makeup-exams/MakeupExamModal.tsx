@@ -36,6 +36,7 @@ interface MakeupExamModalProps {
   courses: Course[]
   students: Student[]
   editingExam?: MakeupExamWithDetails | null
+  editingExams?: MakeupExamWithDetails[]
   initialValues?: MakeupExamPrefill
 }
 
@@ -82,12 +83,20 @@ export const MakeupExamModal: React.FC<MakeupExamModalProps> = ({
   courses,
   students,
   editingExam = null,
+  editingExams,
   initialValues,
 }) => {
   const [form, setForm] = React.useState<FormState>(() =>
     emptyForm(initialValues)
   )
   const { showToast } = useToast()
+  const examsBeingEdited = React.useMemo(
+    () =>
+      editingExams?.length ? editingExams : editingExam ? [editingExam] : [],
+    [editingExam, editingExams]
+  )
+  const isEditing = examsBeingEdited.length > 0
+  const isBulkEditing = examsBeingEdited.length > 1
   const createMutation = useCreateMakeupExams()
   const updateMutation = useUpdateMakeupExam()
   const { data: tests = [], isLoading: testsLoading } = useTests(
@@ -116,33 +125,38 @@ export const MakeupExamModal: React.FC<MakeupExamModalProps> = ({
 
   React.useEffect(() => {
     if (!isOpen) return
-    if (editingExam) {
+    if (isEditing) {
+      const firstExam = examsBeingEdited[0]
+      if (!firstExam) return
+      const allManual = examsBeingEdited.every((exam) => !exam.test_id)
       setForm({
-        courseId: editingExam.students?.course_id ?? '',
-        studentId: editingExam.student_id,
-        scheduledDate: editingExam.scheduled_date,
-        status: editingExam.status as MakeupExamStatus,
-        testIds: editingExam.test_id ? [editingExam.test_id] : [],
-        observation: editingExam.notes ?? '',
-        testNotes: editingExam.test_id
-          ? { [editingExam.test_id]: editingExam.notes ?? '' }
-          : {},
-        entryMode: editingExam.test_id ? 'catalog' : 'manual',
-        manualEntries: editingExam.test_id
-          ? []
-          : [
-              {
-                id: editingExam.id,
-                subject: editingExam.subject,
-                scheduledDate: editingExam.scheduled_date,
-                notes: editingExam.notes ?? '',
-              },
-            ],
+        courseId: firstExam.students?.course_id ?? '',
+        studentId: firstExam.student_id,
+        scheduledDate: firstExam.scheduled_date,
+        status: firstExam.status as MakeupExamStatus,
+        testIds: examsBeingEdited.flatMap((exam) =>
+          exam.test_id ? [exam.test_id] : []
+        ),
+        observation: '',
+        testNotes: Object.fromEntries(
+          examsBeingEdited.flatMap((exam) =>
+            exam.test_id ? [[exam.test_id, exam.notes ?? '']] : []
+          )
+        ),
+        entryMode: allManual ? 'manual' : 'catalog',
+        manualEntries: allManual
+          ? examsBeingEdited.map((exam) => ({
+              id: exam.id,
+              subject: exam.subject,
+              scheduledDate: exam.scheduled_date,
+              notes: exam.notes ?? '',
+            }))
+          : [],
       })
     } else {
       setForm(emptyForm(initialValues))
     }
-  }, [editingExam, initialValues, isOpen])
+  }, [examsBeingEdited, initialValues, isEditing, isOpen])
 
   const handleCourseChange = (courseId: string) => {
     setForm((current) => ({
@@ -159,7 +173,7 @@ export const MakeupExamModal: React.FC<MakeupExamModalProps> = ({
       const isSelected = current.testIds.includes(testId)
       return {
         ...current,
-        testIds: editingExam
+        testIds: isEditing
           ? isSelected
             ? []
             : [testId]
@@ -250,14 +264,18 @@ export const MakeupExamModal: React.FC<MakeupExamModalProps> = ({
       })
       return
     }
-    if (!editingExam && selectedTests.length === 0 && !hasManualEntry) {
+    if (!isEditing && selectedTests.length === 0 && !hasManualEntry) {
       showToast({
         type: TOAST_TYPES.WARNING,
         message: 'Selecciona una prueba o completa los datos manuales.',
       })
       return
     }
-    if (editingExam && !editingExam.test_id && !hasManualEntry) {
+    if (
+      isEditing &&
+      examsBeingEdited.some((exam) => !exam.test_id) &&
+      !hasManualEntry
+    ) {
       showToast({
         type: TOAST_TYPES.WARNING,
         message: 'Completa asignatura y fecha de evaluación.',
@@ -284,7 +302,23 @@ export const MakeupExamModal: React.FC<MakeupExamModalProps> = ({
     })
 
     try {
-      if (editingExam) {
+      if (isEditing && examsBeingEdited.every((exam) => !exam.test_id)) {
+        await Promise.all(
+          examsBeingEdited.map((exam, index) => {
+            const entry = manualEntries[index]
+            return updateMutation.mutateAsync({
+              id: exam.id,
+              input: {
+                scheduled_date: entry?.scheduledDate ?? exam.scheduled_date,
+                status: form.status,
+                notes: entry?.notes.trim() || null,
+                subject: entry?.subject ?? exam.subject,
+                original_date: null,
+              },
+            })
+          })
+        )
+      } else if (editingExam) {
         await updateMutation.mutateAsync({
           id: editingExam.id,
           input: {
@@ -316,8 +350,10 @@ export const MakeupExamModal: React.FC<MakeupExamModalProps> = ({
       onClose()
       showToast({
         type: TOAST_TYPES.SUCCESS,
-        message: editingExam
-          ? 'Prueba atrasada actualizada.'
+        message: isEditing
+          ? isBulkEditing
+            ? `${examsBeingEdited.length} recuperaciones actualizadas.`
+            : 'Prueba atrasada actualizada.'
           : `${inputs.length} recuperación${inputs.length === 1 ? '' : 'es'} registrada${inputs.length === 1 ? '' : 's'}.`,
       })
     } catch (error) {
@@ -336,7 +372,11 @@ export const MakeupExamModal: React.FC<MakeupExamModalProps> = ({
       isOpen={isOpen}
       onClose={onClose}
       title={
-        editingExam ? 'Editar prueba atrasada' : 'Registrar prueba atrasada'
+        isEditing
+          ? isBulkEditing
+            ? 'Editar recuperaciones'
+            : 'Editar prueba atrasada'
+          : 'Registrar prueba atrasada'
       }
       size="lg"
       testId="modal-makeup-exam"
@@ -355,7 +395,7 @@ export const MakeupExamModal: React.FC<MakeupExamModalProps> = ({
                 label: course.name,
               })),
             ]}
-            disabled={Boolean(editingExam) || Boolean(initialValues?.courseId)}
+            disabled={isEditing || Boolean(initialValues?.courseId)}
           />
           <Select
             label="Estudiante"
@@ -375,14 +415,12 @@ export const MakeupExamModal: React.FC<MakeupExamModalProps> = ({
               })),
             ]}
             disabled={
-              !form.courseId ||
-              Boolean(editingExam) ||
-              Boolean(initialValues?.studentId)
+              !form.courseId || isEditing || Boolean(initialValues?.studentId)
             }
           />
         </div>
 
-        {!editingExam && (
+        {!isEditing && (
           <div className="flex gap-2 rounded-xl bg-slate-50 p-1">
             <Button
               type="button"
@@ -403,7 +441,7 @@ export const MakeupExamModal: React.FC<MakeupExamModalProps> = ({
           </div>
         )}
 
-        {form.entryMode === 'catalog' && !editingExam && (
+        {form.entryMode === 'catalog' && !isEditing && (
           <label className="block space-y-1 text-sm font-semibold text-slate-700">
             Observación
             <textarea
@@ -432,7 +470,7 @@ export const MakeupExamModal: React.FC<MakeupExamModalProps> = ({
                 <p className="text-sm font-semibold text-slate-700">
                   Agrega una o más pruebas manuales
                 </p>
-                {!editingExam && (
+                {!isEditing && (
                   <Button
                     type="button"
                     size="sm"
@@ -504,7 +542,7 @@ export const MakeupExamModal: React.FC<MakeupExamModalProps> = ({
                       className="w-full resize-none rounded-xl border border-slate-200 bg-white px-3 py-2.5 font-normal"
                     />
                   </label>
-                  {!editingExam && form.manualEntries.length > 1 && (
+                  {!isEditing && form.manualEntries.length > 1 && (
                     <button
                       type="button"
                       onClick={() => removeManualEntry(index)}
@@ -600,7 +638,7 @@ export const MakeupExamModal: React.FC<MakeupExamModalProps> = ({
                       className="w-full resize-none rounded-lg border border-slate-200 px-2 py-1.5 font-normal"
                     />
                   </label>
-                  {!editingExam && (
+                  {!isEditing && (
                     <button
                       type="button"
                       onClick={() => toggleTest(test.id)}

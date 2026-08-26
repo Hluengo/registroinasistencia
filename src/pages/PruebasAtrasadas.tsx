@@ -66,6 +66,9 @@ export const PruebasAtrasadas: React.FC<PruebasAtrasadasProps> = ({
   const [modalOpen, setModalOpen] = React.useState(false)
   const [editingExam, setEditingExam] =
     React.useState<MakeupExamWithDetails | null>(null)
+  const [editingExams, setEditingExams] = React.useState<
+    MakeupExamWithDetails[]
+  >([])
   const [selectedStudentId, setSelectedStudentId] = React.useState<
     string | null
   >(null)
@@ -134,11 +137,16 @@ export const PruebasAtrasadas: React.FC<PruebasAtrasadasProps> = ({
 
   const openCreate = () => {
     setEditingExam(null)
+    setEditingExams([])
     setModalOpen(true)
   }
 
-  const openEdit = (exam: MakeupExamWithDetails) => {
+  const openEdit = (
+    exam: MakeupExamWithDetails,
+    examsToEdit: MakeupExamWithDetails[] = [exam]
+  ) => {
     setEditingExam(exam)
+    setEditingExams(examsToEdit)
     setModalOpen(true)
   }
 
@@ -418,9 +426,9 @@ export const PruebasAtrasadas: React.FC<PruebasAtrasadasProps> = ({
                             variant="ghost"
                             size="icon"
                             icon={Pencil}
-                            aria-label={`Editar ${firstExam.subject}`}
-                            title={`Editar ${firstExam.subject}`}
-                            onClick={() => openEdit(firstExam)}
+                            aria-label={`Editar recuperaciones de ${student?.full_name ?? 'estudiante'}`}
+                            title="Editar recuperaciones"
+                            onClick={() => openEdit(firstExam, group.exams)}
                           />
                           <Button
                             variant="ghost"
@@ -450,6 +458,7 @@ export const PruebasAtrasadas: React.FC<PruebasAtrasadasProps> = ({
         courses={courses}
         students={students}
         editingExam={editingExam}
+        editingExams={editingExams}
       />
 
       <StudentMakeupDetailModal
