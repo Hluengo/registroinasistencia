@@ -28,5 +28,7 @@ describe('buildMakeupCitationDocument', () => {
     expect(html).toContain('Ana &lt;Segura&gt;')
     expect(html).toContain('Traer guía &lt;firmada&gt;')
     expect(html).not.toContain('Ana <Segura>')
+    expect(html).toContain('@page { size: 5.5in 8.5in; margin: 0; }')
+    expect(html).toContain('martes, 25 de agosto de 2026')
   })
 })

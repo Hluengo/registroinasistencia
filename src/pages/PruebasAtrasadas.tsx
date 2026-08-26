@@ -35,11 +35,11 @@ import { TOAST_TYPES } from '../constants'
 import { Button } from '../components/ui/Button'
 import { MakeupExamModal } from '../components/makeup-exams/MakeupExamModal'
 import { StudentMakeupDetailModal } from '../components/makeup-exams/StudentMakeupDetailModal'
+import { MakeupExamPrintModal } from '../components/makeup-exams/MakeupExamPrintModal'
 import { PageHeader } from '../components/ui/PageHeader'
 import { Select } from '../components/ui/Select'
 import { StatCard } from '../components/ui/StatCard'
 import { TableSkeleton } from '../components/ui/Skeleton'
-import { buildMakeupCitationDocument } from '../utils/makeupExamPrint'
 
 interface PruebasAtrasadasProps {
   level: 'BASICA' | 'MEDIA'
@@ -70,6 +70,9 @@ export const PruebasAtrasadas: React.FC<PruebasAtrasadasProps> = ({
     MakeupExamWithDetails[]
   >([])
   const [selectedStudentId, setSelectedStudentId] = React.useState<
+    string | null
+  >(null)
+  const [printingStudentId, setPrintingStudentId] = React.useState<
     string | null
   >(null)
   const { showToast } = useToast()
@@ -173,21 +176,9 @@ export const PruebasAtrasadas: React.FC<PruebasAtrasadasProps> = ({
   const moveMonth = (offset: number) =>
     setCurrentDate(new Date(year, month + offset, 1))
 
-  const printCitation = (studentExams: MakeupExamWithDetails[]) => {
-    const exam = studentExams[0]
-    if (!exam) return
-    const popup = window.open('', '_blank', 'noopener,noreferrer')
-    if (!popup) {
-      showToast({
-        type: TOAST_TYPES.WARNING,
-        message: 'Permite las ventanas emergentes para imprimir la citación.',
-      })
-      return
-    }
-    popup.document.write(buildMakeupCitationDocument(exam, studentExams))
-    popup.document.close()
-    popup.focus()
-    popup.print()
+  const openPrint = (studentId: string) => {
+    setSelectedStudentId(null)
+    setPrintingStudentId(studentId)
   }
 
   return (
@@ -420,7 +411,7 @@ export const PruebasAtrasadas: React.FC<PruebasAtrasadasProps> = ({
                             icon={Printer}
                             aria-label={`Imprimir citación de ${student?.full_name ?? 'estudiante'}`}
                             title="Imprimir citación"
-                            onClick={() => printCitation(group.exams)}
+                            onClick={() => openPrint(group.studentId)}
                           />
                           <Button
                             variant="ghost"
@@ -468,6 +459,14 @@ export const PruebasAtrasadas: React.FC<PruebasAtrasadasProps> = ({
         isLoading={isStudentExamsLoading}
         student={selectedExam?.students ?? null}
         onStatusChange={handleStatusChange}
+        onPrint={() => selectedStudentId && openPrint(selectedStudentId)}
+      />
+
+      <MakeupExamPrintModal
+        isOpen={Boolean(printingStudentId)}
+        onClose={() => setPrintingStudentId(null)}
+        exams={filteredExams}
+        initialStudentId={printingStudentId ?? undefined}
       />
     </div>
   )

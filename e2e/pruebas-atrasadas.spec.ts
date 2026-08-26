@@ -130,4 +130,23 @@ test.describe('Pruebas atrasadas', () => {
       page.getByRole('heading', { name: 'Pruebas atrasadas' })
     ).toBeVisible()
   })
+
+  test('abre la vista previa de impresión en media carta', async ({ page }) => {
+    await page.getByRole('button', { name: 'Tabla' }).click()
+    const row = page.locator('tbody tr').first()
+    if ((await row.count()) === 0) return
+
+    await row.getByRole('button', { name: /Imprimir citación/ }).click()
+    const modal = page.getByTestId('modal-makeup-print-dialog')
+    await expect(modal).toBeVisible()
+    await expect(
+      modal.getByRole('heading', {
+        name: 'Generador de documentos oficiales e impresión',
+      })
+    ).toBeVisible()
+    await expect(modal.getByText('Formato oficial listo para impresión en media carta.')).toBeVisible()
+    await expect(
+      modal.getByRole('button', { name: 'Imprimir documento' })
+    ).toBeVisible()
+  })
 })

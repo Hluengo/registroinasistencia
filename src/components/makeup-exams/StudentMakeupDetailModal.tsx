@@ -10,9 +10,6 @@ import {
   MAKEUP_EXAM_STATUS_OPTIONS,
   summarizeMakeupExams,
 } from '../../utils/makeupExam'
-import { buildMakeupCitationDocument } from '../../utils/makeupExamPrint'
-import { useToast } from '../../contexts/ToastContext'
-import { TOAST_TYPES } from '../../constants'
 import { Button } from '../ui/Button'
 import { Modal } from '../ui/Modal'
 
@@ -26,6 +23,7 @@ interface StudentMakeupDetailModalProps {
     exam: MakeupExamWithDetails,
     status: MakeupExamStatus
   ) => void | Promise<void>
+  onPrint: () => void
 }
 
 export const StudentMakeupDetailModal: React.FC<
@@ -37,27 +35,10 @@ export const StudentMakeupDetailModal: React.FC<
   isLoading,
   student: selectedStudent,
   onStatusChange,
+  onPrint,
 }) => {
-  const { showToast } = useToast()
   const student = exams[0]?.students ?? selectedStudent
   const stats = summarizeMakeupExams(exams)
-
-  const printCitation = () => {
-    const exam = exams[0]
-    if (!exam) return
-    const popup = window.open('', '_blank', 'noopener,noreferrer')
-    if (!popup) {
-      showToast({
-        type: TOAST_TYPES.WARNING,
-        message: 'Permite las ventanas emergentes para imprimir la citación.',
-      })
-      return
-    }
-    popup.document.write(buildMakeupCitationDocument(exam, exams))
-    popup.document.close()
-    popup.focus()
-    popup.print()
-  }
 
   return (
     <Modal
@@ -179,7 +160,7 @@ export const StudentMakeupDetailModal: React.FC<
           </div>
 
           <div className="flex justify-end gap-3">
-            <Button variant="outline" icon={Printer} onClick={printCitation}>
+            <Button variant="outline" icon={Printer} onClick={onPrint}>
               Imprimir citación
             </Button>
             <Button onClick={onClose}>Cerrar</Button>
