@@ -45,6 +45,7 @@ test.describe('Pruebas atrasadas', () => {
       await expect(page.getByTestId('modal-makeup-exam-dialog')).toBeVisible()
       await expect(page.getByTestId('makeup-exam-course')).toBeVisible()
       await expect(page.getByLabel('Estudiante')).toBeVisible()
+      await expect(page.getByLabel('Observación general')).toBeVisible()
 
       const course = page.getByTestId('makeup-exam-course')
       if ((await course.locator('option').count()) <= 1) return

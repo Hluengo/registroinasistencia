@@ -45,6 +45,7 @@ type FormState = {
   scheduledDate: string
   status: MakeupExamStatus
   testIds: string[]
+  observation: string
   entryMode: 'catalog' | 'manual'
   manualEntries: Array<{
     id: string
@@ -68,6 +69,7 @@ const emptyForm = (initial?: MakeupExamPrefill): FormState => ({
   scheduledDate: toDateOnlyString(new Date()),
   status: 'pendiente',
   testIds: initial?.testId ? [initial.testId] : [],
+  observation: '',
   entryMode: 'catalog',
   manualEntries: [emptyManualEntry()],
   testNotes: {},
@@ -121,6 +123,7 @@ export const MakeupExamModal: React.FC<MakeupExamModalProps> = ({
         scheduledDate: editingExam.scheduled_date,
         status: editingExam.status as MakeupExamStatus,
         testIds: editingExam.test_id ? [editingExam.test_id] : [],
+        observation: editingExam.notes ?? '',
         testNotes: editingExam.test_id
           ? { [editingExam.test_id]: editingExam.notes ?? '' }
           : {},
@@ -260,6 +263,7 @@ export const MakeupExamModal: React.FC<MakeupExamModalProps> = ({
       scheduledDate: form.scheduledDate,
       status: form.status,
       testIds: form.testIds,
+      observation: form.observation,
       manualEntries,
       testNotes: form.testNotes,
       sourceAbsenceId: initialValues?.sourceAbsenceId,
@@ -376,6 +380,25 @@ export const MakeupExamModal: React.FC<MakeupExamModalProps> = ({
               Agregar manualmente
             </Button>
           </div>
+        )}
+
+        {form.entryMode === 'catalog' && !editingExam && (
+          <label className="block space-y-1 text-sm font-semibold text-slate-700">
+            Observación
+            <textarea
+              aria-label="Observación general"
+              value={form.observation}
+              onChange={(event) =>
+                setForm((current) => ({
+                  ...current,
+                  observation: event.target.value,
+                }))
+              }
+              placeholder="Ej. Coordinar con UTP"
+              rows={2}
+              className="w-full resize-none rounded-xl border border-slate-200 bg-white px-3 py-2.5 font-normal"
+            />
+          </label>
         )}
 
         <fieldset className="space-y-2" data-testid="makeup-exam-tests">

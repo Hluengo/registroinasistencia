@@ -39,6 +39,18 @@ describe('buildMakeupExamInputs', () => {
     })
   })
 
+  it('usa la observación general cuando una prueba no tiene observación propia', () => {
+    const result = buildMakeupExamInputs(tests, {
+      studentId: 'student-1',
+      scheduledDate: '2026-08-25',
+      status: 'pendiente',
+      testIds: ['test-1'],
+      observation: 'Coordinar con UTP',
+    })
+
+    expect(result[0]?.notes).toBe('Coordinar con UTP')
+  })
+
   it('genera una fila manual sin referencia a prueba', () => {
     const result = buildMakeupExamInputs([], {
       studentId: 'student-1',
