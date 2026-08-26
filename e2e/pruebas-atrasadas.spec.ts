@@ -43,6 +43,22 @@ test.describe('Pruebas atrasadas', () => {
     await expect(modal.getByRole('combobox').first()).toBeVisible()
   })
 
+  test('permite editar la prueba registrada', async ({ page }) => {
+    await page.getByRole('button', { name: 'Tabla' }).click()
+    const row = page.locator('tbody tr').first()
+    if ((await row.count()) === 0) return
+
+    const editButton = row.getByRole('button', { name: /Editar/ }).first()
+    if ((await editButton.count()) === 0) return
+    await editButton.click()
+
+    const modal = page.getByTestId('modal-makeup-exam-dialog')
+    await expect(modal).toBeVisible()
+    const tests = modal.locator('input[type="checkbox"]')
+    if ((await tests.count()) === 0) return
+    await expect(tests.first()).toBeEnabled()
+  })
+
   test('abre el formulario de recuperación cuando hay estudiantes', async ({
     page,
   }) => {

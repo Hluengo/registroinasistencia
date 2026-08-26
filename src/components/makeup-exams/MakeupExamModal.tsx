@@ -155,12 +155,19 @@ export const MakeupExamModal: React.FC<MakeupExamModalProps> = ({
   }
 
   const toggleTest = (testId: string) => {
-    setForm((current) => ({
-      ...current,
-      testIds: current.testIds.includes(testId)
-        ? current.testIds.filter((id) => id !== testId)
-        : [...current.testIds, testId],
-    }))
+    setForm((current) => {
+      const isSelected = current.testIds.includes(testId)
+      return {
+        ...current,
+        testIds: editingExam
+          ? isSelected
+            ? []
+            : [testId]
+          : isSelected
+            ? current.testIds.filter((id) => id !== testId)
+            : [...current.testIds, testId],
+      }
+    })
   }
 
   const handleEntryModeChange = (entryMode: FormState['entryMode']) => {
@@ -257,6 +264,13 @@ export const MakeupExamModal: React.FC<MakeupExamModalProps> = ({
       })
       return
     }
+    if (editingExam?.test_id && selectedTests.length !== 1) {
+      showToast({
+        type: TOAST_TYPES.WARNING,
+        message: 'Selecciona una prueba registrada para editar.',
+      })
+      return
+    }
 
     const inputs = buildMakeupExamInputs(availableTests, {
       studentId: form.studentId,
@@ -279,10 +293,17 @@ export const MakeupExamModal: React.FC<MakeupExamModalProps> = ({
               : (manualEntries[0]?.scheduledDate ?? form.scheduledDate),
             status: form.status,
             notes: editingExam.test_id
-              ? form.testNotes[editingExam.test_id] || null
+              ? selectedTests[0]
+                ? form.testNotes[selectedTests[0].id]?.trim() || null
+                : null
               : manualEntries[0]?.notes.trim() || null,
             ...(editingExam.test_id
-              ? {}
+              ? {
+                  test_id: selectedTests[0]?.id ?? editingExam.test_id,
+                  subject: selectedTests[0]?.subject ?? editingExam.subject,
+                  original_date:
+                    selectedTests[0]?.date ?? editingExam.original_date,
+                }
               : {
                   subject: manualEntries[0]?.subject ?? '',
                   original_date: null,
@@ -521,7 +542,6 @@ export const MakeupExamModal: React.FC<MakeupExamModalProps> = ({
                       type="checkbox"
                       checked={checked}
                       onChange={() => toggleTest(test.id)}
-                      disabled={Boolean(editingExam)}
                       aria-label={`${test.subject} ${test.date}`}
                       className="h-4 w-4 accent-indigo-600"
                     />
