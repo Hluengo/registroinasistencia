@@ -46,10 +46,10 @@ export const buildMakeupCitationDocument = (
         <meta charset="utf-8" />
         <title>Citación de recuperación - ${escapeHtml(student?.full_name)}</title>
         <style>
-          @page { size: 5.5in 8.5in; margin: 0; }
+          @page { size: 13.97cm 21.59cm; margin: 0; }
           * { box-sizing: border-box; }
           body { font-family: Arial, sans-serif; color: #172033; margin: 0; }
-          .page { width: 5.5in; min-height: 8.5in; padding: 0.36in; }
+          .page { width: 13.97cm; min-height: 21.59cm; padding: 0.91cm; }
           .eyebrow { text-align: center; font-size: 12px; font-weight: 700; letter-spacing: 1px; color: #38557b; }
           h1 { text-align: center; font-size: 17px; margin: 8px 0 4px; }
           .subtitle { text-align: center; font-size: 11px; margin: 0 0 14px; }

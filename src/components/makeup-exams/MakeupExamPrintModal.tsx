@@ -114,7 +114,7 @@ export const MakeupExamPrintModal: React.FC<MakeupExamPrintModalProps> = ({
         </div>
 
         {firstExam && student ? (
-          <div className="mx-auto min-h-[8.5in] w-full max-w-[5.5in] rounded-xl border border-slate-300 bg-white p-7 shadow-sm">
+          <div className="mx-auto min-h-[21.59cm] w-full max-w-[13.97cm] rounded-xl border border-slate-300 bg-white p-7 shadow-sm">
             <p className="text-center text-xs font-bold tracking-widest text-slate-600">
               COORDINACIÓN DE CICLO
             </p>
@@ -204,7 +204,7 @@ export const MakeupExamPrintModal: React.FC<MakeupExamPrintModalProps> = ({
 
         <div className="flex items-center justify-between border-t border-slate-100 pt-3">
           <p className="text-xs text-slate-500">
-            Formato oficial listo para impresión en media carta.
+            Formato oficial: 13,97 × 21,59 cm (media carta).
           </p>
           <div className="flex gap-3">
             <Button onClick={onClose}>Cerrar</Button>

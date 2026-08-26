@@ -144,7 +144,9 @@ test.describe('Pruebas atrasadas', () => {
         name: 'Generador de documentos oficiales e impresión',
       })
     ).toBeVisible()
-    await expect(modal.getByText('Formato oficial listo para impresión en media carta.')).toBeVisible()
+    await expect(
+      modal.getByText('Formato oficial: 13,97 × 21,59 cm (media carta).')
+    ).toBeVisible()
     await expect(
       modal.getByRole('button', { name: 'Imprimir documento' })
     ).toBeVisible()
