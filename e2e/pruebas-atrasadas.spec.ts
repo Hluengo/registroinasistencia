@@ -148,5 +148,9 @@ test.describe('Pruebas atrasadas', () => {
     await expect(
       modal.getByRole('button', { name: 'Imprimir documento' })
     ).toBeVisible()
+    const popupPromise = page.waitForEvent('popup')
+    await modal.getByRole('button', { name: 'Imprimir documento' }).click()
+    const popup = await popupPromise
+    await expect(popup).toHaveTitle(/Citación de recuperación/)
   })
 })

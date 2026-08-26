@@ -53,12 +53,21 @@ export const MakeupExamPrintModal: React.FC<MakeupExamPrintModalProps> = ({
 
   const printDocument = () => {
     if (!firstExam || selectedExams.length === 0) return
-    const popup = window.open('', '_blank', 'noopener,noreferrer')
+    const popup = window.open('', '_blank')
     if (!popup) return
     popup.document.write(buildMakeupCitationDocument(firstExam, selectedExams))
     popup.document.close()
-    popup.focus()
-    popup.print()
+    let printed = false
+    const printPopup = () => {
+      if (printed || popup.closed) return
+      printed = true
+      popup.focus()
+      popup.print()
+    }
+    popup.onload = printPopup
+    window.setTimeout(() => {
+      printPopup()
+    }, 250)
   }
 
   const observations = Array.from(
