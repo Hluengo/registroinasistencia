@@ -16,6 +16,14 @@ test.describe('Pruebas atrasadas', () => {
     await expect(page.getByText('Total del mes')).toBeVisible()
     await expect(page.getByRole('button', { name: 'Calendario' })).toBeVisible()
     await expect(page.getByRole('button', { name: 'Tabla' })).toBeVisible()
+    await expect(page.getByRole('button', { name: 'Tabla' })).toHaveAttribute(
+      'aria-pressed',
+      'true'
+    )
+    await page.getByRole('button', { name: 'Calendario' }).click()
+    await expect(
+      page.getByRole('button', { name: 'Calendario' })
+    ).toHaveAttribute('aria-pressed', 'true')
     await expect(
       page.getByLabel('Filtrar pruebas atrasadas por curso')
     ).toBeVisible()
