@@ -35,6 +35,9 @@ const invalidateMakeupExams = (
   queryClient.invalidateQueries({
     queryKey: QUERY_KEYS_INVALIDATE.MAKEUP_EXAMS,
   })
+  queryClient.invalidateQueries({
+    queryKey: QUERY_KEYS_INVALIDATE.TEACHER_PUBLIC_MAKEUP_EXAMS,
+  })
   queryClient.invalidateQueries({ queryKey: QUERY_KEYS_INVALIDATE.ABSENCES })
 }
 

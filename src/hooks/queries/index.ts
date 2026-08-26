@@ -24,6 +24,7 @@ export {
 export {
   useTeacherPublicAbsences,
   useTeacherPublicAbsenceDetail,
+  useTeacherPublicMakeupExams,
 } from './teacher-public'
 export { useHolidays } from './holidays'
 export { useSeedData } from './admin'
@@ -33,6 +34,7 @@ export type {
   Holiday,
   TeacherPublicAbsence,
   TeacherPublicAbsenceDetail,
+  TeacherPublicMakeupExam,
   TeacherInstantMessage,
   InspectorateWithStudent,
   PaginatedResult,

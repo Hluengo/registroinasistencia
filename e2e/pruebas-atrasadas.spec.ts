@@ -122,4 +122,12 @@ test.describe('Pruebas atrasadas', () => {
       ).toBeVisible()
     }
   })
+
+  test('muestra pruebas atrasadas en la Vista Docente', async ({ page }) => {
+    await page.getByRole('button', { name: 'Vista Docente', exact: true }).click()
+    await expect(page.locator('h1').filter({ hasText: 'Vista Docente' })).toBeVisible()
+    await expect(
+      page.getByRole('heading', { name: 'Pruebas atrasadas' })
+    ).toBeVisible()
+  })
 })

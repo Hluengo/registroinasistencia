@@ -4,6 +4,7 @@ import {
   Calendar,
   ChevronLeft,
   ChevronRight,
+  ClipboardCheck,
   Eye,
   Megaphone,
 } from 'lucide-react'
@@ -11,6 +12,7 @@ import {
   useTeacherPublicAbsences,
   type TeacherPublicAbsence,
   useTeacherPublicAbsenceDetail,
+  useTeacherPublicMakeupExams,
   useTeacherInstantMessages,
   useCourses,
 } from '../hooks/queries'
@@ -28,6 +30,8 @@ import {
   getCourseOptions,
 } from '../utils/filterOptions'
 import { getAbsenceStatusLabel } from '../constants'
+import { MAKEUP_EXAM_STATUS_LABELS } from '../utils/makeupExam'
+import type { MakeupExamStatus } from '../services/makeupExamService'
 import { StaffInstantMessagesManager } from '../components/staff-messages'
 
 interface DocentePublicoProps {
@@ -73,6 +77,17 @@ export const DocentePublico: React.FC<DocentePublicoProps> = ({
     level,
     isAuthenticated
   )
+  const {
+    data: makeupExams = [],
+    isLoading: makeupExamsLoading,
+    isError: makeupExamsUnavailable,
+  } = useTeacherPublicMakeupExams(
+    month,
+    year,
+    level,
+    selectedCourseId || undefined,
+    isAuthenticated
+  )
   const activeMessagesLevel = level
   const { data: instantMessages = [], isLoading: instantMessagesLoading } =
     useTeacherInstantMessages(
@@ -91,7 +106,8 @@ export const DocentePublico: React.FC<DocentePublicoProps> = ({
   }, [level])
 
   const rpcUnavailable =
-    isAuthenticated && (absencesUnavailable || detailUnavailable)
+    isAuthenticated &&
+    (absencesUnavailable || detailUnavailable || makeupExamsUnavailable)
   const loading = isAuthenticated && (isLoading || coursesLoading)
   const showInitialSkeleton = loading && data.length === 0
   const courseOptions = React.useMemo(
@@ -282,6 +298,98 @@ export const DocentePublico: React.FC<DocentePublicoProps> = ({
               El gestor está oculto para reducir el largo de la página.
             </p>
           )}
+        </div>
+      ) : null}
+
+      {isAuthenticated ? (
+        <div className="card overflow-hidden rounded-3xl border border-amber-100 bg-white shadow-sm shadow-amber-100/40">
+          <div className="border-b border-amber-100 bg-amber-50/60 px-5 py-4 md:px-6">
+            <div className="flex items-center gap-3">
+              <ClipboardCheck className="h-5 w-5 text-amber-600" />
+              <div>
+                <h3 className="text-lg font-bold text-slate-900">
+                  Pruebas atrasadas
+                </h3>
+                <p className="text-sm text-slate-500">
+                  Recuperaciones pendientes y su fecha de evaluación.
+                </p>
+              </div>
+            </div>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[760px] text-left">
+              <thead className="bg-slate-50/70 text-[11px] font-bold uppercase tracking-widest text-slate-400">
+                <tr>
+                  <th className="px-5 py-3">Estudiante</th>
+                  <th className="px-5 py-3">Curso</th>
+                  <th className="px-5 py-3">Asignatura</th>
+                  <th className="px-5 py-3">Fecha evaluación</th>
+                  <th className="px-5 py-3">Estado</th>
+                  <th className="px-5 py-3">Observación</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {makeupExamsLoading ? (
+                  <tr>
+                    <td
+                      colSpan={6}
+                      className="px-5 py-8 text-center text-sm text-slate-400"
+                    >
+                      Cargando pruebas atrasadas...
+                    </td>
+                  </tr>
+                ) : makeupExams.length === 0 ? (
+                  <tr>
+                    <td
+                      colSpan={6}
+                      className="px-5 py-8 text-center text-sm text-slate-400"
+                    >
+                      No hay pruebas atrasadas para este período.
+                    </td>
+                  </tr>
+                ) : (
+                  makeupExams.map((exam) => {
+                    const status = exam.status as MakeupExamStatus
+                    return (
+                      <tr
+                        key={exam.makeup_exam_id}
+                        className="hover:bg-slate-50/70"
+                      >
+                        <td className="px-5 py-4 font-bold text-slate-900">
+                          {exam.student_name}
+                        </td>
+                        <td className="px-5 py-4 text-sm font-semibold text-slate-600">
+                          {exam.course_name}
+                        </td>
+                        <td className="px-5 py-4 text-sm font-semibold text-slate-800">
+                          {exam.subject}
+                        </td>
+                        <td className="px-5 py-4 text-sm text-slate-600">
+                          {formatDate(exam.scheduled_date)}
+                        </td>
+                        <td className="px-5 py-4">
+                          <Badge
+                            variant={
+                              status === 'rendida'
+                                ? 'success'
+                                : status === 'ausente'
+                                  ? 'danger'
+                                  : 'warning'
+                            }
+                          >
+                            {MAKEUP_EXAM_STATUS_LABELS[status] ?? exam.status}
+                          </Badge>
+                        </td>
+                        <td className="px-5 py-4 text-sm text-slate-600">
+                          {exam.observation || '-'}
+                        </td>
+                      </tr>
+                    )
+                  })
+                )}
+              </tbody>
+            </table>
+          </div>
         </div>
       ) : null}
 

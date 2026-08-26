@@ -95,6 +95,19 @@ export const queryKeys = {
     ] as const,
   teacherPublicAbsenceDetail: (absenceId?: string) =>
     ['teacherPublicAbsenceDetail', absenceId ?? 'none'] as const,
+  teacherPublicMakeupExams: (
+    month: number,
+    year: number,
+    level?: string,
+    courseId?: string
+  ) =>
+    [
+      'teacherPublicMakeupExams',
+      month,
+      year,
+      level ?? 'all',
+      courseId ?? 'all',
+    ] as const,
   teacherInstantMessages: (
     level?: string,
     courseId?: string,

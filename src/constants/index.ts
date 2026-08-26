@@ -68,6 +68,7 @@ export const QUERY_KEYS_INVALIDATE = {
   INSPECTORATE: ['inspectorate'],
   HOLIDAYS: ['holidays'],
   TEACHER_PUBLIC_ABSENCES: ['teacherPublicAbsences'],
+  TEACHER_PUBLIC_MAKEUP_EXAMS: ['teacherPublicMakeupExams'],
   TEACHER_INSTANT_MESSAGES: ['teacherInstantMessages'],
   INSTANT_MESSAGES_MANAGE: ['instantMessagesManage'],
 } as const

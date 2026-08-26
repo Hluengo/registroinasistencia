@@ -1,6 +1,10 @@
 import { supabase } from '../../services/supabaseClient'
 import { useQ, queryKeys } from './utils'
-import { TeacherPublicAbsence, TeacherPublicAbsenceDetail } from './types'
+import {
+  TeacherPublicAbsence,
+  TeacherPublicAbsenceDetail,
+  TeacherPublicMakeupExam,
+} from './types'
 
 export const useTeacherPublicAbsences = (
   month: number,
@@ -67,3 +71,35 @@ export const useTeacherPublicAbsenceDetail = (
     }
   )
 }
+
+export const useTeacherPublicMakeupExams = (
+  month: number,
+  year: number,
+  level?: 'BASICA' | 'MEDIA',
+  courseId?: string,
+  isAuthenticated = false
+) =>
+  useQ<TeacherPublicMakeupExam[]>(
+    queryKeys.teacherPublicMakeupExams(month, year, level, courseId),
+    async () => {
+      if (!isAuthenticated) return []
+      const { data, error } = await supabase.rpc(
+        'teacher_get_public_makeup_exams' as never,
+        {
+          p_month: month + 1,
+          p_year: year,
+          ...(level ? { p_level: level } : {}),
+          ...(courseId ? { p_course_id: courseId } : {}),
+        } as never
+      )
+      if (error) throw error
+      return (data || []) as unknown as TeacherPublicMakeupExam[]
+    },
+    {
+      enabled: isAuthenticated,
+      placeholderData: (previousData) => previousData,
+      staleTime: 60_000,
+      refetchOnWindowFocus: false,
+      refetchOnMount: true,
+    }
+  )

@@ -42,6 +42,7 @@ export {
   // Teacher public view
   useTeacherPublicAbsences,
   useTeacherPublicAbsenceDetail,
+  useTeacherPublicMakeupExams,
 
   // Holidays
   useHolidays,
@@ -59,6 +60,7 @@ export type {
   Holiday,
   TeacherPublicAbsence,
   TeacherPublicAbsenceDetail,
+  TeacherPublicMakeupExam,
   TeacherInstantMessage,
   InspectorateWithStudent,
   PaginatedResult,

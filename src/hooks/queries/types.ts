@@ -36,6 +36,19 @@ export type TeacherPublicAbsenceDetail = {
   type: string
 }
 
+export type TeacherPublicMakeupExam = {
+  makeup_exam_id: string
+  student_name: string
+  course_id: string
+  course_name: string
+  course_level: string | null
+  subject: string
+  original_date: string | null
+  scheduled_date: string
+  status: string
+  observation: string | null
+}
+
 export type TeacherInstantMessage = {
   id: string
   title: string
