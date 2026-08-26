@@ -4,10 +4,14 @@ import {
   CalendarDays,
   CheckCircle2,
   ClipboardCheck,
+  Clock3,
+  ChevronRight,
   Pencil,
   Plus,
+  Printer,
   Search,
   Table2,
+  UsersRound,
 } from 'lucide-react'
 import { format, parseISO } from 'date-fns'
 import { es } from 'date-fns/locale'
@@ -35,6 +39,7 @@ import { PageHeader } from '../components/ui/PageHeader'
 import { Select } from '../components/ui/Select'
 import { StatCard } from '../components/ui/StatCard'
 import { TableSkeleton } from '../components/ui/Skeleton'
+import { buildMakeupCitationDocument } from '../utils/makeupExamPrint'
 
 interface PruebasAtrasadasProps {
   level: 'BASICA' | 'MEDIA'
@@ -159,6 +164,23 @@ export const PruebasAtrasadas: React.FC<PruebasAtrasadasProps> = ({
 
   const moveMonth = (offset: number) =>
     setCurrentDate(new Date(year, month + offset, 1))
+
+  const printCitation = (studentExams: MakeupExamWithDetails[]) => {
+    const exam = studentExams[0]
+    if (!exam) return
+    const popup = window.open('', '_blank', 'noopener,noreferrer')
+    if (!popup) {
+      showToast({
+        type: TOAST_TYPES.WARNING,
+        message: 'Permite las ventanas emergentes para imprimir la citación.',
+      })
+      return
+    }
+    popup.document.write(buildMakeupCitationDocument(exam, studentExams))
+    popup.document.close()
+    popup.focus()
+    popup.print()
+  }
 
   return (
     <div className="space-y-8">
@@ -315,90 +337,102 @@ export const PruebasAtrasadas: React.FC<PruebasAtrasadasProps> = ({
         </div>
       ) : (
         <div className="card overflow-hidden">
+          <div className="flex items-center justify-between border-b border-slate-100 px-5 py-3">
+            <div>
+              <h2 className="flex items-center gap-2 text-sm font-bold uppercase tracking-wide text-slate-800">
+                <UsersRound className="h-4 w-4 text-indigo-600" />
+                Nómina de estudiantes ({groupedStudents.length})
+              </h2>
+              <p className="mt-1 text-xs text-slate-500">
+                Haz clic sobre cualquier estudiante para abrir su ficha y ver el
+                listado completo de evaluaciones.
+              </p>
+            </div>
+            <span className="text-xs font-semibold text-slate-400">
+              Lista detallada
+            </span>
+          </div>
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[760px] text-left text-sm">
+            <table className="w-full min-w-[900px] text-left text-sm">
               <thead className="bg-slate-50 text-xs uppercase tracking-wider text-slate-500">
                 <tr>
-                  <th className="px-5 py-4">Estudiante</th>
-                  <th className="px-5 py-4">Curso</th>
-                  <th className="px-5 py-4">Pruebas a recuperar</th>
+                  <th className="px-5 py-3">Curso</th>
+                  <th className="px-5 py-3">Nombre del estudiante</th>
+                  <th className="px-5 py-3">Observaciones / motivo ad hoc</th>
+                  <th className="px-5 py-3">Pruebas que debe</th>
                   <th className="px-5 py-4 text-right">Acciones</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
                 {groupedStudents.map((group) => {
-                  const student = group.exams[0]?.students
+                  const firstExam = group.exams[0]
+                  if (!firstExam) return null
+                  const student = firstExam.students
+                  const observations = Array.from(
+                    new Set(
+                      group.exams
+                        .map((exam) => exam.notes?.trim())
+                        .filter((note): note is string => Boolean(note))
+                    )
+                  ).join(' · ')
                   return (
                     <tr key={group.studentId} className="hover:bg-slate-50/70">
-                      <td className="px-5 py-4 align-top font-semibold text-slate-800">
-                        {student?.full_name ?? 'Estudiante sin nombre'}
+                      <td className="px-5 py-4 align-top">
+                        <span className="rounded-lg border border-indigo-100 bg-indigo-50 px-2.5 py-1 text-xs font-bold text-indigo-700">
+                          {student?.courses?.name ?? 'Sin curso'}
+                        </span>
                       </td>
-                      <td className="px-5 py-4 align-top text-slate-600">
-                        {student?.courses?.name ?? '-'}
-                      </td>
-                      <td className="px-5 py-4">
-                        <div className="space-y-2">
-                          {group.exams.map((exam) => (
-                            <div
-                              key={exam.id}
-                              className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-slate-100 bg-slate-50/70 px-3 py-2"
-                            >
-                              <div>
-                                <p className="font-semibold text-slate-800">
-                                  {exam.subject}
-                                </p>
-                                <p className="text-xs text-slate-500">
-                                  Evaluación:{' '}
-                                  {format(
-                                    parseISO(exam.scheduled_date),
-                                    'dd-MM-yyyy'
-                                  )}
-                                </p>
-                                {exam.notes && (
-                                  <p className="mt-1 text-xs italic text-slate-500">
-                                    Observación: {exam.notes}
-                                  </p>
-                                )}
-                              </div>
-                              <div className="flex items-center gap-2">
-                                <select
-                                  aria-label={`Estado de ${exam.subject} para ${student?.full_name ?? 'estudiante'}`}
-                                  value={exam.status}
-                                  onChange={(event) =>
-                                    handleStatusChange(
-                                      exam,
-                                      event.target.value as MakeupExamStatus
-                                    )
-                                  }
-                                  className="rounded-lg border border-slate-200 bg-white px-2 py-1 text-xs"
-                                >
-                                  {MAKEUP_EXAM_STATUS_OPTIONS.map((value) => (
-                                    <option key={value} value={value}>
-                                      {MAKEUP_EXAM_STATUS_LABELS[value]}
-                                    </option>
-                                  ))}
-                                </select>
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  icon={Pencil}
-                                  aria-label={`Editar ${exam.subject}`}
-                                  title={`Editar ${exam.subject}`}
-                                  onClick={() => openEdit(exam)}
-                                />
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      </td>
-                      <td className="px-5 py-4 align-top text-right">
-                        <Button
-                          variant="outline"
-                          size="sm"
+                      <td className="px-5 py-4 align-top">
+                        <button
+                          type="button"
+                          className="text-left font-bold text-slate-900 hover:text-indigo-600"
                           onClick={() => setSelectedStudentId(group.studentId)}
                         >
-                          Ver pruebas
-                        </Button>
+                          {student?.full_name ?? 'Estudiante sin nombre'}
+                        </button>
+                      </td>
+                      <td className="px-5 py-4">
+                        <span className="text-sm italic text-slate-600">
+                          {observations || '-'}
+                        </span>
+                      </td>
+                      <td className="px-5 py-4">
+                        <span className="inline-flex items-center gap-1 rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-xs font-bold text-amber-700">
+                          <Clock3 className="h-3.5 w-3.5" />
+                          {group.exams.length} prueba
+                          {group.exams.length === 1 ? '' : 's'} debe
+                          {group.exams.length === 1 ? '' : 'n'}
+                        </span>
+                      </td>
+                      <td className="px-5 py-4 align-top">
+                        <div className="flex items-center justify-end gap-1">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            icon={Printer}
+                            aria-label={`Imprimir citación de ${student?.full_name ?? 'estudiante'}`}
+                            title="Imprimir citación"
+                            onClick={() => printCitation(group.exams)}
+                          />
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            icon={Pencil}
+                            aria-label={`Editar ${firstExam.subject}`}
+                            title={`Editar ${firstExam.subject}`}
+                            onClick={() => openEdit(firstExam)}
+                          />
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            icon={ChevronRight}
+                            aria-label={`Ver pruebas de ${student?.full_name ?? 'estudiante'}`}
+                            title="Ver pruebas"
+                            onClick={() =>
+                              setSelectedStudentId(group.studentId)
+                            }
+                          />
+                        </div>
                       </td>
                     </tr>
                   )

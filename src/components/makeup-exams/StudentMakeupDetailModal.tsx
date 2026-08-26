@@ -104,14 +104,20 @@ export const StudentMakeupDetailModal: React.FC<
             </div>
           </div>
 
-          <div className="overflow-x-auto rounded-xl border border-slate-200">
-            <table className="w-full min-w-[680px] text-left text-sm">
+          <div className="min-w-0 overflow-hidden rounded-xl border border-slate-200">
+            <table className="w-full table-fixed text-left text-sm">
+              <colgroup>
+                <col className="w-[23%]" />
+                <col className="w-[27%]" />
+                <col className="w-[25%]" />
+                <col className="w-[25%]" />
+              </colgroup>
               <thead className="bg-slate-50 text-xs uppercase text-slate-500">
                 <tr>
-                  <th className="px-4 py-3">Asignatura</th>
-                  <th className="px-4 py-3">Fecha de evaluación</th>
-                  <th className="px-4 py-3">Observación</th>
-                  <th className="px-4 py-3">Estado</th>
+                  <th className="break-words px-4 py-3">Asignatura</th>
+                  <th className="break-words px-4 py-3">Fecha de evaluación</th>
+                  <th className="break-words px-4 py-3">Observación</th>
+                  <th className="break-words px-4 py-3">Estado</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
@@ -136,14 +142,14 @@ export const StudentMakeupDetailModal: React.FC<
                 ) : (
                   exams.map((exam) => (
                     <tr key={exam.id}>
-                      <td className="px-4 py-3 font-semibold text-slate-800">
+                      <td className="break-words px-4 py-3 font-semibold text-slate-800">
                         {exam.subject}
                       </td>
-                      <td className="px-4 py-3 text-slate-600">
+                      <td className="break-words px-4 py-3 text-slate-600">
                         {format(parseISO(exam.scheduled_date), 'dd-MM-yyyy')}
                         {exam.scheduled_time ? ` · ${exam.scheduled_time}` : ''}
                       </td>
-                      <td className="px-4 py-3 text-slate-600">
+                      <td className="break-words px-4 py-3 text-slate-600">
                         {exam.notes ?? '-'}
                       </td>
                       <td className="px-4 py-3">
@@ -156,7 +162,7 @@ export const StudentMakeupDetailModal: React.FC<
                               event.target.value as MakeupExamStatus
                             )
                           }
-                          className="rounded-lg border border-slate-200 bg-white px-2 py-1 text-xs"
+                          className="w-full min-w-0 rounded-lg border border-slate-200 bg-white px-2 py-1 text-xs"
                         >
                           {MAKEUP_EXAM_STATUS_OPTIONS.map((value) => (
                             <option key={value} value={value}>
