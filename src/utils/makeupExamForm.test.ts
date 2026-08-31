@@ -51,6 +51,24 @@ describe('buildMakeupExamInputs', () => {
     expect(result[0]?.notes).toBe('Coordinar con UTP')
   })
 
+  it('usa fecha de recuperación individual para pruebas registradas', () => {
+    const result = buildMakeupExamInputs(tests, {
+      studentId: 'student-1',
+      scheduledDate: '2026-08-25',
+      status: 'pendiente',
+      testIds: ['test-1', 'test-2'],
+      testScheduledDates: {
+        'test-1': '2026-08-26',
+        'test-2': '2026-08-27',
+      },
+    })
+
+    expect(result.map((item) => item.scheduled_date)).toEqual([
+      '2026-08-26',
+      '2026-08-27',
+    ])
+  })
+
   it('genera una fila manual sin referencia a prueba', () => {
     const result = buildMakeupExamInputs([], {
       studentId: 'student-1',

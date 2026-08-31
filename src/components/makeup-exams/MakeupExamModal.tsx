@@ -46,6 +46,7 @@ type FormState = {
   scheduledDate: string
   status: MakeupExamStatus
   testIds: string[]
+  testScheduledDates: Record<string, string>
   observation: string
   entryMode: 'catalog' | 'manual'
   manualEntries: Array<{
@@ -70,6 +71,9 @@ const emptyForm = (initial?: MakeupExamPrefill): FormState => ({
   scheduledDate: toDateOnlyString(new Date()),
   status: 'pendiente',
   testIds: initial?.testId ? [initial.testId] : [],
+  testScheduledDates: initial?.testId
+    ? { [initial.testId]: toDateOnlyString(new Date()) }
+    : {},
   observation: '',
   entryMode: 'catalog',
   manualEntries: [emptyManualEntry()],
@@ -137,6 +141,11 @@ export const MakeupExamModal: React.FC<MakeupExamModalProps> = ({
         testIds: examsBeingEdited.flatMap((exam) =>
           exam.test_id ? [exam.test_id] : []
         ),
+        testScheduledDates: Object.fromEntries(
+          examsBeingEdited.flatMap((exam) =>
+            exam.test_id ? [[exam.test_id, exam.scheduled_date]] : []
+          )
+        ),
         observation: '',
         testNotes: Object.fromEntries(
           examsBeingEdited.flatMap((exam) =>
@@ -164,6 +173,7 @@ export const MakeupExamModal: React.FC<MakeupExamModalProps> = ({
       courseId,
       studentId: '',
       testIds: [],
+      testScheduledDates: {},
       testNotes: {},
     }))
   }
@@ -180,6 +190,18 @@ export const MakeupExamModal: React.FC<MakeupExamModalProps> = ({
           : isSelected
             ? current.testIds.filter((id) => id !== testId)
             : [...current.testIds, testId],
+        testScheduledDates: isSelected
+          ? Object.fromEntries(
+              Object.entries(current.testScheduledDates).filter(
+                ([id]) => id !== testId
+              )
+            )
+          : {
+              ...current.testScheduledDates,
+              [testId]:
+                current.testScheduledDates[testId] ||
+                toDateOnlyString(new Date()),
+            },
       }
     })
   }
@@ -195,6 +217,16 @@ export const MakeupExamModal: React.FC<MakeupExamModalProps> = ({
     setForm((current) => ({
       ...current,
       testNotes: { ...current.testNotes, [testId]: notes },
+    }))
+  }
+
+  const updateTestScheduledDate = (testId: string, scheduledDate: string) => {
+    setForm((current) => ({
+      ...current,
+      testScheduledDates: {
+        ...current.testScheduledDates,
+        [testId]: scheduledDate,
+      },
     }))
   }
 
@@ -256,7 +288,10 @@ export const MakeupExamModal: React.FC<MakeupExamModalProps> = ({
       })
       return
     }
-    if (selectedTests.length > 0 && !form.scheduledDate) {
+    if (
+      selectedTests.some((test) => !form.testScheduledDates[test.id]) ||
+      (editingExam?.test_id && selectedTests.length > 0 && !form.scheduledDate)
+    ) {
       showToast({
         type: TOAST_TYPES.WARNING,
         message:
@@ -295,6 +330,7 @@ export const MakeupExamModal: React.FC<MakeupExamModalProps> = ({
       scheduledDate: form.scheduledDate,
       status: form.status,
       testIds: form.testIds,
+      testScheduledDates: form.testScheduledDates,
       observation: form.observation,
       manualEntries,
       testNotes: form.testNotes,
@@ -323,7 +359,8 @@ export const MakeupExamModal: React.FC<MakeupExamModalProps> = ({
           id: editingExam.id,
           input: {
             scheduled_date: editingExam.test_id
-              ? form.scheduledDate
+              ? (form.testScheduledDates[selectedTests[0]?.id ?? ''] ??
+                form.scheduledDate)
               : (manualEntries[0]?.scheduledDate ?? form.scheduledDate),
             status: form.status,
             notes: editingExam.test_id
@@ -505,7 +542,7 @@ export const MakeupExamModal: React.FC<MakeupExamModalProps> = ({
                     />
                   </label>
                   <label className="space-y-1 text-sm font-semibold text-slate-700">
-                    Fecha de evaluación
+                    Fecha de recuperación
                     <input
                       data-testid={
                         index === 0
@@ -615,7 +652,7 @@ export const MakeupExamModal: React.FC<MakeupExamModalProps> = ({
               {selectedTests.map((test) => (
                 <div
                   key={test.id}
-                  className="grid gap-3 rounded-lg bg-white px-3 py-2 text-sm md:grid-cols-[1fr_1.4fr_auto] md:items-center"
+                  className="grid gap-3 rounded-lg bg-white px-3 py-2 text-sm md:grid-cols-[1fr_1fr_1.4fr_auto] md:items-center"
                 >
                   <div>
                     <p className="font-semibold text-slate-800">
@@ -625,6 +662,18 @@ export const MakeupExamModal: React.FC<MakeupExamModalProps> = ({
                       {test.type} · {test.date}
                     </p>
                   </div>
+                  <label className="space-y-1 text-xs font-semibold text-slate-600">
+                    Fecha de recuperación
+                    <input
+                      type="date"
+                      value={form.testScheduledDates[test.id] ?? ''}
+                      onChange={(event) =>
+                        updateTestScheduledDate(test.id, event.target.value)
+                      }
+                      className="w-full rounded-lg border border-slate-200 px-2 py-1.5 font-normal"
+                      required
+                    />
+                  </label>
                   <label className="space-y-1 text-xs font-semibold text-slate-600">
                     Observación
                     <textarea
@@ -654,26 +703,7 @@ export const MakeupExamModal: React.FC<MakeupExamModalProps> = ({
           )}
         </fieldset>
 
-        <div
-          className={`grid gap-4 ${selectedTests.length > 0 ? 'md:grid-cols-2' : ''}`}
-        >
-          {selectedTests.length > 0 && (
-            <label className="space-y-1 text-sm font-semibold text-slate-700">
-              Fecha de recuperación
-              <input
-                type="date"
-                value={form.scheduledDate}
-                onChange={(event) =>
-                  setForm((current) => ({
-                    ...current,
-                    scheduledDate: event.target.value,
-                  }))
-                }
-                className="w-full rounded-xl border border-slate-200 px-3 py-2.5 font-normal"
-                required
-              />
-            </label>
-          )}
+        <div className="grid gap-4">
           <Select
             label="Estado"
             value={form.status}

@@ -6,6 +6,7 @@ export type MakeupExamSelection = {
   scheduledDate: string
   status: MakeupExamStatus
   testIds: string[]
+  testScheduledDates?: Record<string, string>
   observation?: string
   manualEntries?: Array<{
     subject: string
@@ -32,7 +33,8 @@ export const buildMakeupExamInputs = (
       test_id: test.id,
       source_absence_id: selection.sourceAbsenceId ?? null,
       original_date: test.date,
-      scheduled_date: selection.scheduledDate,
+      scheduled_date:
+        selection.testScheduledDates?.[test.id] ?? selection.scheduledDate,
       subject: test.subject,
       status: selection.status,
       notes:
