@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components */
 import React, { createContext, useContext } from 'react'
 
 type AppRole = 'public' | 'staff' | 'superuser'

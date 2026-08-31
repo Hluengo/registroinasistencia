@@ -33,6 +33,15 @@ interface DashboardProps {
   level: 'BASICA' | 'MEDIA'
 }
 
+type DashboardFiltersState = {
+  courseId: string
+  status: string
+  month: number
+  year: number
+  onlyWithTests: boolean
+  onlyWithoutDoc: boolean
+}
+
 interface DashboardDetailModalProps {
   isOpen: boolean
   onClose: () => void
@@ -157,6 +166,7 @@ const DashboardDetailModal: React.FC<DashboardDetailModalProps> = React.memo(
     )
   }
 )
+DashboardDetailModal.displayName = 'DashboardDetailModal'
 
 export const Dashboard: React.FC<DashboardProps> = ({ level }) => {
   // use query results directly; avoid mirroring query data in local state
@@ -167,7 +177,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ level }) => {
     isOpen: false,
     absence: null,
   })
-  const [filters, setFilters] = useState({
+  const [filters, setFilters] = useState<DashboardFiltersState>({
     courseId: '',
     status: '',
     month: new Date().getMonth(),
@@ -265,6 +275,10 @@ export const Dashboard: React.FC<DashboardProps> = ({ level }) => {
     setDetailModal({ isOpen: true, absence: abs })
   }
 
+  const closeDetailModal = React.useCallback(() => {
+    setDetailModal({ isOpen: false, absence: null })
+  }, [])
+
   const handleRefresh = async () => {
     await Promise.all([
       queryClient.invalidateQueries({
@@ -331,7 +345,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ level }) => {
   }
 
   return (
-    <div className="space-y-10 animate-in fade-in duration-500">
+    <div className="space-y-10">
       <PageHeader
         title="Panel Informativo"
         description={`Resumen ejecutivo de inasistencias y evaluaciones para Educación ${level === 'BASICA' ? 'Básica' : 'Media'}.`}
@@ -363,100 +377,14 @@ export const Dashboard: React.FC<DashboardProps> = ({ level }) => {
         </p>
       ) : null}
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-        <StatCard
-          title="Total Inasistencias"
-          value={stats.total}
-          icon={Users}
-          color="blue"
-        />
-        <StatCard
-          title="Justificadas"
-          value={stats.justified}
-          icon={CheckCircle2}
-          color="emerald"
-        />
-        <StatCard
-          title="Pendientes"
-          value={stats.pending}
-          icon={AlertCircle}
-          color="amber"
-        />
-        <StatCard
-          title="Con Pruebas Afectadas"
-          value={stats.withTests}
-          icon={FileText}
-          color="rose"
-        />
-      </div>
+      <DashboardStatsGrid stats={stats} />
 
-      <div className="bg-white p-8 rounded-3xl border border-slate-200 shadow-sm shadow-slate-200/20 space-y-8">
-        <div className="flex items-center gap-2.5 text-slate-400">
-          <Filter className="w-4 h-4" />
-          <span className="text-[11px] font-bold uppercase tracking-widest">
-            Filtros Avanzados
-          </span>
-        </div>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-          <Select
-            options={MONTHS}
-            value={filters.month}
-            onChange={(e) =>
-              setFilters({ ...filters, month: parseInt(e.target.value) })
-            }
-          />
-          <Select
-            options={getYearOptions()}
-            value={filters.year}
-            onChange={(e) =>
-              setFilters({ ...filters, year: parseInt(e.target.value) })
-            }
-          />
-          <Select
-            options={courseOptions}
-            value={filters.courseId}
-            onChange={(e) =>
-              setFilters({ ...filters, courseId: e.target.value })
-            }
-          />
-          <Select
-            options={statusOptions}
-            value={filters.status}
-            onChange={(e) => setFilters({ ...filters, status: e.target.value })}
-          />
-        </div>
-
-        <div className="flex flex-wrap gap-8 pt-2">
-          <label className="flex items-center gap-3 cursor-pointer group">
-            <input
-              type="checkbox"
-              className="w-5 h-5 rounded-lg border-slate-300 text-indigo-600 focus:ring-indigo-500 transition-all cursor-pointer"
-              checked={filters.onlyWithTests}
-              onChange={(e) =>
-                setFilters({ ...filters, onlyWithTests: e.target.checked })
-              }
-            />
-            <span className="text-sm font-bold text-slate-600 group-hover:text-slate-900 transition-colors">
-              Solo con pruebas afectadas
-            </span>
-          </label>
-
-          <label className="flex items-center gap-3 cursor-pointer group">
-            <input
-              type="checkbox"
-              className="w-5 h-5 rounded-lg border-slate-300 text-indigo-600 focus:ring-indigo-500 transition-all cursor-pointer"
-              checked={filters.onlyWithoutDoc}
-              onChange={(e) =>
-                setFilters({ ...filters, onlyWithoutDoc: e.target.checked })
-              }
-            />
-            <span className="text-sm font-bold text-slate-600 group-hover:text-slate-900 transition-colors">
-              Sin documento adjunto
-            </span>
-          </label>
-        </div>
-      </div>
+      <DashboardFiltersPanel
+        filters={filters}
+        setFilters={setFilters}
+        courseOptions={courseOptions}
+        statusOptions={statusOptions}
+      />
 
       <DashboardAbsencesTable
         absences={sortedFilteredAbsences}
@@ -469,10 +397,130 @@ export const Dashboard: React.FC<DashboardProps> = ({ level }) => {
 
       <DashboardDetailModal
         isOpen={detailModal.isOpen}
-        onClose={() => setDetailModal({ isOpen: false, absence: null })}
+        onClose={closeDetailModal}
         selectedAbsence={detailModal.absence}
         courses={coursesFromQuery}
       />
+    </div>
+  )
+}
+
+function DashboardStatsGrid({
+  stats,
+}: {
+  stats: {
+    total: number
+    justified: number
+    pending: number
+    withTests: number
+  }
+}) {
+  return (
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+      <StatCard
+        title="Total Inasistencias"
+        value={stats.total}
+        icon={Users}
+        color="blue"
+      />
+      <StatCard
+        title="Justificadas"
+        value={stats.justified}
+        icon={CheckCircle2}
+        color="emerald"
+      />
+      <StatCard
+        title="Pendientes"
+        value={stats.pending}
+        icon={AlertCircle}
+        color="amber"
+      />
+      <StatCard
+        title="Con Pruebas Afectadas"
+        value={stats.withTests}
+        icon={FileText}
+        color="rose"
+      />
+    </div>
+  )
+}
+
+function DashboardFiltersPanel({
+  filters,
+  setFilters,
+  courseOptions,
+  statusOptions,
+}: {
+  filters: DashboardFiltersState
+  setFilters: React.Dispatch<React.SetStateAction<DashboardFiltersState>>
+  courseOptions: Array<{ value: string; label: string }>
+  statusOptions: Array<{ value: string; label: string }>
+}) {
+  return (
+    <div className="bg-white p-8 rounded-3xl border border-slate-200 shadow-sm shadow-slate-200/20 space-y-8">
+      <div className="flex items-center gap-2.5 text-slate-400">
+        <Filter className="w-4 h-4" />
+        <span className="text-[11px] font-bold uppercase tracking-widest">
+          Filtros Avanzados
+        </span>
+      </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+        <Select
+          options={MONTHS}
+          value={filters.month}
+          onChange={(e) =>
+            setFilters({ ...filters, month: parseInt(e.target.value) })
+          }
+        />
+        <Select
+          options={getYearOptions()}
+          value={filters.year}
+          onChange={(e) =>
+            setFilters({ ...filters, year: parseInt(e.target.value) })
+          }
+        />
+        <Select
+          options={courseOptions}
+          value={filters.courseId}
+          onChange={(e) => setFilters({ ...filters, courseId: e.target.value })}
+        />
+        <Select
+          options={statusOptions}
+          value={filters.status}
+          onChange={(e) => setFilters({ ...filters, status: e.target.value })}
+        />
+      </div>
+
+      <div className="flex flex-wrap gap-8 pt-2">
+        <label className="flex items-center gap-3 cursor-pointer group">
+          <input
+            type="checkbox"
+            className="w-5 h-5 rounded-lg border-slate-300 text-indigo-600 focus:ring-indigo-500 transition-colors cursor-pointer"
+            checked={filters.onlyWithTests}
+            onChange={(e) =>
+              setFilters({ ...filters, onlyWithTests: e.target.checked })
+            }
+          />
+          <span className="text-sm font-bold text-slate-600 group-hover:text-slate-900 transition-colors">
+            Solo con pruebas afectadas
+          </span>
+        </label>
+
+        <label className="flex items-center gap-3 cursor-pointer group">
+          <input
+            type="checkbox"
+            className="w-5 h-5 rounded-lg border-slate-300 text-indigo-600 focus:ring-indigo-500 transition-colors cursor-pointer"
+            checked={filters.onlyWithoutDoc}
+            onChange={(e) =>
+              setFilters({ ...filters, onlyWithoutDoc: e.target.checked })
+            }
+          />
+          <span className="text-sm font-bold text-slate-600 group-hover:text-slate-900 transition-colors">
+            Sin documento adjunto
+          </span>
+        </label>
+      </div>
     </div>
   )
 }

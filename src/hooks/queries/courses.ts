@@ -1,7 +1,6 @@
 import { supabase } from '../../services/supabaseClient'
 import { useQueryClient, useMutation } from '@tanstack/react-query'
 import { courseService } from '../../services/courseService'
-import { QUERY_KEYS_INVALIDATE } from '../../constants'
 import { useQ, queryKeys } from './utils'
 import { CourseRow } from './types'
 

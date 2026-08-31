@@ -6,7 +6,6 @@ import {
   UseQueryResult,
 } from '@tanstack/react-query'
 import { studentService } from '../../services/studentService'
-import { QUERY_KEYS_INVALIDATE } from '../../constants'
 import { useQ, queryKeys } from './utils'
 import { StudentRow } from './types'
 

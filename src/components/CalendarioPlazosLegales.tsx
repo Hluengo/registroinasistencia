@@ -1,13 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react'
-import {
-  Calendar,
-  ChevronLeft,
-  ChevronRight,
-  Info,
-  Bell,
-  CheckCircle2,
-  AlertCircle,
-} from 'lucide-react'
+import { Info, Bell } from 'lucide-react'
 import {
   startOfMonth,
   endOfMonth,
@@ -76,10 +68,7 @@ const CalendarioPlazosLegales: React.FC<Props> = ({
   tests = EMPTY_EVENTS,
   holidays = EMPTY_HOLIDAYS,
   currentDate,
-  selectedDate,
   setSelectedDate,
-  onPrev,
-  onNext,
 }) => {
   const [hovered, setHovered] = useState<null | {
     ev: CalendarEvent

@@ -16,7 +16,7 @@ import {
   normalizeInspectorateRows,
   Holiday,
 } from '../lib/transformations'
-import { Absence, Student, Course, Test } from '../types'
+import { Test } from '../types'
 
 describe('Date utilities performance', () => {
   bench('toDateOnlyString with ISO string', () => {

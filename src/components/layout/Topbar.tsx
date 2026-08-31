@@ -3,7 +3,6 @@ import {
   Search,
   Bell,
   Menu,
-  X,
   CheckCircle2,
   AlertCircle,
   Info,
@@ -11,7 +10,7 @@ import {
 import { useQuery } from '@tanstack/react-query'
 import { supabase } from '../../services/supabaseClient'
 import { cn } from '../../utils'
-import { format, formatDistanceToNow } from 'date-fns'
+import { formatDistanceToNow } from 'date-fns'
 import { es } from 'date-fns/locale'
 import { useLayoutContext } from '../../contexts/LayoutContext'
 
@@ -132,7 +131,7 @@ export const Topbar: React.FC = () => {
         <button
           type="button"
           onClick={openSidebar}
-          className="lg:hidden p-2.5 text-slate-500 hover:bg-slate-50 rounded-xl transition-all duration-200 active:scale-95"
+          className="lg:hidden p-2.5 text-slate-500 hover:bg-slate-50 rounded-xl transition-transform transition-colors duration-200 active:scale-95"
           aria-label="Abrir menú lateral"
         >
           <Menu className="w-6 h-6" />
@@ -151,7 +150,11 @@ export const Topbar: React.FC = () => {
             )}
             strokeWidth={2}
           />
+          <label htmlFor="topbar-search" className="sr-only">
+            Buscar estudiantes o inasistencias
+          </label>
           <input
+            id="topbar-search"
             ref={searchRef}
             type="text"
             placeholder="Buscar estudiantes, inasistencias..."
@@ -160,7 +163,7 @@ export const Topbar: React.FC = () => {
             onFocus={() => setIsSearchFocused(true)}
             onBlur={() => setIsSearchFocused(false)}
             onKeyDown={handleKeyDown}
-            className="pl-11 pr-5 py-2.5 bg-slate-50/50 border border-slate-200/60 rounded-2xl text-sm font-medium focus:outline-none focus:ring-4 focus:ring-indigo-500/5 focus:border-indigo-500 focus:bg-white w-64 xl:w-80 transition-all duration-200"
+            className="pl-11 pr-5 py-2.5 bg-slate-50/50 border border-slate-200/60 rounded-2xl text-sm font-medium focus:outline-none focus:ring-4 focus:ring-indigo-500/5 focus:border-indigo-500 focus:bg-white w-64 xl:w-80 transition-colors duration-200"
           />
         </div>
 

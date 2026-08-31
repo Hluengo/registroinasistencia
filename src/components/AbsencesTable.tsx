@@ -46,10 +46,7 @@ function getKey(row: AbsenceWithDetails | FlatAbsenceRow): string {
   return row.id
 }
 
-function getStudentName(
-  row: AbsenceWithDetails | FlatAbsenceRow,
-  courses?: Course[]
-): string {
+function getStudentName(row: AbsenceWithDetails | FlatAbsenceRow): string {
   if (isFlatRow(row)) return row.student_name
   return row.student?.full_name || 'N/A'
 }
@@ -89,9 +86,6 @@ export const AbsencesTable: React.FC<AbsencesTableProps> = ({
   courses = [],
   loading,
   onViewDetail,
-  expandable = false,
-  expandedRows,
-  onToggleRow,
   showDocumentButton = false,
   title,
   showHeader = false,
@@ -100,7 +94,7 @@ export const AbsencesTable: React.FC<AbsencesTableProps> = ({
 }) => {
   const renderRow = (absence: AbsenceWithDetails | FlatAbsenceRow) => {
     const key = getKey(absence)
-    const studentName = getStudentName(absence, courses)
+    const studentName = getStudentName(absence)
     const courseName = getCourseName(absence, courses)
     const status = getStatus(absence)
     const affectedTests = getAffectedTestsCount(absence)
@@ -109,7 +103,6 @@ export const AbsencesTable: React.FC<AbsencesTableProps> = ({
       ? absence.start_date
       : absence.start_date
     const endDate = isFlatRow(absence) ? absence.end_date : absence.end_date
-    const isExpanded = expandedRows?.has(key)
 
     return (
       <React.Fragment key={key}>

@@ -15,7 +15,6 @@ import {
 type AppRole = 'teacher' | 'staff' | 'superuser' | null
 const GET_SESSION_TIMEOUT_MS = 20000
 const ROLE_TIMEOUT_MS = 12000
-const TENANT_TIMEOUT_MS = 10000
 const INVALID_REFRESH_TOKEN_RE =
   /(invalid refresh token|refresh token not found|invalid_grant)/i
 
@@ -46,6 +45,92 @@ async function getSessionWithRetry() {
 function isInvalidRefreshTokenError(error: unknown) {
   const message = error instanceof Error ? error.message : String(error ?? '')
   return INVALID_REFRESH_TOKEN_RE.test(message)
+}
+
+type AuthBootstrapOptions = {
+  loadMembership: (userId: string | null) => Promise<void>
+  mountedRef: React.MutableRefObject<boolean>
+  refreshRole: (userId?: string | null) => Promise<AppRole>
+  setAuthError: React.Dispatch<React.SetStateAction<string | null>>
+  setLoading: React.Dispatch<React.SetStateAction<boolean>>
+  setRole: React.Dispatch<React.SetStateAction<AppRole>>
+  setSession: React.Dispatch<React.SetStateAction<Session | null>>
+}
+
+async function runAuthBootstrap({
+  loadMembership,
+  mountedRef,
+  refreshRole,
+  setAuthError,
+  setLoading,
+  setRole,
+  setSession,
+}: AuthBootstrapOptions) {
+  setLoading(true)
+
+  try {
+    const sessionRes = await getSessionWithRetry()
+    if (!mountedRef.current) return
+    if (sessionRes === TIMEOUT) {
+      console.warn('useAuth.bootstrap: getSession timeout')
+      setAuthError('Tiempo de espera agotado al verificar sesión.')
+      setSession(null)
+      setRole(null)
+      return
+    }
+    const { data, error } = sessionRes
+    if (error && isInvalidRefreshTokenError(error)) {
+      console.warn(
+        'useAuth.bootstrap: invalid refresh token detected; clearing local session'
+      )
+      await supabase.auth.signOut({ scope: 'local' })
+      if (!mountedRef.current) return
+      setSession(null)
+      setRole(null)
+      setAuthError(null)
+      return
+    }
+    if (error) throw error
+    if (!mountedRef.current) return
+    const nextSession = data.session ?? null
+    setSession(nextSession)
+    setAuthError(null)
+    await refreshRole(nextSession?.user?.id ?? null)
+    if (!mountedRef.current) return
+    await loadMembership(nextSession?.user?.id ?? null)
+  } catch (error) {
+    console.error('useAuth.bootstrap error', error)
+    if (mountedRef.current) {
+      if (isInvalidRefreshTokenError(error)) {
+        console.warn(
+          'useAuth.bootstrap: invalid refresh token during recovery; clearing local session'
+        )
+        await supabase.auth.signOut({ scope: 'local' })
+        if (!mountedRef.current) return
+        setSession(null)
+        setRole(null)
+        setAuthError(null)
+        return
+      }
+      try {
+        const { data } = await supabase.auth.getSession()
+        if (!mountedRef.current) return
+        const nextSession = data.session ?? null
+        setSession(nextSession)
+        await refreshRole(nextSession?.user?.id ?? null)
+        if (!mountedRef.current) return
+      } catch (innerError) {
+        console.error('useAuth.bootstrap recovery getSession error', innerError)
+      }
+      setAuthError(
+        error instanceof Error
+          ? error.message
+          : 'No se pudo verificar la sesión.'
+      )
+    }
+  } finally {
+    if (mountedRef.current) setLoading(false)
+  }
 }
 
 export function useAuth() {
@@ -197,73 +282,15 @@ export function useAuth() {
 
   React.useEffect(() => {
     mountedRef.current = true
-
-    const bootstrap = async () => {
-      setLoading(true)
-
-      try {
-        const sessionRes = await getSessionWithRetry()
-        if (sessionRes === TIMEOUT) {
-          console.warn('useAuth.bootstrap: getSession timeout')
-          setAuthError('Tiempo de espera agotado al verificar sesión.')
-          setSession(null)
-          setRole(null)
-          return
-        }
-        const { data, error } = sessionRes
-        if (error && isInvalidRefreshTokenError(error)) {
-          console.warn(
-            'useAuth.bootstrap: invalid refresh token detected; clearing local session'
-          )
-          await supabase.auth.signOut({ scope: 'local' })
-          setSession(null)
-          setRole(null)
-          setAuthError(null)
-          return
-        }
-        if (error) throw error
-        if (!mountedRef.current) return
-        const nextSession = data.session ?? null
-        setSession(nextSession)
-        setAuthError(null)
-        await refreshRole(nextSession?.user?.id ?? null)
-        await loadMembership(nextSession?.user?.id ?? null)
-      } catch (error) {
-        console.error('useAuth.bootstrap error', error)
-        if (mountedRef.current) {
-          if (isInvalidRefreshTokenError(error)) {
-            console.warn(
-              'useAuth.bootstrap: invalid refresh token during recovery; clearing local session'
-            )
-            await supabase.auth.signOut({ scope: 'local' })
-            setSession(null)
-            setRole(null)
-            setAuthError(null)
-            return
-          }
-          try {
-            const { data } = await supabase.auth.getSession()
-            const nextSession = data.session ?? null
-            setSession(nextSession)
-            await refreshRole(nextSession?.user?.id ?? null)
-          } catch (innerError) {
-            console.error(
-              'useAuth.bootstrap recovery getSession error',
-              innerError
-            )
-          }
-          setAuthError(
-            error instanceof Error
-              ? error.message
-              : 'No se pudo verificar la sesión.'
-          )
-        }
-      } finally {
-        if (mountedRef.current) setLoading(false)
-      }
-    }
-
-    bootstrap()
+    void runAuthBootstrap({
+      loadMembership,
+      mountedRef,
+      refreshRole,
+      setAuthError,
+      setLoading,
+      setRole,
+      setSession,
+    })
 
     const {
       data: { subscription },
@@ -294,7 +321,7 @@ export function useAuth() {
       if (roleRefreshTimerRef.current) clearTimeout(roleRefreshTimerRef.current)
       subscription?.unsubscribe()
     }
-  }, [refreshRole])
+  }, [refreshRole, loadMembership])
 
   const signIn = React.useCallback(
     async (email: string, password: string): Promise<AppRole> => {

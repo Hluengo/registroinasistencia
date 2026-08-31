@@ -15,6 +15,7 @@ import { StaffMessagesList } from './StaffMessagesList'
 import {
   messageFormReducer,
   initialMessageFormState,
+  MessageFormAction,
   MessageFormState,
 } from './messageFormReducer'
 
@@ -190,146 +191,18 @@ export const StaffInstantMessagesManager: React.FC<
 
   return (
     <div className="space-y-5">
-      <form
+      <StaffMessageForm
+        canSubmitMessage={canSubmitMessage}
+        dispatch={dispatch}
+        formState={formState}
+        isEditingMessage={isEditingMessage}
+        loading={createMessage.isPending || updateMessage.isPending}
+        messageCourseOptions={messageCourseOptions}
+        messageStudentOptions={messageStudentOptions}
+        messageStudentsLoading={messageStudentsLoading}
+        onReset={resetMessageForm}
         onSubmit={handleCreateMessage}
-        className="grid grid-cols-1 lg:grid-cols-12 gap-3"
-      >
-        <div className="lg:col-span-6">
-          <label
-            htmlFor="instant-message-course"
-            className="text-xs font-semibold text-slate-500 uppercase tracking-wider ml-1"
-          >
-            Curso
-          </label>
-          <Select
-            id="instant-message-course"
-            className="mt-1"
-            value={formState.courseId}
-            onChange={(e) =>
-              dispatch({ type: 'SET', payload: { courseId: e.target.value } })
-            }
-            options={messageCourseOptions}
-          />
-        </div>
-        <div className="lg:col-span-6">
-          <label
-            htmlFor="instant-message-student"
-            className="text-xs font-semibold text-slate-500 uppercase tracking-wider ml-1"
-          >
-            Estudiante
-          </label>
-          <Select
-            id="instant-message-student"
-            className="mt-1"
-            value={formState.studentId}
-            onChange={(e) =>
-              dispatch({ type: 'SET', payload: { studentId: e.target.value } })
-            }
-            options={messageStudentOptions}
-            disabled={!formState.courseId || messageStudentsLoading}
-          />
-        </div>
-        <div className="lg:col-span-6">
-          <label
-            htmlFor="instant-message-title"
-            className="text-xs font-semibold text-slate-500 uppercase tracking-wider ml-1"
-          >
-            Título
-          </label>
-          <input
-            id="instant-message-title"
-            value={formState.title}
-            onChange={(e) =>
-              dispatch({ type: 'SET', payload: { title: e.target.value } })
-            }
-            className="input-base mt-1"
-            placeholder="Ej: Cambio de horario por contingencia"
-            maxLength={120}
-          />
-        </div>
-        <div className="lg:col-span-3">
-          <label
-            htmlFor="instant-message-scope"
-            className="text-xs font-semibold text-slate-500 uppercase tracking-wider ml-1"
-          >
-            Alcance
-          </label>
-          <Select
-            id="instant-message-scope"
-            className="mt-1"
-            value={formState.scope}
-            onChange={(e) =>
-              dispatch({
-                type: 'SET',
-                payload: {
-                  scope: e.target.value as 'GENERAL' | 'BASICA' | 'MEDIA',
-                },
-              })
-            }
-            options={[
-              { label: 'General', value: 'GENERAL' },
-              { label: 'BÁSICA', value: 'BASICA' },
-              { label: 'MEDIA', value: 'MEDIA' },
-            ]}
-          />
-        </div>
-        <div className="lg:col-span-3">
-          <label
-            htmlFor="instant-message-ends-at"
-            className="text-xs font-semibold text-slate-500 uppercase tracking-wider ml-1"
-          >
-            Vigente hasta
-          </label>
-          <input
-            id="instant-message-ends-at"
-            type="datetime-local"
-            value={formState.endsAt}
-            onChange={(e) =>
-              dispatch({ type: 'SET', payload: { endsAt: e.target.value } })
-            }
-            className="input-base mt-1"
-          />
-        </div>
-        <div className="lg:col-span-12">
-          <label
-            htmlFor="instant-message-body"
-            className="text-xs font-semibold text-slate-500 uppercase tracking-wider ml-1"
-          >
-            Mensaje
-          </label>
-          <textarea
-            id="instant-message-body"
-            value={formState.body}
-            onChange={(e) =>
-              dispatch({ type: 'SET', payload: { body: e.target.value } })
-            }
-            rows={3}
-            maxLength={1200}
-            className="input-base mt-1 resize-y"
-            placeholder="Describe la situación particular a informar."
-          />
-        </div>
-        <div className="lg:col-span-12 flex items-center justify-between gap-3">
-          <p className="text-xs text-slate-500 flex items-center gap-1.5">
-            <AlertCircle className="w-3.5 h-3.5" />
-            Se mostrará de inmediato en la vista docente.
-          </p>
-          <div className="flex items-center gap-2">
-            {isEditingMessage ? (
-              <Button type="button" variant="ghost" onClick={resetMessageForm}>
-                Cancelar edición
-              </Button>
-            ) : null}
-            <Button
-              type="submit"
-              loading={createMessage.isPending || updateMessage.isPending}
-              disabled={!canSubmitMessage}
-            >
-              {isEditingMessage ? 'Guardar cambios' : 'Publicar mensaje'}
-            </Button>
-          </div>
-        </div>
-      </form>
+      />
       <StaffMessagesList
         messages={manageableMessages}
         isLoading={manageableMessagesLoading}
@@ -339,5 +212,168 @@ export const StaffInstantMessagesManager: React.FC<
         onToggleActive={toggleMessageActive}
       />
     </div>
+  )
+}
+
+function StaffMessageForm({
+  canSubmitMessage,
+  dispatch,
+  formState,
+  isEditingMessage,
+  loading,
+  messageCourseOptions,
+  messageStudentOptions,
+  messageStudentsLoading,
+  onReset,
+  onSubmit,
+}: {
+  canSubmitMessage: boolean
+  dispatch: React.Dispatch<MessageFormAction>
+  formState: MessageFormState
+  isEditingMessage: boolean
+  loading: boolean
+  messageCourseOptions: Array<{ value: string; label: string }>
+  messageStudentOptions: Array<{ value: string; label: string }>
+  messageStudentsLoading: boolean
+  onReset: () => void
+  onSubmit: (e: React.FormEvent) => void
+}) {
+  return (
+    <form
+      onSubmit={onSubmit}
+      className="grid grid-cols-1 lg:grid-cols-12 gap-3"
+    >
+      <div className="lg:col-span-6">
+        <label
+          htmlFor="instant-message-course"
+          className="text-xs font-semibold text-slate-500 uppercase tracking-wider ml-1"
+        >
+          Curso
+        </label>
+        <Select
+          id="instant-message-course"
+          className="mt-1"
+          value={formState.courseId}
+          onChange={(e) =>
+            dispatch({ type: 'SET', payload: { courseId: e.target.value } })
+          }
+          options={messageCourseOptions}
+        />
+      </div>
+      <div className="lg:col-span-6">
+        <label
+          htmlFor="instant-message-student"
+          className="text-xs font-semibold text-slate-500 uppercase tracking-wider ml-1"
+        >
+          Estudiante
+        </label>
+        <Select
+          id="instant-message-student"
+          className="mt-1"
+          value={formState.studentId}
+          onChange={(e) =>
+            dispatch({ type: 'SET', payload: { studentId: e.target.value } })
+          }
+          options={messageStudentOptions}
+          disabled={!formState.courseId || messageStudentsLoading}
+        />
+      </div>
+      <div className="lg:col-span-6">
+        <label
+          htmlFor="instant-message-title"
+          className="text-xs font-semibold text-slate-500 uppercase tracking-wider ml-1"
+        >
+          Título
+        </label>
+        <input
+          id="instant-message-title"
+          value={formState.title}
+          onChange={(e) =>
+            dispatch({ type: 'SET', payload: { title: e.target.value } })
+          }
+          className="input-base mt-1"
+          placeholder="Ej: Cambio de horario por contingencia"
+          maxLength={120}
+        />
+      </div>
+      <div className="lg:col-span-3">
+        <label
+          htmlFor="instant-message-scope"
+          className="text-xs font-semibold text-slate-500 uppercase tracking-wider ml-1"
+        >
+          Alcance
+        </label>
+        <Select
+          id="instant-message-scope"
+          className="mt-1"
+          value={formState.scope}
+          onChange={(e) =>
+            dispatch({
+              type: 'SET',
+              payload: {
+                scope: e.target.value as 'GENERAL' | 'BASICA' | 'MEDIA',
+              },
+            })
+          }
+          options={[
+            { label: 'General', value: 'GENERAL' },
+            { label: 'BÁSICA', value: 'BASICA' },
+            { label: 'MEDIA', value: 'MEDIA' },
+          ]}
+        />
+      </div>
+      <div className="lg:col-span-3">
+        <label
+          htmlFor="instant-message-ends-at"
+          className="text-xs font-semibold text-slate-500 uppercase tracking-wider ml-1"
+        >
+          Vigente hasta
+        </label>
+        <input
+          id="instant-message-ends-at"
+          type="datetime-local"
+          value={formState.endsAt}
+          onChange={(e) =>
+            dispatch({ type: 'SET', payload: { endsAt: e.target.value } })
+          }
+          className="input-base mt-1"
+        />
+      </div>
+      <div className="lg:col-span-12">
+        <label
+          htmlFor="instant-message-body"
+          className="text-xs font-semibold text-slate-500 uppercase tracking-wider ml-1"
+        >
+          Mensaje
+        </label>
+        <textarea
+          id="instant-message-body"
+          value={formState.body}
+          onChange={(e) =>
+            dispatch({ type: 'SET', payload: { body: e.target.value } })
+          }
+          rows={3}
+          maxLength={1200}
+          className="input-base mt-1 resize-y"
+          placeholder="Describe la situación particular a informar."
+        />
+      </div>
+      <div className="lg:col-span-12 flex items-center justify-between gap-3">
+        <p className="text-xs text-slate-500 flex items-center gap-1.5">
+          <AlertCircle className="w-3.5 h-3.5" />
+          Se mostrará de inmediato en la vista docente.
+        </p>
+        <div className="flex items-center gap-2">
+          {isEditingMessage ? (
+            <Button type="button" variant="ghost" onClick={onReset}>
+              Cancelar edición
+            </Button>
+          ) : null}
+          <Button type="submit" loading={loading} disabled={!canSubmitMessage}>
+            {isEditingMessage ? 'Guardar cambios' : 'Publicar mensaje'}
+          </Button>
+        </div>
+      </div>
+    </form>
   )
 }

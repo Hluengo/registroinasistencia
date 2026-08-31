@@ -1,7 +1,6 @@
 import { supabase } from './supabaseClient'
 import { Course } from '../types'
 import { Database } from '../types/db'
-import { handleError } from '../utils/error-handler'
 
 export const courseService = {
   getCourses: async (level?: 'BASICA' | 'MEDIA'): Promise<Course[]> => {

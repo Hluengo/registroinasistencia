@@ -23,7 +23,14 @@ import { Input } from '../components/ui/Input'
 import { Select } from '../components/ui/Select'
 import { TableSkeleton } from '../components/ui/Skeleton'
 import { FormError } from '../components/ui/FormError'
-import { useForm } from 'react-hook-form'
+import {
+  useForm,
+  type FieldErrors,
+  type UseFormHandleSubmit,
+  type UseFormRegister,
+  type UseFormRegisterReturn,
+  type UseFormSetValue,
+} from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { inspectorateRecordValidationSchema } from '../lib/validators'
 import {
@@ -44,6 +51,20 @@ type InspectorRowView = {
   date_time: string
   observation: string
   student: Student & { course: Course }
+}
+
+type InspectorateFormData = {
+  course_id?: string
+  student_id: string
+  date_time: string
+  observation: string
+}
+
+type InspectoriaFiltersState = {
+  courseId: string
+  month: number
+  year: number
+  searchQuery: string
 }
 
 interface InspectoriaDetailModalProps {
@@ -108,7 +129,7 @@ const InspectoriaDetailModal: React.FC<InspectoriaDetailModalProps> = ({
               Completa
             </p>
             <div className="p-5 bg-white border border-slate-200 rounded-2xl text-slate-700 text-sm leading-relaxed italic shadow-sm">
-              "{selectedRecord.observation}"
+              &quot;{selectedRecord.observation}&quot;
             </div>
           </div>
 
@@ -265,12 +286,7 @@ export const Inspectoria: React.FC<InspectoriaProps> = ({ level }) => {
     reset,
     setValue,
     formState: { errors },
-  } = useForm<{
-    course_id?: string
-    student_id: string
-    date_time: string
-    observation: string
-  }>({
+  } = useForm<InspectorateFormData>({
     resolver: zodResolver(inspectorateRecordValidationSchema),
     mode: 'onBlur',
     defaultValues: {
@@ -366,11 +382,7 @@ export const Inspectoria: React.FC<InspectoriaProps> = ({ level }) => {
     patchUiState({ isModalOpen: false })
   }, [reset])
 
-  const onSubmit = async (data: {
-    student_id: string
-    date_time: string
-    observation: string
-  }) => {
+  const onSubmit = async (data: InspectorateFormData) => {
     if (
       !createMutationGuard(mutationLoading, () =>
         showToast({
@@ -383,7 +395,7 @@ export const Inspectoria: React.FC<InspectoriaProps> = ({ level }) => {
     }
     try {
       patchUiState({ mutationLoading: true })
-      const res = await createRecord.mutateAsync({
+      await createRecord.mutateAsync({
         student_id: data.student_id,
         date_time: data.date_time,
         observation: data.observation,
@@ -421,69 +433,11 @@ export const Inspectoria: React.FC<InspectoriaProps> = ({ level }) => {
           </Button>
         }
         filters={
-          <div className="w-full grid grid-cols-1 lg:grid-cols-12 gap-4 items-end">
-            <div className="lg:col-span-5">
-              <Input
-                placeholder="Buscar por estudiante u observación..."
-                icon={<Search className="w-4 h-4" />}
-                value={filters.searchQuery}
-                onChange={(e) =>
-                  patchUiState({
-                    filters: { ...filters, searchQuery: e.target.value },
-                  })
-                }
-              />
-            </div>
-            <div className="lg:col-span-2">
-              <Select
-                options={MONTHS}
-                value={filters.month}
-                onChange={(e) =>
-                  patchUiState({
-                    filters: { ...filters, month: parseInt(e.target.value) },
-                  })
-                }
-              />
-            </div>
-            <div className="lg:col-span-2">
-              <Select
-                options={getYearOptions()}
-                value={filters.year}
-                onChange={(e) =>
-                  patchUiState({
-                    filters: { ...filters, year: parseInt(e.target.value) },
-                  })
-                }
-              />
-            </div>
-            <div className="lg:col-span-3">
-              <Select
-                options={courseOptions}
-                value={filters.courseId}
-                onChange={(e) =>
-                  patchUiState({
-                    filters: { ...filters, courseId: e.target.value },
-                  })
-                }
-              />
-            </div>
-            {(filters.courseId || filters.searchQuery) && (
-              <div className="lg:col-span-12 flex justify-end">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => {
-                    patchUiState({
-                      filters: { ...filters, courseId: '', searchQuery: '' },
-                    })
-                  }}
-                  className="font-bold text-slate-500 hover:text-indigo-600"
-                >
-                  Limpiar Filtros
-                </Button>
-              </div>
-            )}
-          </div>
+          <InspectoriaFilters
+            courseOptions={courseOptions}
+            filters={filters}
+            setFilters={(filters) => patchUiState({ filters })}
+          />
         }
       />
 
@@ -493,87 +447,21 @@ export const Inspectoria: React.FC<InspectoriaProps> = ({ level }) => {
         onViewDetail={handleViewDetail}
       />
 
-      <Modal
-        isOpen={isModalOpen}
-        onClose={closeCreateModal}
-        title="Registrar Atención de Inspectoría"
-        size="lg"
-      >
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div>
-              <Select
-                label="Curso"
-                options={[
-                  { value: '', label: 'Seleccionar curso' },
-                  ...(courses as Course[]).map((c: Course) => ({
-                    value: c.id,
-                    label: c.name,
-                  })),
-                ]}
-                {...courseField}
-                onChange={(e) => {
-                  courseField.onChange(e)
-                  setValue('student_id', '', { shouldValidate: true })
-                }}
-              />
-            </div>
-            <div>
-              <Select
-                label="Estudiante"
-                options={[
-                  { value: '', label: 'Seleccionar estudiante' },
-                  ...(students as Student[]).map((s: Student) => ({
-                    value: s.id,
-                    label: s.full_name,
-                  })),
-                ]}
-                {...studentField}
-                disabled={!watchCourse}
-              />
-              <FormError error={errors.student_id} />
-            </div>
-          </div>
-
-          <div>
-            <Input
-              label="Fecha y Hora"
-              type="datetime-local"
-              {...register('date_time', {
-                required: 'La fecha y hora son requeridas',
-              })}
-            />
-            <FormError error={errors.date_time} />
-          </div>
-
-          <div className="space-y-2">
-            <label
-              htmlFor="inspectoria-observation"
-              className="text-sm font-bold text-slate-700 ml-1"
-            >
-              Observación / Detalle
-            </label>
-            <textarea
-              id="inspectoria-observation"
-              {...register('observation', {
-                required: 'La observación es requerida',
-              })}
-              className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500/20 min-h-[120px] text-slate-700"
-              placeholder="Describa la situación o motivo de la atención..."
-            />
-            <FormError error={errors.observation} />
-          </div>
-
-          <div className="flex justify-end gap-3 pt-4">
-            <Button variant="ghost" onClick={closeCreateModal}>
-              Cancelar
-            </Button>
-            <Button type="submit" loading={loading || mutationLoading}>
-              Registrar Atención
-            </Button>
-          </div>
-        </form>
-      </Modal>
+      <CreateInspectorateModal
+        closeCreateModal={closeCreateModal}
+        courseField={courseField}
+        courses={courses as Course[]}
+        errors={errors}
+        handleSubmit={handleSubmit}
+        isModalOpen={isModalOpen}
+        loading={loading || mutationLoading}
+        onSubmit={onSubmit}
+        register={register}
+        setValue={setValue}
+        studentField={studentField}
+        students={students as Student[]}
+        watchCourse={watchCourse}
+      />
 
       <InspectoriaDetailModal
         isOpen={isDetailModalOpen}
@@ -581,5 +469,183 @@ export const Inspectoria: React.FC<InspectoriaProps> = ({ level }) => {
         selectedRecord={selectedRecord}
       />
     </div>
+  )
+}
+
+function InspectoriaFilters({
+  courseOptions,
+  filters,
+  setFilters,
+}: {
+  courseOptions: Array<{ value: string; label: string }>
+  filters: InspectoriaFiltersState
+  setFilters: (filters: InspectoriaFiltersState) => void
+}) {
+  return (
+    <div className="w-full grid grid-cols-1 lg:grid-cols-12 gap-4 items-end">
+      <div className="lg:col-span-5">
+        <Input
+          placeholder="Buscar por estudiante u observación..."
+          icon={<Search className="w-4 h-4" />}
+          value={filters.searchQuery}
+          onChange={(e) =>
+            setFilters({ ...filters, searchQuery: e.target.value })
+          }
+        />
+      </div>
+      <div className="lg:col-span-2">
+        <Select
+          options={MONTHS}
+          value={filters.month}
+          onChange={(e) =>
+            setFilters({ ...filters, month: parseInt(e.target.value) })
+          }
+        />
+      </div>
+      <div className="lg:col-span-2">
+        <Select
+          options={getYearOptions()}
+          value={filters.year}
+          onChange={(e) =>
+            setFilters({ ...filters, year: parseInt(e.target.value) })
+          }
+        />
+      </div>
+      <div className="lg:col-span-3">
+        <Select
+          options={courseOptions}
+          value={filters.courseId}
+          onChange={(e) => setFilters({ ...filters, courseId: e.target.value })}
+        />
+      </div>
+      {(filters.courseId || filters.searchQuery) && (
+        <div className="lg:col-span-12 flex justify-end">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() =>
+              setFilters({ ...filters, courseId: '', searchQuery: '' })
+            }
+            className="font-bold text-slate-500 hover:text-indigo-600"
+          >
+            Limpiar Filtros
+          </Button>
+        </div>
+      )}
+    </div>
+  )
+}
+
+function CreateInspectorateModal({
+  closeCreateModal,
+  courseField,
+  courses,
+  errors,
+  handleSubmit,
+  isModalOpen,
+  loading,
+  onSubmit,
+  register,
+  setValue,
+  studentField,
+  students,
+  watchCourse,
+}: {
+  closeCreateModal: () => void
+  courseField: UseFormRegisterReturn<'course_id'>
+  courses: Course[]
+  errors: FieldErrors<InspectorateFormData>
+  handleSubmit: UseFormHandleSubmit<InspectorateFormData>
+  isModalOpen: boolean
+  loading: boolean
+  onSubmit: (data: InspectorateFormData) => void | Promise<void>
+  register: UseFormRegister<InspectorateFormData>
+  setValue: UseFormSetValue<InspectorateFormData>
+  studentField: UseFormRegisterReturn<'student_id'>
+  students: Student[]
+  watchCourse: string
+}) {
+  return (
+    <Modal
+      isOpen={isModalOpen}
+      onClose={closeCreateModal}
+      title="Registrar Atención de Inspectoría"
+      size="lg"
+    >
+      <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div>
+            <Select
+              label="Curso"
+              options={[
+                { value: '', label: 'Seleccionar curso' },
+                ...courses.map((c) => ({
+                  value: c.id,
+                  label: c.name,
+                })),
+              ]}
+              {...courseField}
+              onChange={(e) => {
+                courseField.onChange(e)
+                setValue('student_id', '', { shouldValidate: true })
+              }}
+            />
+          </div>
+          <div>
+            <Select
+              label="Estudiante"
+              options={[
+                { value: '', label: 'Seleccionar estudiante' },
+                ...students.map((s) => ({
+                  value: s.id,
+                  label: s.full_name,
+                })),
+              ]}
+              {...studentField}
+              disabled={!watchCourse}
+            />
+            <FormError error={errors.student_id} />
+          </div>
+        </div>
+
+        <div>
+          <Input
+            label="Fecha y Hora"
+            type="datetime-local"
+            {...register('date_time', {
+              required: 'La fecha y hora son requeridas',
+            })}
+          />
+          <FormError error={errors.date_time} />
+        </div>
+
+        <div className="space-y-2">
+          <label
+            htmlFor="inspectoria-observation"
+            className="text-sm font-bold text-slate-700 ml-1"
+          >
+            Observación / Detalle
+          </label>
+          <textarea
+            id="inspectoria-observation"
+            {...register('observation', {
+              required: 'La observación es requerida',
+            })}
+            className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500/20 min-h-[120px] text-slate-700"
+            placeholder="Describa la situación o motivo de la atención..."
+          />
+          <FormError error={errors.observation} />
+        </div>
+
+        <div className="flex justify-end gap-3 pt-4">
+          <Button variant="ghost" onClick={closeCreateModal}>
+            Cancelar
+          </Button>
+          <Button type="submit" loading={loading}>
+            Registrar Atención
+          </Button>
+        </div>
+      </form>
+    </Modal>
   )
 }
