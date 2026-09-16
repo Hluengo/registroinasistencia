@@ -48,6 +48,16 @@ export const Sidebar: React.FC = () => {
     return true
   })
 
+  const handleLoginClick = () => {
+    onClose()
+    onLoginClick()
+  }
+
+  const handleLogoutClick = () => {
+    onClose()
+    onLogoutClick()
+  }
+
   return (
     <>
       {/* Mobile Overlay */}
@@ -188,7 +198,7 @@ export const Sidebar: React.FC = () => {
               {role !== 'public' ? (
                 <button
                   type="button"
-                  onClick={onLogoutClick}
+                  onClick={handleLogoutClick}
                   className="w-full px-3 py-2 text-xs font-bold text-slate-600 border border-slate-200 rounded-xl hover:bg-slate-100 transition-colors"
                 >
                   Cerrar sesión
@@ -196,7 +206,7 @@ export const Sidebar: React.FC = () => {
               ) : (
                 <button
                   type="button"
-                  onClick={onLoginClick}
+                  onClick={handleLoginClick}
                   className="w-full px-3 py-2 text-xs font-bold text-white bg-indigo-600 rounded-xl hover:bg-indigo-700 transition-colors"
                 >
                   Ingresar Staff
