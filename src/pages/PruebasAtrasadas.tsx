@@ -94,6 +94,10 @@ export const PruebasAtrasadas: React.FC<PruebasAtrasadasProps> = ({
       level,
       studentId: selectedStudentId ?? undefined,
     })
+  const { data: printingExams = [] } = useMakeupExams({
+    level,
+    studentId: printingStudentId ?? undefined,
+  })
   const selectedExam = React.useMemo(
     () => exams.find((exam) => exam.student_id === selectedStudentId),
     [exams, selectedStudentId]
@@ -465,7 +469,7 @@ export const PruebasAtrasadas: React.FC<PruebasAtrasadasProps> = ({
       <MakeupExamPrintModal
         isOpen={Boolean(printingStudentId)}
         onClose={() => setPrintingStudentId(null)}
-        exams={filteredExams}
+        exams={printingStudentId ? printingExams : filteredExams}
         initialStudentId={printingStudentId ?? undefined}
       />
     </div>

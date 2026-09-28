@@ -37,8 +37,15 @@ export const StudentMakeupDetailModal: React.FC<
   onStatusChange,
   onPrint,
 }) => {
-  const student = exams[0]?.students ?? selectedStudent
-  const stats = summarizeMakeupExams(exams)
+  const sortedExams = React.useMemo(
+    () =>
+      exams
+        .slice()
+        .sort((a, b) => a.scheduled_date.localeCompare(b.scheduled_date)),
+    [exams]
+  )
+  const student = sortedExams[0]?.students ?? selectedStudent
+  const stats = summarizeMakeupExams(sortedExams)
 
   return (
     <Modal
@@ -111,7 +118,7 @@ export const StudentMakeupDetailModal: React.FC<
                       Cargando pruebas del estudiante…
                     </td>
                   </tr>
-                ) : exams.length === 0 ? (
+                ) : sortedExams.length === 0 ? (
                   <tr>
                     <td
                       colSpan={4}
@@ -121,7 +128,7 @@ export const StudentMakeupDetailModal: React.FC<
                     </td>
                   </tr>
                 ) : (
-                  exams.map((exam) => (
+                  sortedExams.map((exam) => (
                     <tr key={exam.id}>
                       <td className="break-words px-4 py-3 font-semibold text-slate-800">
                         {exam.subject}
