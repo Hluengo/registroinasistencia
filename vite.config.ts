@@ -21,9 +21,22 @@ export default defineConfig(() => {
       }
     ],
     resolve: {
-      alias: {
-        '@': path.resolve(__dirname, '.'),
-      },
+      alias: [
+        {
+          find: '@',
+          replacement: path.resolve(__dirname, '.'),
+        },
+        // canvg (transitive dep via jspdf) unconditionally imports core-js
+        // polyfill modules whose global-detection fallback uses
+        // Function("return this")(), tripping strict CSP (script-src without
+        // 'unsafe-eval'). The app targets modern browsers that already
+        // implement everything canvg needs natively, so alias those
+        // side-effect imports to an empty stub (src/lib/coreJsStub.ts).
+        {
+          find: /^core-js(\/.*)?$/,
+          replacement: path.resolve(__dirname, 'src/lib/coreJsStub.ts'),
+        },
+      ],
     },
     server: {
       // HMR is disabled in AI Studio via DISABLE_HMR env var.
